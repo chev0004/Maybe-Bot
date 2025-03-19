@@ -23,6 +23,15 @@ const commands = [
   new SlashCommandBuilder()
     .setName('statusserver')
     .setDescription('マイクラサーバーの現在状況を表示。Display the current server stats'),
+  new SlashCommandBuilder()
+    .setName('smite')
+    .setDescription('人に神罰を与える。Punish someone with the God\'s Wrath.')
+    .addStringOption(option =>
+      option
+        .setName('victim')
+        .setDescription('神罰を受ける者の名を入力。Enter the username of the victim to be smitten')
+        .setRequired(true)
+    ),
 ];
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
@@ -43,53 +52,70 @@ discordClient.once('ready', async () => {
   console.log(`Logged in as ${discordClient.user.tag}!`);
 });
 
+const handleApprovalProcess = async (interaction, requiredApprovals, actionMessage, actionMessageEN, successCallback, failureMessage) =>{
+  await interaction.deferReply({ ephemeral: false });
+  try {
+    const pollMessage = await interaction.editReply(
+      `${actionMessage}には${requiredApprovals}つの承認が必要です。\n✅を押して承認してください。\nWe need ${requiredApprovals} ${requiredApprovals === 1 ? 'approval' : 'approvals'} to ${actionMessageEN}.\nReact with ✅ to approve.`
+    );
+
+    await pollMessage.react('✅');
+
+    const filter = (reaction, user) => {
+      return reaction.emoji.name === '✅' && !user.bot;
+    };
+
+    const uniqueApprovals = new Set();
+
+    const collector = pollMessage.createReactionCollector({ filter, time: 60000 });
+
+    collector.on('collect', (_, user) => {
+      uniqueApprovals.add(user.id);
+      if (uniqueApprovals.size >= requiredApprovals) {
+        collector.stop('enough_approvals');
+      }
+    });
+
+    collector.on('end', async (_, reason) => {
+      if (reason === 'enough_approvals') {
+        try {
+          await successCallback(pollMessage);
+        } catch (error) {
+          console.error(error);
+          await pollMessage.reply(failureMessage);
+        }
+      } else {
+        await pollMessage.reply('タイムアウトまたは承認不足のため、操作をキャンセルしました。');
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    await interaction.editReply('エラーが発生しました。');
+  }
+}
+
 discordClient.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return;
 
   if (interaction.commandName === 'startserver') {
-    await interaction.deferReply({ ephemeral: false });
-    try {
-      const pollMessage = await interaction.editReply(
-        'サーバーを起動するには2つの承認が必要です。\n✅を押して承認してください。\nWe need 2 approvals to start the server.\nReact with ✅ to approve.'
-      );
-  
-      await pollMessage.react('✅');
-  
-      const filter = (reaction, user) => {
-        return reaction.emoji.name === '✅' && !user.bot;
-      };
-  
-      const uniqueApprovals = new Set();
-  
-      const collector = pollMessage.createReactionCollector({ filter, time: 60000 });
-  
-      collector.on('collect', (_, user) => {
-        uniqueApprovals.add(user.id);
-        if (uniqueApprovals.size >= 1) {
-          collector.stop('enough_approvals');
-        }
-      });
-  
-      collector.on('end', async (_, reason) => {
-        if (reason === 'enough_approvals') {
-          try {
-            const server = exarotonClient.server(SERVER_ID);
-            await server.get(); 
-            await server.start();
-            await pollMessage.reply('サーバーが起動中...');
-          } catch (error) {
-            console.error(error);
-            await pollMessage.reply('サーバーの起動に失敗しました。');
-          }
-        } else {
-          await pollMessage.reply('タイムアウトまたは承認不足のため、サーバー起動をキャンセルしました。');
-        }
-      });
-  
-    } catch (error) {
-      console.error(error);
-      await interaction.editReply('エラーが発生しました。');
-    }
+    const requiredApprovals = 1;
+    const actionMessage = 'サーバーを起動する';
+    const actionMessageEN = 'start the server';
+    
+    await handleApprovalProcess(
+      interaction,
+      requiredApprovals,
+      actionMessage,
+      actionMessageEN,
+      async (pollMessage) => {
+        const server = exarotonClient.server(SERVER_ID);
+        await server.get(); 
+        await server.start();
+        await pollMessage.reply('サーバーが起動中...');
+      },
+      'サーバーの起動に失敗しました。'
+    );
   } else if (interaction.commandName === 'statusserver') {
     await interaction.deferReply({ ephemeral: false });
     try {
@@ -150,6 +176,29 @@ discordClient.on('interactionCreate', async (interaction) => {
       console.error('Error fetching server status:', error);
       await interaction.editReply('サーバー情報の取得に失敗しました。');
     }
+  } else if (interaction.commandName === 'smite') {
+    const victim = interaction.options.getString('victim');
+    
+    const requiredApprovals = 1;
+    const actionMessage = `${victim} に神罰を与える`;
+    const actionMessageEN = `Smite ${victim} with God's Wrath`;
+  
+    await handleApprovalProcess(
+      interaction,
+      requiredApprovals,
+      actionMessage,
+      actionMessageEN,
+      async (pollMessage) => {
+        const server = exarotonClient.server(SERVER_ID);
+        const command = Array(100)
+          .fill(`execute at ${victim} run summon minecraft:lightning_bolt ~ ~ ~`)
+          .join('\n');
+  
+        await server.executeCommand(command);
+        await pollMessage.reply(`${victim} に神罰を与えました。`);
+      },
+      '神罰が失敗しました。'
+    );
   }
 });
 
