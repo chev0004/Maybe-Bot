@@ -166,7 +166,7 @@ discordClient.on('interactionCreate', async (interaction) => {
       const embed = new EmbedBuilder()
         .setTitle('サーバーの現在状況')
         .setColor(embedColor)
-        .setFooter({ text: 'サーバー情報' })
+        .setFooter({ text: 'maybeminecraft.exaroton.me' })
         .setTimestamp();
   
       embed.setDescription(`**ステータス**: ${statusString}`);
