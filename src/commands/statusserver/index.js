@@ -1,0 +1,71 @@
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+
+export default {
+  data: new SlashCommandBuilder()
+    .setName('statusserver')
+    .setDescription('マイクラサーバーの現在状況を表示。Display the current server stats'),
+    
+  async execute(interaction, _client, options) {
+    const { exarotonClient, SERVER_ID } = options;
+    
+    await interaction.deferReply({ ephemeral: false });
+    try {
+      const server = exarotonClient.server(SERVER_ID);
+      await server.get();
+  
+      const statusCode = server.status;
+      const statusMap = {
+        0: 'オフライン',
+        1: 'オンライン',
+        2: '起動中',
+        3: '再起動中',
+        4: '保存中',
+        5: 'ロード中',
+        6: '停止中',
+        7: '保留中',
+      };
+      const statusString = statusMap[statusCode] || 'Unknown';
+  
+      let embedColor = 0x5865F2;
+      if (statusCode === 1) {
+        embedColor = 0x57F287;
+      } else if ([2,3,4,5,6,7].includes(statusCode)) {
+        embedColor = 0xFEE75C;
+      } else if (statusCode === 0) {
+        embedColor = 0xED4245;
+      }
+  
+      const embed = new EmbedBuilder()
+        .setTitle('サーバーの現在状況')
+        .setColor(embedColor)
+        .setFooter({ text: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
+  
+      embed.setDescription(`**ステータス**: ${statusString}`);
+  
+      if (statusCode === 1) {
+        const playerCount = server.players.count;
+        const playerMax = server.players.max;
+        const playerList = server.players.list;
+  
+        embed.addFields(
+          {
+            name: 'プレーヤー数',
+            value: `${playerCount} / ${playerMax}`,
+            inline: true,
+          },
+          {
+            name: 'プレーヤーリスト',
+            value: playerCount > 0 ? playerList.join(', ') : 'なし',
+            inline: false,
+          }
+        );
+      }
+  
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+      console.error('Error fetching server status:', error);
+      await interaction.editReply('サーバー情報の取得に失敗しました。');
+    }
+  }
+};
