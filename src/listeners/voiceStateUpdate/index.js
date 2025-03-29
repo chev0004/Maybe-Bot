@@ -3,8 +3,6 @@ import { Colors } from '../../constants/Colors.js';
 
 const userJoinTimes = new Map();
 
-const VOICE_LOG_CHANNEL_ID = process.env.VOICE_LOG_CHANNEL_ID;
-
 function formatDuration(milliseconds) {
   const seconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -24,7 +22,7 @@ export default {
   event: 'voiceStateUpdate',
   
   async execute(oldState, newState, client) {
-    const logChannelId = VOICE_LOG_CHANNEL_ID;
+    const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
     if (!logChannelId) return;
     
     const logChannel = await client.channels.fetch(logChannelId).catch(() => null);
