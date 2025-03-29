@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { Colors } from '../../constants/Colors.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -26,13 +27,13 @@ export default {
       };
       const statusString = statusMap[statusCode] || 'Unknown';
   
-      let embedColor = 0x5865F2;
+      let embedColor = Colors.purple;
       if (statusCode === 1) {
-        embedColor = 0x57F287;
+        embedColor = Colors.green;
       } else if ([2,3,4,5,6,7].includes(statusCode)) {
-        embedColor = 0xFEE75C;
+        embedColor = Colors.yellow;
       } else if (statusCode === 0) {
-        embedColor = 0xED4245;
+        embedColor = Colors.red;
       }
   
       const embed = new EmbedBuilder()

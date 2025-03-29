@@ -1,4 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
+import { Colors } from '../../constants/Colors.js';
 
 export default {
   name: 'voiceChannelLogger',
@@ -28,7 +29,7 @@ export default {
       embed
         .setTitle('ボイスチャンネル参加')
         .setDescription(`${member} が <#${newState.channelId}> に参加しました。`)
-        .setColor(0x57F287)
+        .setColor(Colors.green);
       
       logChannel.send({ embeds: [embed] });
     }
@@ -36,7 +37,7 @@ export default {
       embed
         .setTitle('ボイスチャンネル退出')
         .setDescription(`${member} が <#${oldState.channelId}> から退出しました。`)
-        .setColor(0xED4245)
+        .setColor(Colors.red)
       
       logChannel.send({ embeds: [embed] });
     }
@@ -44,7 +45,7 @@ export default {
       embed
         .setTitle('ボイスチャンネル移動')
         .setDescription(`${member} が <#${oldState.channelId}> から <#${newState.channelId}> に移動しました。`)
-        .setColor(0xFEE75C)
+        .setColor(Colors.yellow);
       
       logChannel.send({ embeds: [embed] });
     }
@@ -57,7 +58,7 @@ export default {
         embed
           .setTitle('ボイスステータス変更')
           .setDescription(`${member} が <#${newState.channelId}> でステータスを変更しました。`)
-          .setColor(0x5865F2);
+          .setColor(Colors.purple);
         
         const changes = [];
         
@@ -67,7 +68,7 @@ export default {
         }
         
         if (oldState.serverDeaf !== newState.serverDeaf) {
-          const status = newState.serverDeaf ? 'サーバースピーカーミュート: オン' : 'サーバー聴覚障害: オフ';
+          const status = newState.serverDeaf ? 'サーバースピーカーミュート: オン' : 'サーバースピーカーミュート: オフ';
           changes.push(status);
         }
         
@@ -77,7 +78,7 @@ export default {
         }
         
         if (oldState.selfDeaf !== newState.selfDeaf) {
-          const status = newState.selfDeaf ? 'スピーカーミュート: オン' : 'セルフ聴覚障害: オフ';
+          const status = newState.selfDeaf ? 'スピーカーミュート: オン' : 'スピーカーミュート: オフ';
           changes.push(status);
         }
         
