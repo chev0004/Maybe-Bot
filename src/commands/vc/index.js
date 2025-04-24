@@ -96,7 +96,7 @@ export default {
                 channel
               );
             }
-          }, 4 * 60 * 1000);
+          }, 1000);
         }
       };
 
@@ -216,9 +216,6 @@ export default {
         `一時的なボイスチャンネル **${channel.name}** が非アクティブのため削除されました。`
       )
       .setColor(Colors.red)
-      .setFooter({
-        text: `ID: ${member.user.id}`,
-      })
       .setTimestamp();
 
     await logChannel.send({ embeds: [embed] });
