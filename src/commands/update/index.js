@@ -8,7 +8,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("update")
     .setDescription(
-      "Pulls the latest changes from GitHub and restarts the bot."
+      "GitHubから最新のコミットを取得し、BOTを再起動する。(Pulls the latest changes from GitHub and restarts the bot.)"
     )
     .setDefaultMemberPermissions(0),
 
@@ -17,48 +17,96 @@ export default {
 
     if (interaction.user.id !== ownerId) {
       await interaction.reply({
-        content: "You are not authorized to use this command.",
+        content:
+          "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
         ephemeral: true,
       });
       return;
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ ephemeral: false });
 
     try {
-      await interaction.editReply("Pulling latest changes from GitHub...");
+      await interaction.editReply(
+        "最新のコミットを取得中...\nPulling latest commits from GitHub..."
+      );
+
       const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
         "git pull origin develop"
       );
 
-      let replyMessage = "Git pull successful.\n";
-      if (gitStdout) replyMessage += `\`\`\`\n${gitStdout}\n\`\`\`\n`;
-      if (gitStderr) replyMessage += `\`\`\`stderr:\n${gitStderr}\n\`\`\`\n`;
+      let replyMessageJP = "プル成功。\n";
+      let replyMessageEN = "Git pull successful.\n";
+
+      if (gitStdout) {
+        const formattedStdout = `\`\`\`\n${gitStdout.substring(
+          0,
+          800
+        )}\n\`\`\`\n`;
+        replyMessageJP += formattedStdout;
+        replyMessageEN += formattedStdout;
+      }
+      if (gitStderr) {
+        const formattedStderr = `\`\`\`stderr:\n${gitStderr.substring(
+          0,
+          800
+        )}\n\`\`\`\n`;
+        replyMessageJP += formattedStderr;
+        replyMessageEN += formattedStderr;
+      }
+
+      const fullReply = `${replyMessageJP}\n---\n${replyMessageEN}`;
 
       if (gitStdout.includes("Already up to date.")) {
         await interaction.editReply(
-          replyMessage + "No new changes. Bot will not restart."
+          `${fullReply}\n変更はありません。BOTは再起動しません。\nNo new changes. Bot will not restart.`
         );
         return;
       }
 
-      await interaction.editReply(replyMessage + "Restarting bot...");
+      await interaction.editReply(
+        `${fullReply}\nBOTが再起動中...\nRestarting bot...`
+      );
 
       setTimeout(() => {
-        console.log("Bot restarting due to /update command...");
+        console.log(
+          "Bot restarting due to /update command (develop branch)..."
+        );
         process.exit(0);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Error during update process:", error);
-      let errorMessage = "An error occurred during the update process.\n";
-      if (error.stdout)
-        errorMessage += `\`\`\`stdout:\n${error.stdout}\n\`\`\`\n`;
-      if (error.stderr)
-        errorMessage += `\`\`\`stderr:\n${error.stderr}\n\`\`\`\n`;
-      if (error.message && !error.stdout && !error.stderr)
-        errorMessage += `\`\`\`\n${error.message}\n\`\`\``;
+      let errorMessageJP = "更新プロセス中にエラーが発生しました。\n";
+      let errorMessageEN = "An error occurred during the update process.\n";
 
-      await interaction.editReply(errorMessage.substring(0, 2000));
+      if (error.stdout) {
+        const formattedStdout = `\`\`\`stdout:\n${error.stdout.substring(
+          0,
+          700
+        )}\n\`\`\`\n`;
+        errorMessageJP += formattedStdout;
+        errorMessageEN += formattedStdout;
+      }
+      if (error.stderr) {
+        const formattedStderr = `\`\`\`stderr:\n${error.stderr.substring(
+          0,
+          700
+        )}\n\`\`\`\n`;
+        errorMessageJP += formattedStderr;
+        errorMessageEN += formattedStderr;
+      }
+      if (error.message && !error.stdout && !error.stderr) {
+        const formattedError = `\`\`\`\n${error.message.substring(
+          0,
+          700
+        )}\n\`\`\``;
+        errorMessageJP += formattedError;
+        errorMessageEN += formattedError;
+      }
+
+      const fullErrorMessage = `${errorMessageJP}\n---\n${errorMessageEN}`;
+
+      await interaction.editReply(fullErrorMessage.substring(0, 1990));
     }
   },
 };
