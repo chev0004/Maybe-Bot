@@ -12,6 +12,7 @@
   "dependencies": {
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
-    "exaroton": "^1.11.3"
+    "exaroton": "^1.11.3",
+    "pm2": "^5.4.3"
   }
 }
