@@ -16,6 +16,11 @@ function colorizeGitOutput(text) {
   );
 
   coloredText = coloredText.replace(
+    /^(\s*\*\s*branch)\s+([a-zA-Z0-9_\-\/]+)\s*(->)\s*(.+)/gm,
+    "$1 $2 $3 $4"
+  );
+
+  coloredText = coloredText.replace(
     /(\d+)\s+insertions?\(\+\)/g,
     "\u001b[2;36m+\u001b[0m" + "\u001b[2;36m$1\u001b[0m"
   );
