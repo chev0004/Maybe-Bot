@@ -50,8 +50,7 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle("ホワイトリスト追加処理")
       .setFooter({
-        text: `実行者: ${interaction.user.tag}`,
-        iconURL: interaction.user.displayAvatarURL(),
+        text: "おめでとうございます",
       })
       .setTimestamp();
 
