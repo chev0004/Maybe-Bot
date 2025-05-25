@@ -4,7 +4,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("addroleall")
     .setDescription(
-      "サーバーの全メンバーに特定のロールを付与します。(Adds a role to all server members.)"
+      "サーバーの全メンバーに特定のロールを付与します。(Adds a specific role to all server members.)"
     )
     .setDefaultMemberPermissions(0),
 
