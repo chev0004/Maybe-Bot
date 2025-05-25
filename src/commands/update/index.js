@@ -190,10 +190,8 @@ Fast-forward
       console.error("Error during update process:", error);
       embed
         .setColor(Colors.red)
-        .setDescription(
-          "更新プロセス中にエラーが発生しました。\nAn error occurred during the update process."
-        )
-        .setFooter(null);
+        .setDescription("更新プロセス中にエラーが発生しました。")
+        .setFooter("BOTの更新に失敗しました。");
 
       const errorFields = [];
       if (error.stdout) {
