@@ -66,14 +66,15 @@ discordClient.once("ready", async () => {
         try {
           const restartEmbed = new EmbedBuilder()
             .setColor(Colors.green)
-            .setTitle("✅ ボットオンライン")
-            .setDescription(
-              `<@${restartInfo.triggeringUserId}> BOTが更新され、オンラインに戻りました！`
-            )
+            .setTitle("BOTオンライン")
+            .setDescription("BOTが通常に更新されて再起動されました。")
             .setTimestamp()
-            .setFooter({ text: "再起動に成功しました" });
+            .setFooter({ text: "よかったね。" });
 
-          await channel.send({ embeds: [restartEmbed] });
+          await channel.send({
+            content: `<@${restartInfo.triggeringUserId}>`,
+            embeds: [restartEmbed],
+          });
           console.log(
             `Sent restart notification embed to channel ${restartInfo.channelId} for user ${restartInfo.triggeringUserId}`
           );
