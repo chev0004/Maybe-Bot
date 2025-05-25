@@ -159,7 +159,10 @@ export default {
       .trim();
 
     try {
-      await interaction.editReply({ content: summaryMessage, ephemeral: true });
+      await interaction.editReply({
+        content: summaryMessage,
+        ephemeral: false,
+      });
     } catch (finalEditError) {
       console.warn(
         "Failed to edit final summary, attempting followup:",
