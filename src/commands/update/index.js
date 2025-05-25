@@ -12,7 +12,7 @@ export default {
     )
     .setDefaultMemberPermissions(0),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     const ownerId = process.env.OWNER_ID;
 
     if (interaction.user.id !== ownerId) {

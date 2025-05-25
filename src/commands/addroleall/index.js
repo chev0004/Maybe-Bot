@@ -9,10 +9,10 @@ export default {
     .setDefaultMemberPermissions(0),
 
   async execute(interaction) {
-    const authorizedUserId = "559278744330698752";
+    const ownerId = process.env.OWNER_ID;
     const roleIdToAdd = process.env.VERIFIED_ROLE_ID;
 
-    if (interaction.user.id !== authorizedUserId) {
+    if (interaction.user.id !== ownerId) {
       await interaction.reply({
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
