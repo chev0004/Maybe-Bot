@@ -10,25 +10,6 @@ function colorizeGitOutput(text) {
   if (!text) return "";
   let coloredText = text;
 
-  //   coloredText = coloredText.replace(
-  //     /^(Updating\s+([a-f0-9]{7,40})\.\.([a-f0-9]{7,40}))/gm,
-  //     "\u001b[2;32m$1\u001b[0m"
-  //   );
-
-  //   coloredText = coloredText.replace(
-  //     /^(\*\s*branch\s+)(develop)(\s*->\s*)(FETCH_HEAD)/gm,
-  //     "$1\u001b[2;34m$2\u001b[0m$3\u001b[2;36m$4\u001b[0m"
-  //   );
-
-  //   coloredText = coloredText.replace(
-  //     /^(\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)([A-Z_]+)/gm,
-  //     (_, p1, p2, p3, p4) => {
-  //       if (p2 === "develop")
-  //         return `${p1}\u001b[2;34m${p2}\u001b[0m${p3}\u001b[2;36m${p4}\u001b[0m`;
-  //       return `${p1}\u001b[2;34m${p2}\u001b[0m${p3}\u001b[2;36m${p4}\u001b[0m`;
-  //     }
-  //   );
-
   coloredText = coloredText.replace(
     /^((?:[^|\n])+?\s*\|\s*\d+\s*)[+-]+$/gm,
     "$1"
@@ -44,51 +25,17 @@ function colorizeGitOutput(text) {
     "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m"
   );
 
+  coloredText = coloredText.replace(
+    /^(\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)(.+)/gm,
+    (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
+  );
+
   // coloredText = coloredText.replace(/(\++)/g, "\u001b[2;36m$1\u001b[0m");
   // coloredText = coloredText.replace(/(-+)/g, "\u001b[2;31m$1\u001b[0m");
-  console.log(coloredText);
-
-  //   coloredText = coloredText.replace(
-  //     /\b(?<!\.\.)([a-f0-9]{7,12})\b(?!\.\.)/g,
-  //     (match, p1, offset, string) => {
-  //       if (
-  //         string
-  //           .substring(offset - 10, offset + p1.length + 10)
-  //           .includes("Updating")
-  //       )
-  //         return match;
-  //       return "\u001b[2;36m" + match + "\u001b[0m";
-  //     }
-  //   );
-  //   coloredText = coloredText.replace(
-  //     /\b([a-f0-9]{40})\b/g,
-  //     "\u001b[2;36m$1\u001b[0m"
-  //   );
-
-  //   coloredText = coloredText.replace(
-  //     /^((?:\u001b\[2;36m)?[\w./-]+\.(?:js|ts|json|md|ya?ml|css|scss|html|txt|sh|py|rb|java|cs|php|go|rs|swift|kt|dart|cpp|c|h|hpp|vue|jsx|tsx)(?:\u001b\[0m)?\s*\|\s*\d+\s*)([+-]+)$/gm,
-  //     (match, p1, p2) => {
-  //       let visualDiff = "";
-  //       for (const char of p2) {
-  //         if (char === "+") {
-  //           visualDiff += "\u001b[2;32m+\u001b[0m";
-  //         } else if (char === "-") {
-  //           visualDiff += "\u001b[2;31m-\u001b[0m";
-  //         } else {
-  //           visualDiff += char;
-  //         }
-  //       }
-  //       return p1 + visualDiff;
-  //     }
-  //   );
-
-  //   coloredText = coloredText.replace(
-  //     /\b(https?:\/\/[^\s]+)\b/g,
-  //     (match, p1, offset, string) => {
-  //       if (string.substring(offset - 6, offset).trim() === "From") return match;
-  //       return "\u001b[2;36m" + match + "\u001b[0m";
-  //     }
-  //   );
+  coloredText = coloredText.replace(
+    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)(.+)/gm,
+    (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
+  );
 
   return coloredText;
 }
