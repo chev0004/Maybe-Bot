@@ -69,7 +69,7 @@ discordClient.once("ready", async () => {
             .setTitle("BOTオンライン")
             .setDescription("BOTが通常に更新されて再起動されました。")
             .setTimestamp()
-            .setFooter({ text: "よかったね。" });
+            .setFooter({ text: "よかったね" });
 
           await channel.send({
             content: `<@${restartInfo.triggeringUserId}>`,
