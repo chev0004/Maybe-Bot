@@ -96,7 +96,7 @@ export default {
                 channel
               );
             }
-          }, 1000);
+          }, 1000 * 60 * 4);
         }
       };
 
