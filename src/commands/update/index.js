@@ -166,7 +166,7 @@ Fast-forward
           .setColor(Colors.purple)
           .setDescription("通常に更新されました。")
           .setFooter({
-            text: "変更はありません。BOTは再起動しません。\nNo new changes. Bot will not restart.",
+            text: "変更はありません。BOTは再起動しません。",
           });
         await interaction.editReply({ embeds: [embed] });
         return;
