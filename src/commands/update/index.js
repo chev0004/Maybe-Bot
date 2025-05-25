@@ -8,10 +8,15 @@ import { Colors } from "../../constants/Colors.js";
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
 const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
+const PULLED_BRANCH = "develop";
 
-function colorizeGitOutput(text) {
+function colorizeGitOutput(text, branchToHighlight) {
   if (!text) return "";
   let coloredText = text;
+
+  const branchPattern = branchToHighlight
+    ? branchToHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    : null;
 
   coloredText = coloredText.replace(
     /^((?:[^|\n])+?\s*\|\s*\d+\s*)[+-]+$/gm,
@@ -20,7 +25,9 @@ function colorizeGitOutput(text) {
 
   coloredText = coloredText.replace(
     /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?)/gm,
-    (_, p1, p2, p3) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3 || ""}`
+    (_, p1, p2, p3) => {
+      return `${p1}\u001b[2;34m${p2}\u001b[0m${p3 || ""}`;
+    }
   );
 
   coloredText = coloredText.replace(
@@ -32,6 +39,18 @@ function colorizeGitOutput(text) {
     /(\d+)\s+deletions?\(\-\)/g,
     "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m"
   );
+
+  if (branchPattern) {
+    coloredText = coloredText.replace(
+      new RegExp(`(\\b${branchPattern}\\b)(?=\\s*->)`, "g"),
+      `\u001b[2;34m$1\u001b[0m`
+    );
+
+    coloredText = coloredText.replace(
+      new RegExp(`([a-zA-Z0-9_\\-\\/]+\\/)(${branchPattern})(\\b|$)`, "gm"),
+      `$1\u001b[2;34m$2\u001b[0m$3`
+    );
+  }
 
   return coloredText;
 }
@@ -70,7 +89,7 @@ export default {
     const embedTitle = isTestMode ? "BOTの更新 (テストモード)" : "BOTの更新";
     const initialDescription = isTestMode
       ? "テスト用のGitプルシミュレーション中..."
-      : "最新のコミットを取得中...";
+      : `最新のコミット (${PULLED_BRANCH} ブランチ) を取得中...`;
 
     const embed = new EmbedBuilder()
       .setTitle(embedTitle)
@@ -86,12 +105,14 @@ Fast-forward
  src/commands/update/index.js | 88 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------
  1 file changed, 68 insertions(+), 20 deletions(-)`;
       const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot
- * branch develop -> FETCH_HEAD`;
+ * branch ${PULLED_BRANCH} -> FETCH_HEAD
+   e5b6629..e4f730e  ${PULLED_BRANCH}    -> origin/${PULLED_BRANCH}`;
 
       const fields = [];
       if (fakeGitStdout) {
         const colorizedStdout = colorizeGitOutput(
-          fakeGitStdout.substring(0, RAW_OUTPUT_MAX_LEN)
+          fakeGitStdout.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         fields.push({
           name: "Simulated Git Output (stdout)",
@@ -101,7 +122,8 @@ Fast-forward
       }
       if (fakeGitStderr) {
         const colorizedStderr = colorizeGitOutput(
-          fakeGitStderr.substring(0, RAW_OUTPUT_MAX_LEN)
+          fakeGitStderr.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         fields.push({
           name: "Simulated Git Output (stderr)",
@@ -127,13 +149,14 @@ Fast-forward
 
     try {
       const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
-        "git pull origin develop"
+        `git pull origin ${PULLED_BRANCH}`
       );
 
       const fields = [];
       if (gitStdout) {
         const colorizedStdout = colorizeGitOutput(
-          gitStdout.substring(0, RAW_OUTPUT_MAX_LEN)
+          gitStdout.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         fields.push({
           name: "Git Output (stdout)",
@@ -143,7 +166,8 @@ Fast-forward
       }
       if (gitStderr) {
         const colorizedStderr = colorizeGitOutput(
-          gitStderr.substring(0, RAW_OUTPUT_MAX_LEN)
+          gitStderr.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         fields.push({
           name: "Git Output (stderr)",
@@ -158,7 +182,7 @@ Fast-forward
         embed
           .setColor(Colors.purple)
           .setDescription(
-            "ボットは既に最新の状態です。\nBot is already up to date."
+            `ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`
           )
           .setFooter({
             text: "変更はありません。BOTは再起動しません。",
@@ -169,7 +193,7 @@ Fast-forward
 
       embed
         .setColor(Colors.green)
-        .setDescription("通常に更新されました。")
+        .setDescription(`通常に更新されました。`)
         .setFooter({
           text: "BOTが再起動中...",
         });
@@ -189,7 +213,7 @@ Fast-forward
 
       setTimeout(() => {
         console.log(
-          "Bot restarting due to /update command (develop branch)..."
+          `Bot restarting due to /update command (${PULLED_BRANCH} branch)...`
         );
         process.exit(0);
       }, 3000);
@@ -203,7 +227,8 @@ Fast-forward
       const errorFields = [];
       if (error.stdout) {
         const colorizedErrorStdout = colorizeGitOutput(
-          error.stdout.substring(0, RAW_OUTPUT_MAX_LEN)
+          error.stdout.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         errorFields.push({
           name: "Error Output (stdout)",
@@ -212,7 +237,8 @@ Fast-forward
       }
       if (error.stderr) {
         const colorizedErrorStderr = colorizeGitOutput(
-          error.stderr.substring(0, RAW_OUTPUT_MAX_LEN)
+          error.stderr.substring(0, RAW_OUTPUT_MAX_LEN),
+          PULLED_BRANCH
         );
         errorFields.push({
           name: "Error Output (stderr)",
