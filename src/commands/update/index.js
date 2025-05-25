@@ -30,8 +30,6 @@ function colorizeGitOutput(text) {
     (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
   );
 
-  // coloredText = coloredText.replace(/(\++)/g, "\u001b[2;36m$1\u001b[0m");
-  // coloredText = coloredText.replace(/(-+)/g, "\u001b[2;31m$1\u001b[0m");
   coloredText = coloredText.replace(
     /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)(.+)/gm,
     (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
@@ -73,8 +71,8 @@ export default {
 
     const embedTitle = isTestMode ? "BOTの更新 (テストモード)" : "BOTの更新";
     const initialDescription = isTestMode
-      ? "テスト用のGitプルシミュレーション中...\nSimulating Git pull for testing (develop branch)..."
-      : "最新のコミットを取得中...\nPulling latest commits from GitHub (develop branch)...";
+      ? "テスト用のGitプルシミュレーション中..."
+      : "最新のコミットを取得中...";
 
     const embed = new EmbedBuilder()
       .setTitle(embedTitle)
@@ -121,7 +119,7 @@ Fast-forward
           "テスト用のGitプルシミュレーション完了。\nSimulated Git pull complete."
         )
         .setFooter({
-          text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。\nThis is a test run. Bot will not actually update or restart.",
+          text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。",
         });
 
       await interaction.editReply({ embeds: [embed] });
@@ -161,7 +159,7 @@ Fast-forward
       if (gitStdout.includes("Already up to date.")) {
         embed
           .setColor(Colors.purple)
-          .setDescription("Git pull 成功。\nGit pull successful.")
+          .setDescription("通常に更新されました。")
           .setFooter({
             text: "変更はありません。BOTは再起動しません。\nNo new changes. Bot will not restart.",
           });
@@ -171,9 +169,9 @@ Fast-forward
 
       embed
         .setColor(Colors.green)
-        .setDescription("Git pull 成功。\nGit pull successful.")
+        .setDescription("通常に更新されました。")
         .setFooter({
-          text: "BOTが再起動中...\nRestarting bot...",
+          text: "BOTが再起動中...",
         });
       await interaction.editReply({ embeds: [embed] });
 
