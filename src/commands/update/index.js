@@ -1,8 +1,97 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { exec } from "child_process";
 import util from "util";
+import { Colors } from "../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
+const RAW_OUTPUT_MAX_LEN = 450;
+
+function colorizeGitOutput(text) {
+  if (!text) return "";
+  let coloredText = text;
+
+  //   coloredText = coloredText.replace(
+  //     /^(Updating\s+([a-f0-9]{7,40})\.\.([a-f0-9]{7,40}))/gm,
+  //     "\u001b[2;32m$1\u001b[0m"
+  //   );
+
+  //   coloredText = coloredText.replace(
+  //     /^(\*\s*branch\s+)(develop)(\s*->\s*)(FETCH_HEAD)/gm,
+  //     "$1\u001b[2;34m$2\u001b[0m$3\u001b[2;36m$4\u001b[0m"
+  //   );
+
+  //   coloredText = coloredText.replace(
+  //     /^(\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)([A-Z_]+)/gm,
+  //     (_, p1, p2, p3, p4) => {
+  //       if (p2 === "develop")
+  //         return `${p1}\u001b[2;34m${p2}\u001b[0m${p3}\u001b[2;36m${p4}\u001b[0m`;
+  //       return `${p1}\u001b[2;34m${p2}\u001b[0m${p3}\u001b[2;36m${p4}\u001b[0m`;
+  //     }
+  //   );
+
+  coloredText = coloredText.replace(
+    /^((?:[^|\n])+?\s*\|\s*\d+\s*)[+-]+$/gm,
+    "$1"
+  );
+
+  coloredText = coloredText.replace(
+    /(\d+)\s+insertions?\(\+\)/g,
+    "\u001b[2;36m+\u001b[0m" + "\u001b[2;36m$1\u001b[0m"
+  );
+
+  coloredText = coloredText.replace(
+    /(\d+)\s+deletions?\(\-\)/g,
+    "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m"
+  );
+
+  // coloredText = coloredText.replace(/(\++)/g, "\u001b[2;36m$1\u001b[0m");
+  // coloredText = coloredText.replace(/(-+)/g, "\u001b[2;31m$1\u001b[0m");
+  console.log(coloredText);
+
+  //   coloredText = coloredText.replace(
+  //     /\b(?<!\.\.)([a-f0-9]{7,12})\b(?!\.\.)/g,
+  //     (match, p1, offset, string) => {
+  //       if (
+  //         string
+  //           .substring(offset - 10, offset + p1.length + 10)
+  //           .includes("Updating")
+  //       )
+  //         return match;
+  //       return "\u001b[2;36m" + match + "\u001b[0m";
+  //     }
+  //   );
+  //   coloredText = coloredText.replace(
+  //     /\b([a-f0-9]{40})\b/g,
+  //     "\u001b[2;36m$1\u001b[0m"
+  //   );
+
+  //   coloredText = coloredText.replace(
+  //     /^((?:\u001b\[2;36m)?[\w./-]+\.(?:js|ts|json|md|ya?ml|css|scss|html|txt|sh|py|rb|java|cs|php|go|rs|swift|kt|dart|cpp|c|h|hpp|vue|jsx|tsx)(?:\u001b\[0m)?\s*\|\s*\d+\s*)([+-]+)$/gm,
+  //     (match, p1, p2) => {
+  //       let visualDiff = "";
+  //       for (const char of p2) {
+  //         if (char === "+") {
+  //           visualDiff += "\u001b[2;32m+\u001b[0m";
+  //         } else if (char === "-") {
+  //           visualDiff += "\u001b[2;31m-\u001b[0m";
+  //         } else {
+  //           visualDiff += char;
+  //         }
+  //       }
+  //       return p1 + visualDiff;
+  //     }
+  //   );
+
+  //   coloredText = coloredText.replace(
+  //     /\b(https?:\/\/[^\s]+)\b/g,
+  //     (match, p1, offset, string) => {
+  //       if (string.substring(offset - 6, offset).trim() === "From") return match;
+  //       return "\u001b[2;36m" + match + "\u001b[0m";
+  //     }
+  //   );
+
+  return coloredText;
+}
 
 export default {
   data: new SlashCommandBuilder()
@@ -10,10 +99,19 @@ export default {
     .setDescription(
       "GitHubから最新のコミットを取得し、BOTを再起動する。(Pulls the latest changes from GitHub and restarts the bot.)"
     )
+    .addBooleanOption((option) =>
+      option
+        .setName("test")
+        .setDescription(
+          "テストモードで実行し、実際の更新や再起動は行いません。(Run in test mode without actual update/restart.)"
+        )
+        .setRequired(false)
+    )
     .setDefaultMemberPermissions(0),
 
   async execute(interaction) {
     const ownerId = process.env.OWNER_ID;
+    const isTestMode = interaction.options.getBoolean("test") ?? false;
 
     if (interaction.user.id !== ownerId) {
       await interaction.reply({
@@ -26,47 +124,111 @@ export default {
 
     await interaction.deferReply({ ephemeral: false });
 
-    try {
-      await interaction.editReply(
-        "最新のコミットを取得中...\nPulling latest commits from GitHub..."
-      );
+    const embedTitle = isTestMode ? "BOTの更新 (テストモード)" : "BOTの更新";
+    const initialDescription = isTestMode
+      ? "テスト用のGitプルシミュレーション中...\nSimulating Git pull for testing (develop branch)..."
+      : "最新のコミットを取得中...\nPulling latest commits from GitHub (develop branch)...";
 
+    const embed = new EmbedBuilder()
+      .setTitle(embedTitle)
+      .setColor(Colors.yellow)
+      .setDescription(initialDescription)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+
+    if (isTestMode) {
+      const fakeGitStdout = `Updating abc1234...def5678
+Fast-forward
+ src/commands/update/index.js | 88 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 68 insertions(+), 20 deletions(-)`;
+      const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot
+ * branch develop -> FETCH_HEAD`;
+
+      const fields = [];
+      if (fakeGitStdout) {
+        const colorizedStdout = colorizeGitOutput(
+          fakeGitStdout.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        fields.push({
+          name: "Simulated Git Output (stdout)",
+          value: `\`\`\`ansi\n${colorizedStdout}\n\`\`\``,
+          inline: false,
+        });
+      }
+      if (fakeGitStderr) {
+        const colorizedStderr = colorizeGitOutput(
+          fakeGitStderr.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        fields.push({
+          name: "Simulated Git Output (stderr)",
+          value: `\`\`\`ansi\n${colorizedStderr}\n\`\`\``,
+          inline: false,
+        });
+      }
+
+      embed
+        .setFields(fields)
+        .setColor(Colors.purple)
+        .setDescription(
+          "テスト用のGitプルシミュレーション完了。\nSimulated Git pull complete."
+        )
+        .setFooter({
+          text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。\nThis is a test run. Bot will not actually update or restart.",
+        });
+
+      await interaction.editReply({ embeds: [embed] });
+      console.log("Update command executed in test mode.");
+      return;
+    }
+
+    try {
       const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
         "git pull origin develop"
       );
 
-      let replyMessageJP = "プル成功。\n";
-      let replyMessageEN = "Git pull successful.\n";
-
+      const fields = [];
       if (gitStdout) {
-        const formattedStdout = `\`\`\`\n${gitStdout.substring(
-          0,
-          800
-        )}\n\`\`\`\n`;
-        replyMessageJP += formattedStdout;
-        replyMessageEN += formattedStdout;
+        const colorizedStdout = colorizeGitOutput(
+          gitStdout.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        fields.push({
+          name: "Git Output (stdout)",
+          value: `\`\`\`ansi\n${colorizedStdout}\n\`\`\``,
+          inline: false,
+        });
       }
       if (gitStderr) {
-        const formattedStderr = `\`\`\`stderr:\n${gitStderr.substring(
-          0,
-          800
-        )}\n\`\`\`\n`;
-        replyMessageJP += formattedStderr;
-        replyMessageEN += formattedStderr;
+        const colorizedStderr = colorizeGitOutput(
+          gitStderr.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        fields.push({
+          name: "Git Output (stderr)",
+          value: `\`\`\`ansi\n${colorizedStderr}\n\`\`\``,
+          inline: false,
+        });
       }
 
-      const fullReply = `${replyMessageJP}\n---\n${replyMessageEN}`;
+      embed.setFields(fields);
 
       if (gitStdout.includes("Already up to date.")) {
-        await interaction.editReply(
-          `${fullReply}\n変更はありません。BOTは再起動しません。\nNo new changes. Bot will not restart.`
-        );
+        embed
+          .setColor(Colors.purple)
+          .setDescription("Git pull 成功。\nGit pull successful.")
+          .setFooter({
+            text: "変更はありません。BOTは再起動しません。\nNo new changes. Bot will not restart.",
+          });
+        await interaction.editReply({ embeds: [embed] });
         return;
       }
 
-      await interaction.editReply(
-        `${fullReply}\nBOTが再起動中...\nRestarting bot...`
-      );
+      embed
+        .setColor(Colors.green)
+        .setDescription("Git pull 成功。\nGit pull successful.")
+        .setFooter({
+          text: "BOTが再起動中...\nRestarting bot...",
+        });
+      await interaction.editReply({ embeds: [embed] });
 
       setTimeout(() => {
         console.log(
@@ -76,37 +238,44 @@ export default {
       }, 3000);
     } catch (error) {
       console.error("Error during update process:", error);
-      let errorMessageJP = "更新プロセス中にエラーが発生しました。\n";
-      let errorMessageEN = "An error occurred during the update process.\n";
+      embed
+        .setColor(Colors.red)
+        .setDescription(
+          "更新プロセス中にエラーが発生しました。\nAn error occurred during the update process."
+        )
+        .setFooter(null);
 
+      const errorFields = [];
       if (error.stdout) {
-        const formattedStdout = `\`\`\`stdout:\n${error.stdout.substring(
-          0,
-          700
-        )}\n\`\`\`\n`;
-        errorMessageJP += formattedStdout;
-        errorMessageEN += formattedStdout;
+        const colorizedErrorStdout = colorizeGitOutput(
+          error.stdout.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        errorFields.push({
+          name: "Error Output (stdout)",
+          value: `\`\`\`ansi\n${colorizedErrorStdout}\n\`\`\``,
+        });
       }
       if (error.stderr) {
-        const formattedStderr = `\`\`\`stderr:\n${error.stderr.substring(
-          0,
-          700
-        )}\n\`\`\`\n`;
-        errorMessageJP += formattedStderr;
-        errorMessageEN += formattedStderr;
+        const colorizedErrorStderr = colorizeGitOutput(
+          error.stderr.substring(0, RAW_OUTPUT_MAX_LEN)
+        );
+        errorFields.push({
+          name: "Error Output (stderr)",
+          value: `\`\`\`ansi\n${colorizedErrorStderr}\n\`\`\``,
+        });
       }
       if (error.message && !error.stdout && !error.stderr) {
-        const formattedError = `\`\`\`\n${error.message.substring(
-          0,
-          700
-        )}\n\`\`\``;
-        errorMessageJP += formattedError;
-        errorMessageEN += formattedError;
+        errorFields.push({
+          name: "Error Message",
+          value: `\`\`\`\n${error.message.substring(
+            0,
+            RAW_OUTPUT_MAX_LEN * 2
+          )}\n\`\`\``,
+        });
       }
+      embed.setFields(errorFields);
 
-      const fullErrorMessage = `${errorMessageJP}\n---\n${errorMessageEN}`;
-
-      await interaction.editReply(fullErrorMessage.substring(0, 1990));
+      await interaction.editReply({ embeds: [embed] });
     }
   },
 };
