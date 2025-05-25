@@ -1,14 +1,19 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
 import { Client as ExarotonClient } from "exaroton";
 import dotenv from "dotenv";
 import CommandHandler from "./src/handlers/commandHandler.js";
 import ListenerHandler from "./src/handlers/listenerHandler.js";
+import fs from "fs/promises";
+import path from "path";
+import { Colors } from "./src/constants/Colors.js";
 
 dotenv.config();
 
 const DISCORD_TOKEN = process.env.TOKEN;
 const EXAROTON_API_TOKEN = process.env.API_TOKEN;
 const SERVER_ID = process.env.SERVER_ID;
+
+const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
 
 const discordClient = new Client({
   intents: [
@@ -29,7 +34,6 @@ const sharedOptions = {
 };
 
 const commandHandler = new CommandHandler(discordClient, sharedOptions);
-
 const listenerHandler = new ListenerHandler(discordClient, sharedOptions);
 
 (async () => {
@@ -39,7 +43,73 @@ const listenerHandler = new ListenerHandler(discordClient, sharedOptions);
 })();
 
 discordClient.once("ready", async () => {
-  console.log(`Logged in as ${discordClient.user.tag}!`);
+  console.log(`Logged in as ${discordClient.user.tag}! Bot is ready.`);
+
+  try {
+    await fs.access(RESTART_INFO_FILE);
+
+    const fileContent = await fs.readFile(RESTART_INFO_FILE, "utf8");
+    const restartInfo = JSON.parse(fileContent);
+
+    if (restartInfo && restartInfo.triggeringUserId && restartInfo.channelId) {
+      const channel = await discordClient.channels
+        .fetch(restartInfo.channelId)
+        .catch((err) => {
+          console.error(
+            `Failed to fetch channel ${restartInfo.channelId} for restart notification:`,
+            err
+          );
+          return null;
+        });
+
+      if (channel) {
+        try {
+          const restartEmbed = new EmbedBuilder()
+            .setColor(Colors.green)
+            .setTitle("✅ ボットオンライン")
+            .setDescription(
+              `<@${restartInfo.triggeringUserId}> BOTが更新され、オンラインに戻りました！`
+            )
+            .setTimestamp()
+            .setFooter({ text: "再起動に成功しました" });
+
+          await channel.send({ embeds: [restartEmbed] });
+          console.log(
+            `Sent restart notification embed to channel ${restartInfo.channelId} for user ${restartInfo.triggeringUserId}`
+          );
+        } catch (sendError) {
+          console.error(
+            `Failed to send restart notification embed to channel ${restartInfo.channelId}:`,
+            sendError
+          );
+        }
+      } else {
+        console.warn(
+          `Could not find channel ${restartInfo.channelId} to send restart notification.`
+        );
+      }
+
+      await fs.unlink(RESTART_INFO_FILE);
+      console.log(`Deleted ${RESTART_INFO_FILE}`);
+    }
+  } catch (error) {
+    if (error.code === "ENOENT") {
+    } else {
+      console.error("Error processing restart_info.json:", error);
+
+      try {
+        await fs.unlink(RESTART_INFO_FILE);
+        console.warn(
+          `Deleted potentially malformed ${RESTART_INFO_FILE} after error.`
+        );
+      } catch (unlinkError) {
+        console.error(
+          `Failed to delete ${RESTART_INFO_FILE} after an error:`,
+          unlinkError
+        );
+      }
+    }
+  }
 });
 
 discordClient.on("interactionCreate", (interaction) => {

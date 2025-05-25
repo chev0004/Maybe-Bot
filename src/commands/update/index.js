@@ -1,10 +1,13 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { exec } from "child_process";
 import util from "util";
+import fs from "fs/promises";
+import path from "path";
 import { Colors } from "../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
+const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
 
 function colorizeGitOutput(text) {
   if (!text) return "";
@@ -16,8 +19,8 @@ function colorizeGitOutput(text) {
   );
 
   coloredText = coloredText.replace(
-    /^(\s*\*\s*branch)\s+([a-zA-Z0-9_\-\/]+)\s*(->)\s*(.+)/gm,
-    "$1 $2 $3 $4"
+    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?)/gm,
+    (_, p1, p2, p3) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3 || ""}`
   );
 
   coloredText = coloredText.replace(
@@ -28,16 +31,6 @@ function colorizeGitOutput(text) {
   coloredText = coloredText.replace(
     /(\d+)\s+deletions?\(\-\)/g,
     "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m"
-  );
-
-  coloredText = coloredText.replace(
-    /^(\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)(.+)/gm,
-    (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
-  );
-
-  coloredText = coloredText.replace(
-    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)(\s*->\s*)(.+)/gm,
-    (_, p1, p2, p3, p4) => `${p1}\u001b[2;34m${p2}\u001b[0m${p3}${p4}`
   );
 
   return coloredText;
@@ -164,7 +157,9 @@ Fast-forward
       if (gitStdout.includes("Already up to date.")) {
         embed
           .setColor(Colors.purple)
-          .setDescription("通常に更新されました。")
+          .setDescription(
+            "ボットは既に最新の状態です。\nBot is already up to date."
+          )
           .setFooter({
             text: "変更はありません。BOTは再起動しません。",
           });
@@ -180,6 +175,18 @@ Fast-forward
         });
       await interaction.editReply({ embeds: [embed] });
 
+      const restartInfo = {
+        triggeringUserId: interaction.user.id,
+        channelId: interaction.channel.id,
+        timestamp: Date.now(),
+      };
+      try {
+        await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
+        console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
+      } catch (writeError) {
+        console.error("Failed to write restart info:", writeError);
+      }
+
       setTimeout(() => {
         console.log(
           "Bot restarting due to /update command (develop branch)..."
@@ -191,7 +198,7 @@ Fast-forward
       embed
         .setColor(Colors.red)
         .setDescription("更新プロセス中にエラーが発生しました。")
-        .setFooter("BOTの更新に失敗しました。");
+        .setFooter({ text: "BOTの更新に失敗しました。" });
 
       const errorFields = [];
       if (error.stdout) {
