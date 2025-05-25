@@ -28,7 +28,7 @@ export default {
     try {
       await interaction.editReply("Pulling latest changes from GitHub...");
       const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
-        "git pull"
+        "git pull origin develop"
       );
 
       let replyMessage = "Git pull successful.\n";
