@@ -66,14 +66,11 @@ export default {
         .setDescription(
           `ユーザー「${usernameToWhitelist}」をホワイトリストに追加しました。`
         )
-        .addFields(
-          { name: "ユーザー名", value: originalUsername, inline: true },
-          {
-            name: "プラットフォーム",
-            value: isBedrock ? "Bedrock" : "Java",
-            inline: true,
-          }
-        );
+        .addFields({
+          name: "プラットフォーム",
+          value: isBedrock ? "Bedrock" : "Java",
+          inline: true,
+        });
       if (isBedrock) {
         embed.addFields({
           name: "備考",
