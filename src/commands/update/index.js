@@ -24,9 +24,13 @@ function colorizeGitOutput(text, branchToHighlight) {
   );
 
   coloredText = coloredText.replace(
-    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?)/gm,
+    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
     (_, p1, p2, p3) => {
-      return `${p1}\u001b[2;34m${p2}\u001b[0m${p3 || ""}`;
+      const refinedP1 = p1.replace(/\s+$/, " ");
+
+      const refinedP3 = p3 ? p3.replace(/^\s+/, " ").replace(/\s+$/, "") : "";
+
+      return `${refinedP1}\u001b[2;34m${p2}\u001b[0m${refinedP3 || ""}`;
     }
   );
 
@@ -42,8 +46,8 @@ function colorizeGitOutput(text, branchToHighlight) {
 
   if (branchPattern) {
     coloredText = coloredText.replace(
-      new RegExp(`(\\b${branchPattern}\\b)(?=\\s*->)`, "g"),
-      `\u001b[2;34m$1\u001b[0m`
+      new RegExp(`(\\b${branchPattern}\\b)(\\s*->)`, "g"),
+      `\u001b[2;34m$1\u001b[0m ->`
     );
 
     coloredText = coloredText.replace(
