@@ -31,7 +31,7 @@ export default {
       await interaction.reply({
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        flags: [InteractionResponseFlags.Ephemeral],
+        flags: [Discord.InteractionResponseFlags.Ephemeral],
       });
       return;
     }

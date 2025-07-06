@@ -4,8 +4,10 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   PermissionsBitField,
-  InteractionResponseFlags, // [FIX 1] Import the new 'flags' enum
 } from "discord.js";
+
+// And also import the main object
+import * as Discord from "discord.js";
 import { Colors } from "../../constants/Colors.js";
 
 export default {
@@ -26,7 +28,7 @@ export default {
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
         // [FIX 1] Use the new 'flags' syntax for ephemeral messages
-        flags: [InteractionResponseFlags.Ephemeral],
+        flags: [Discord.InteractionResponseFlags.Ephemeral],
       });
       return;
     }
@@ -34,7 +36,7 @@ export default {
     // [FIX 1 & 2] Defer the reply as EPHEMERAL immediately.
     // This makes the entire interaction private and solves the logic error.
     await interaction.deferReply({
-      flags: [InteractionResponseFlags.Ephemeral],
+      flags: [Discord.InteractionResponseFlags.Ephemeral],
     });
 
     const guild = interaction.guild;
