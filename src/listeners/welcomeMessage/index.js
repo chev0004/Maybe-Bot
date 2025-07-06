@@ -29,18 +29,16 @@ const CORRECT_TEMPLATE_STRING = CORRECT_TEMPLATE_HEADERS.join("\n");
  * @returns {string} A string with mixed spaces and a '^' to point at the error.
  */
 function createAlignmentPointer(line, errorIndex) {
-  // This regex is built specifically from the full-width characters in your headers.
-  // Characters: 【, 名, 前, 出, 身, 言, 語, 勉, 強, 趣, 味, 一, 】
   const specificFullWidthRegex = /[【】名前出身言語勉強趣味一]/;
   const pointerParts = [];
 
   for (let i = 0; i < line.length; i++) {
     if (i === errorIndex) {
       pointerParts.push("^");
-      break; // Stop after placing the pointer
+      break;
     }
     const char = line[i];
-    // Use ideographic space (　) for specific full-width chars, and en space ( ) for everything else.
+
     pointerParts.push(specificFullWidthRegex.test(char) ? "　" : " ");
   }
 
@@ -49,7 +47,6 @@ function createAlignmentPointer(line, errorIndex) {
   let allFullWidth = [];
   let fullWidthChars = [];
 
-  // Check all characters in the line, not just from pointerParts.length
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     const isFullWidth = specificFullWidthRegex.test(char);
@@ -94,10 +91,9 @@ function validateWelcomeMessage(content) {
     const userLineTrimmed = userLine.trimRight();
 
     if (userLineTrimmed.startsWith(expectedHeader)) {
-      continue; // This line is correct, move to the next one
+      continue;
     }
 
-    // If the line does not start with the expected header, find the exact error location.
     let diffIndex = 0;
     while (
       diffIndex < expectedHeader.length &&

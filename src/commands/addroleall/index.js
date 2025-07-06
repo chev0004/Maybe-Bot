@@ -1,18 +1,11 @@
-// src/commands/listunverified/index.js
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 
-import {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  PermissionsBitField,
-} from "discord.js";
-
-// And also import the main object
 import * as Discord from "discord.js";
 import { Colors } from "../../constants/Colors.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("listunverified")
+    .setName("addroleall")
     .setDescription(
       "特定のロールを持たないメンバーをリスト表示します。(Lists members without a specific role.)"
     )
@@ -22,26 +15,22 @@ export default {
     const ownerId = process.env.OWNER_ID;
     const targetRoleId = process.env.VERIFIED_ROLE_ID;
 
-    // Check for owner permission first
     if (interaction.user.id !== ownerId) {
       await interaction.reply({
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        // [FIX 1] Use the new 'flags' syntax for ephemeral messages
+
         flags: [Discord.InteractionResponseFlags.Ephemeral],
       });
       return;
     }
 
-    // [FIX 1 & 2] Defer the reply as EPHEMERAL immediately.
-    // This makes the entire interaction private and solves the logic error.
     await interaction.deferReply({
       flags: [Discord.InteractionResponseFlags.Ephemeral],
     });
 
     const guild = interaction.guild;
     if (!guild) {
-      // Now you don't need 'ephemeral: true' here because the whole reply is already private.
       await interaction.editReply({
         content:
           "このコマンドはサーバー内でのみ実行できます。\nThis command can only be executed within a server.",
@@ -57,10 +46,6 @@ export default {
       return;
     }
 
-    // You don't need to check for botMember permissions because you already set
-    // .setDefaultMemberPermissions(0), which means only administrators can run it.
-    // An administrator will always have permission to view channels. This check can be removed for simplicity.
-
     const embed = new EmbedBuilder()
       .setFooter({
         text: interaction.user.username,
@@ -69,8 +54,6 @@ export default {
       .setTimestamp();
 
     try {
-      // [FIX 3] Use the cache instead of fetching all members.
-      // This is MUCH faster and more efficient.
       const members = guild.members.cache;
 
       const membersWithoutRole = members.filter(
@@ -89,7 +72,6 @@ export default {
           .map((member) => `- ${member.user.tag} (ID: ${member.id})`)
           .join("\n");
 
-        // Your list truncation logic is great, no changes needed here.
         const maxLen = 1000;
         let displayList;
         let truncatedMessage = "";
