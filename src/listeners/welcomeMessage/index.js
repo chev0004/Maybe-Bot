@@ -22,17 +22,107 @@ const CORRECT_TEMPLATE_HEADERS = [
 
 const CORRECT_TEMPLATE_STRING = CORRECT_TEMPLATE_HEADERS.join("\n");
 
-function isValidWelcomeMessage(content) {
-  const messageLines = content.split("\n");
-  if (messageLines.length < CORRECT_TEMPLATE_HEADERS.length) {
-    return false;
+/**
+ * Creates a pointer line with appropriate spacing for full-width and half-width characters.
+ * @param {string} line The content of the line with the error.
+ * @param {number} errorIndex The index in the line where the error occurred.
+ * @returns {string} A string with mixed spaces and a '^' to point at the error.
+ */
+function createAlignmentPointer(line, errorIndex) {
+  // This regex is built specifically from the full-width characters in your headers.
+  // Characters: 【, 名, 前, 出, 身, 言, 語, 勉, 強, 趣, 味, 一, 】
+  const specificFullWidthRegex = /[【】名前出身言語勉強趣味一]/;
+  const pointerParts = [];
+
+  for (let i = 0; i < line.length; i++) {
+    if (i === errorIndex) {
+      pointerParts.push("^");
+      break; // Stop after placing the pointer
+    }
+    const char = line[i];
+    // Use ideographic space (　) for specific full-width chars, and en space ( ) for everything else.
+    pointerParts.push(specificFullWidthRegex.test(char) ? "　" : " ");
   }
-  for (let i = 0; i < CORRECT_TEMPLATE_HEADERS.length; i++) {
-    if (!messageLines[i].trimRight().startsWith(CORRECT_TEMPLATE_HEADERS[i])) {
-      return false;
+
+  console.log(pointerParts);
+
+  let allFullWidth = [];
+  let fullWidthChars = [];
+
+  // Check all characters in the line, not just from pointerParts.length
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const isFullWidth = specificFullWidthRegex.test(char);
+
+    if (i >= pointerParts.length) {
+      allFullWidth.push(isFullWidth);
+    }
+
+    if (isFullWidth) {
+      fullWidthChars.push({ char, index: i });
     }
   }
-  return true;
+
+  console.log("Full-width characters found:", fullWidthChars);
+  console.log("All character types:", allFullWidth);
+  return pointerParts.join("");
+}
+
+function validateWelcomeMessage(content) {
+  const messageLines = content.split("\n");
+
+  for (let i = 0; i < CORRECT_TEMPLATE_HEADERS.length; i++) {
+    const expectedHeader = CORRECT_TEMPLATE_HEADERS[i];
+
+    if (i >= messageLines.length || messageLines[i].trim() === "") {
+      const existingContent = messageLines.slice(0, i).join("\n");
+      return {
+        isValid: false,
+        error: {
+          type: "MISSING_LINE",
+          message: `The line for "${expectedHeader}" is missing.`,
+          problematicContent:
+            existingContent.length > 0
+              ? existingContent
+              : "(Your message was empty)",
+          expectedHeader: expectedHeader,
+        },
+      };
+    }
+
+    const userLine = messageLines[i];
+    const userLineTrimmed = userLine.trimRight();
+
+    if (userLineTrimmed.startsWith(expectedHeader)) {
+      continue; // This line is correct, move to the next one
+    }
+
+    // If the line does not start with the expected header, find the exact error location.
+    let diffIndex = 0;
+    while (
+      diffIndex < expectedHeader.length &&
+      diffIndex < userLineTrimmed.length &&
+      expectedHeader[diffIndex] === userLineTrimmed[diffIndex]
+    ) {
+      diffIndex++;
+    }
+
+    const leadingSpaces = userLine.length - userLine.trimLeft().length;
+    const pointerIndex = diffIndex + leadingSpaces;
+
+    return {
+      isValid: false,
+      error: {
+        type: "INVALID_LINE",
+        message: `Line ${i + 1} has a format error.`,
+        lineNumber: i,
+        lineContent: userLine,
+        expectedHeader: expectedHeader,
+        charIndex: pointerIndex,
+      },
+    };
+  }
+  return { isValid: true };
 }
 
 export default {
@@ -84,7 +174,9 @@ export default {
       return;
     }
 
-    if (isValidWelcomeMessage(message.content)) {
+    const validationResult = validateWelcomeMessage(message.content);
+
+    if (validationResult.isValid) {
       if (WELCOME_ROLE_ID) {
         const roleToAssign = guild.roles.cache.get(WELCOME_ROLE_ID);
         if (!roleToAssign) {
@@ -220,10 +312,33 @@ export default {
         }
 
         if (!isCurrentlySpamming) {
-          const userMessageSnippet =
-            message.content.length > 800
-              ? message.content.substring(0, 800) + "..."
-              : message.content;
+          const error = validationResult.error;
+          let deletedMessageFieldValue;
+          let errorReasonFieldValue;
+
+          if (error.type === "INVALID_LINE") {
+            const pointer = createAlignmentPointer(
+              error.lineContent,
+              error.charIndex
+            );
+            const lineToShow = error.lineContent.substring(0, 950);
+            deletedMessageFieldValue = `\`\`\`\n${lineToShow}\n${pointer}\n\`\`\``;
+
+            errorReasonFieldValue = `The format on line ${
+              error.lineNumber + 1
+            } is incorrect. It should start with \`${
+              error.expectedHeader
+            }\`, but there's an error at the position marked with \`^\`.`;
+          } else if (error.type === "MISSING_LINE") {
+            const contentToShow = error.problematicContent.substring(0, 950);
+            deletedMessageFieldValue = `\`\`\`\n${contentToShow}${
+              contentToShow.length > 0 ? "\n" : ""
+            }<-- The line for "${
+              error.expectedHeader
+            }" is missing here.\n\`\`\``;
+
+            errorReasonFieldValue = `You seem to be missing the line for \`${error.expectedHeader}\`.\nPlease include all headers from the template, in the correct order.`;
+          }
 
           const feedbackEmbed = new EmbedBuilder()
             .setColor(Colors.red)
@@ -233,12 +348,16 @@ export default {
             )
             .addFields(
               {
+                name: "エラーの理由 / Reason for Error",
+                value: errorReasonFieldValue,
+              },
+              {
                 name: "正しいテンプレート / Correct Template",
                 value: `\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\``,
               },
               {
                 name: "削除されたメッセージ / Deleted Message",
-                value: `\`\`\`\n${userMessageSnippet}\n\`\`\``,
+                value: deletedMessageFieldValue,
               }
             )
             .setTimestamp();

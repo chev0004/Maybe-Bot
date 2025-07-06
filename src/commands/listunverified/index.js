@@ -21,7 +21,7 @@ export default {
       await interaction.reply({
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
       return;
     }
@@ -33,7 +33,7 @@ export default {
       await interaction.editReply({
         content:
           "このコマンドはサーバー内でのみ実行できます。\nThis command can only be executed within a server.",
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
       return;
     }
@@ -42,7 +42,7 @@ export default {
     if (!role) {
       await interaction.editReply({
         content: `指定されたロール (ID: ${targetRoleId}) が見つかりませんでした。\nThe specified role (ID: ${targetRoleId}) was not found.`,
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
       return;
     }
@@ -55,7 +55,7 @@ export default {
       await interaction.editReply({
         content:
           "ボットのメンバー情報を取得できませんでした。\nCould not retrieve bot's member information.",
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
       return;
     }
@@ -64,7 +64,7 @@ export default {
       await interaction.editReply({
         content:
           "ボットにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
       return;
     }

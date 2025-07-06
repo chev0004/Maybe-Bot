@@ -56,7 +56,7 @@ export default {
             "有効な絵文字を入力してください。カスタム絵文字や一部の新しい絵文字は対応されていません。",
             "Please provide a valid emoji. Custom and some new emojis are not supported.",
           ].join("\n"),
-          ephemeral: true,
+          flags: [InteractionResponseFlags.Ephemeral],
         });
       }
 
@@ -136,7 +136,7 @@ export default {
           "ボイスチャンネルの作成中にエラーが発生しました。",
           "There was an error while creating the voice channel.",
         ].join("\n"),
-        ephemeral: true,
+        flags: [InteractionResponseFlags.Ephemeral],
       });
     }
   },
