@@ -27,7 +27,7 @@ export default {
 
       const embedMsg = new EmbedBuilder()
         .setColor(Colors.green)
-        .setTitle("Bump Cooldown Ended")
+        .setTitle("バンプタイムです！")
         .setDescription('2時間経ちました。もう一度 /bump が出来るようになりました。')
         .setTimestamp();
 
