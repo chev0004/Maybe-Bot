@@ -1,8 +1,7 @@
-import { EmbedBuilder } from "discord.js";
-import { Colors } from "../../constants/Colors.js";
+import { scheduleReminder } from '../../utils/reminderManager.js';
 
 export default {
-  name: "messageCreateHandler",
+  name: "bumpHandler",
   event: "messageCreate",
 
   async execute(message, client) {
@@ -31,17 +30,15 @@ export default {
 
     if (!isDisboardBump && !isDissokuBump) return;
 
-    setTimeout(async () => {
-      const channel = await client.channels.fetch(bumpChannelId).catch(() => null);
-      if (!channel) return;
+    const twoHoursInMillis = 2 * 60 * 60 * 1000;
+    const triggerAt = Date.now() + twoHoursInMillis;
 
-      const embedMsg = new EmbedBuilder()
-        .setColor(Colors.green)
-        .setTitle("バンプタイムです！")
-        .setDescription("2時間経ちました。もう一度 /bump してください。")
-        .setTimestamp();
+    const reminderDetails = {
+      channelId: bumpChannelId,
+      roleId: pingRoleId,
+      triggerAt: triggerAt,
+    };
 
-      await channel.send({ content: `<@&${pingRoleId}>`, embeds: [embedMsg] });
-    }, 2 * 60 * 60 * 1000);
+    await scheduleReminder(reminderDetails, client);
   },
 };

@@ -6,6 +6,7 @@ import ListenerHandler from "./src/handlers/listenerHandler.js";
 import fs from "fs/promises";
 import path from "path";
 import { Colors } from "./src/constants/Colors.js";
+import { loadAndProcessReminders } from "./src/utils/reminderManager.js";
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ const listenerHandler = new ListenerHandler(discordClient, sharedOptions);
 
 discordClient.once("ready", async () => {
   console.log(`Logged in as ${discordClient.user.tag}! Bot is ready.`);
+  await loadAndProcessReminders(discordClient);
 
   try {
     await fs.access(RESTART_INFO_FILE);
