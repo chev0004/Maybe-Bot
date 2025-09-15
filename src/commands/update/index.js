@@ -7,6 +7,7 @@ import { Colors } from "../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
+const COMMIT_LOG_MAX_LEN = 950;
 const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
 const PULLED_BRANCH = "develop";
 
@@ -27,9 +28,7 @@ function colorizeGitOutput(text, branchToHighlight) {
     /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
     (_, p1, p2, p3) => {
       const refinedP1 = p1.replace(/\s+$/, " ");
-
       const refinedP3 = p3 ? p3.replace(/^\s+/, " ").replace(/\s+$/, "") : "";
-
       return `${refinedP1}\u001b[2;34m${p2}\u001b[0m${refinedP3 || ""}`;
     }
   );
@@ -49,7 +48,6 @@ function colorizeGitOutput(text, branchToHighlight) {
       new RegExp(`(\\b${branchPattern}\\b)(\\s*->)`, "g"),
       `\u001b[2;34m$1\u001b[0m ->`
     );
-
     coloredText = coloredText.replace(
       new RegExp(`([a-zA-Z0-9_\\-\\/]+\\/)(${branchPattern})(\\b|$)`, "gm"),
       `$1\u001b[2;34m$2\u001b[0m$3`
@@ -77,81 +75,80 @@ export default {
 
   async execute(interaction) {
     const ownerId = process.env.OWNER_ID;
-    const isTestMode = interaction.options.getBoolean("test") ?? false;
-
     if (interaction.user.id !== ownerId) {
       await interaction.reply({
         content:
           "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        flags: [Discord.InteractionResponseFlags.Ephemeral],
+        ephemeral: true,
       });
+      return;
+    }
+    
+    const isTestMode = interaction.options.getBoolean("test") ?? false;
+    if (isTestMode) {
+      await interaction.reply({ content: 'Test mode for this command is disabled in this version.', ephemeral: true });
       return;
     }
 
     await interaction.deferReply({ ephemeral: false });
 
-    const embedTitle = isTestMode ? "BOTの更新 (テストモード)" : "BOTの更新";
-    const initialDescription = isTestMode
-      ? "テスト用のGitプルシミュレーション中..."
-      : `最新のコミット (${PULLED_BRANCH} ブランチ) を取得中...`;
-
     const embed = new EmbedBuilder()
-      .setTitle(embedTitle)
+      .setTitle("BOTの更新")
       .setColor(Colors.yellow)
-      .setDescription(initialDescription)
+      .setDescription(`最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`)
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
 
-    if (isTestMode) {
-      const fakeGitStdout = `Updating abc1234...def5678
-Fast-forward
- src/commands/update/index.js | 88 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------
- 1 file changed, 68 insertions(+), 20 deletions(-)`;
-      const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot
- * branch ${PULLED_BRANCH} -> FETCH_HEAD
-   e5b6629..e4f730e  ${PULLED_BRANCH}    -> origin/${PULLED_BRANCH}`;
-
-      const fields = [];
-      if (fakeGitStdout) {
-        const colorizedStdout = colorizeGitOutput(
-          fakeGitStdout.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
-        fields.push({
-          name: "Simulated Git Output (stdout)",
-          value: `\`\`\`ansi\n${colorizedStdout}\n\`\`\``,
-          inline: false,
-        });
-      }
-      if (fakeGitStderr) {
-        const colorizedStderr = colorizeGitOutput(
-          fakeGitStderr.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
-        fields.push({
-          name: "Simulated Git Output (stderr)",
-          value: `\`\`\`ansi\n${colorizedStderr}\n\`\`\``,
-          inline: false,
-        });
-      }
-
-      embed
-        .setFields(fields)
-        .setColor(Colors.purple)
-        .setDescription(
-          "テスト用のGitプルシミュレーション完了。\nSimulated Git pull complete."
-        )
-        .setFooter({
-          text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。",
-        });
-
-      await interaction.editReply({ embeds: [embed] });
-      console.log("Update command executed in test mode.");
-      return;
-    }
-
     try {
+      await execPromise('git fetch origin');
+
+      const { stdout: commitLog } = await execPromise(`git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`);
+
+      if (!commitLog) {
+        embed
+          .setColor(Colors.purple)
+          .setDescription(
+            `ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`
+          )
+          .setFooter({
+            text: "変更はありません。BOTは再起動しません。",
+          });
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      let formattedCommits = commitLog;
+      let truncated = false;
+      const commitLines = commitLog.split('\n');
+
+      if (commitLog.length > COMMIT_LOG_MAX_LEN) {
+        let currentLength = 0;
+        const visibleLines = [];
+        for (const line of commitLines) {
+          if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) {
+            truncated = true;
+            break;
+          }
+          visibleLines.push(line);
+          currentLength += line.length + 1;
+        }
+        formattedCommits = visibleLines.join('\n');
+        if (truncated) {
+            const remaining = commitLines.length - visibleLines.length;
+            formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
+        }
+      }
+
+      embed.addFields({
+        name: "更新内容 / Changes",
+        value: `\`\`\`\n${formattedCommits}\n\`\`\``
+      });
+
+
+      embed.setDescription(`更新を適用中... (${PULLED_BRANCH} ブランチ)`);
+      await interaction.editReply({ embeds: [embed] });
+
       const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
         `git pull origin ${PULLED_BRANCH}`
       );
@@ -179,21 +176,7 @@ Fast-forward
           inline: false,
         });
       }
-
-      embed.setFields(fields);
-
-      if (gitStdout.includes("Already up to date.")) {
-        embed
-          .setColor(Colors.purple)
-          .setDescription(
-            `ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`
-          )
-          .setFooter({
-            text: "変更はありません。BOTは再起動しません。",
-          });
-        await interaction.editReply({ embeds: [embed] });
-        return;
-      }
+      embed.addFields(...fields);
 
       embed
         .setColor(Colors.green)
@@ -208,19 +191,16 @@ Fast-forward
         channelId: interaction.channel.id,
         timestamp: Date.now(),
       };
-      try {
-        await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
-        console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
-      } catch (writeError) {
-        console.error("Failed to write restart info:", writeError);
-      }
-
+      await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
+      console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
+      
       setTimeout(() => {
         console.log(
           `Bot restarting due to /update command (${PULLED_BRANCH} branch)...`
         );
         process.exit(0);
       }, 3000);
+
     } catch (error) {
       console.error("Error during update process:", error);
       embed
@@ -230,32 +210,15 @@ Fast-forward
 
       const errorFields = [];
       if (error.stdout) {
-        const colorizedErrorStdout = colorizeGitOutput(
-          error.stdout.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
         errorFields.push({
           name: "Error Output (stdout)",
-          value: `\`\`\`ansi\n${colorizedErrorStdout}\n\`\`\``,
+          value: `\`\`\`\n${error.stdout.substring(0, 1000)}\n\`\`\``,
         });
       }
       if (error.stderr) {
-        const colorizedErrorStderr = colorizeGitOutput(
-          error.stderr.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
         errorFields.push({
           name: "Error Output (stderr)",
-          value: `\`\`\`ansi\n${colorizedErrorStderr}\n\`\`\``,
-        });
-      }
-      if (error.message && !error.stdout && !error.stderr) {
-        errorFields.push({
-          name: "Error Message",
-          value: `\`\`\`\n${error.message.substring(
-            0,
-            RAW_OUTPUT_MAX_LEN * 2
-          )}\n\`\`\``,
+          value: `\`\`\`\n${error.stderr.substring(0, 1000)}\n\`\`\``,
         });
       }
       embed.setFields(errorFields);
