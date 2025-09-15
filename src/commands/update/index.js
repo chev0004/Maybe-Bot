@@ -83,11 +83,53 @@ export default {
       });
       return;
     }
-    
+
     const isTestMode = interaction.options.getBoolean("test") ?? false;
+    
     if (isTestMode) {
-      await interaction.reply({ content: 'Test mode for this command is disabled in this version.', ephemeral: true });
-      return;
+      await interaction.deferReply({ ephemeral: false });
+
+      const embed = new EmbedBuilder()
+        .setTitle("BOTの更新 (テストモード)")
+        .setColor(Colors.yellow)
+        .setDescription("テスト用のGitプルシミュレーション中...")
+        .setTimestamp()
+        .setFooter({ text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。" });
+        
+      await interaction.editReply({ embeds: [embed] });
+
+      const day = new Date().getDate();
+
+      if (day % 2 === 0) {
+        const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
+        const fakeGitStdout = `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n 1 file changed, 68 insertions(+), 20 deletions(-)`;
+        const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
+
+        embed.addFields(
+            {
+                name: "更新内容 / Changes (Simulated)",
+                value: `\`\`\`\n${fakeCommitLog}\n\`\`\``
+            },
+            {
+                name: "Git Output (Simulated stdout)",
+                value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``
+            },
+            {
+                name: "Git Output (Simulated stderr)",
+                value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``
+            }
+        )
+        .setColor(Colors.green)
+        .setDescription("テスト用のGitプルシミュレーション完了。");
+
+      } else {
+        embed
+          .setColor(Colors.purple)
+          .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。(シミュレーション)`);
+      }
+
+      await interaction.editReply({ embeds: [embed] });
+      return; 
     }
 
     await interaction.deferReply({ ephemeral: false });
@@ -102,40 +144,30 @@ export default {
 
     try {
       await execPromise('git fetch origin');
-
       const { stdout: commitLog } = await execPromise(`git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`);
 
       if (!commitLog) {
         embed
           .setColor(Colors.purple)
-          .setDescription(
-            `ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`
-          )
-          .setFooter({
-            text: "変更はありません。BOTは再起動しません。",
-          });
+          .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`)
+          .setFooter({ text: "変更はありません。BOTは再起動しません。" });
         await interaction.editReply({ embeds: [embed] });
         return;
       }
 
       let formattedCommits = commitLog;
-      let truncated = false;
       const commitLines = commitLog.split('\n');
-
       if (commitLog.length > COMMIT_LOG_MAX_LEN) {
         let currentLength = 0;
         const visibleLines = [];
         for (const line of commitLines) {
-          if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) {
-            truncated = true;
-            break;
-          }
+          if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) break;
           visibleLines.push(line);
           currentLength += line.length + 1;
         }
         formattedCommits = visibleLines.join('\n');
-        if (truncated) {
-            const remaining = commitLines.length - visibleLines.length;
+        const remaining = commitLines.length - visibleLines.length;
+        if (remaining > 0) {
             formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
         }
       }
@@ -145,34 +177,23 @@ export default {
         value: `\`\`\`\n${formattedCommits}\n\`\`\``
       });
 
-
       embed.setDescription(`更新を適用中... (${PULLED_BRANCH} ブランチ)`);
       await interaction.editReply({ embeds: [embed] });
 
-      const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
-        `git pull origin ${PULLED_BRANCH}`
-      );
+      const { stdout: gitStdout, stderr: gitStderr } = await execPromise(`git pull origin ${PULLED_BRANCH}`);
 
       const fields = [];
       if (gitStdout) {
-        const colorizedStdout = colorizeGitOutput(
-          gitStdout.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
         fields.push({
           name: "Git Output (stdout)",
-          value: `\`\`\`ansi\n${colorizedStdout}\n\`\`\``,
+          value: `\`\`\`ansi\n${colorizeGitOutput(gitStdout.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
           inline: false,
         });
       }
       if (gitStderr) {
-        const colorizedStderr = colorizeGitOutput(
-          gitStderr.substring(0, RAW_OUTPUT_MAX_LEN),
-          PULLED_BRANCH
-        );
         fields.push({
           name: "Git Output (stderr)",
-          value: `\`\`\`ansi\n${colorizedStderr}\n\`\`\``,
+          value: `\`\`\`ansi\n${colorizeGitOutput(gitStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
           inline: false,
         });
       }
@@ -181,9 +202,7 @@ export default {
       embed
         .setColor(Colors.green)
         .setDescription(`通常に更新されました。`)
-        .setFooter({
-          text: "BOTが再起動中...",
-        });
+        .setFooter({ text: "BOTが再起動中..." });
       await interaction.editReply({ embeds: [embed] });
 
       const restartInfo = {
@@ -195,9 +214,7 @@ export default {
       console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
       
       setTimeout(() => {
-        console.log(
-          `Bot restarting due to /update command (${PULLED_BRANCH} branch)...`
-        );
+        console.log(`Bot restarting due to /update command (${PULLED_BRANCH} branch)...`);
         process.exit(0);
       }, 3000);
 
@@ -210,16 +227,10 @@ export default {
 
       const errorFields = [];
       if (error.stdout) {
-        errorFields.push({
-          name: "Error Output (stdout)",
-          value: `\`\`\`\n${error.stdout.substring(0, 1000)}\n\`\`\``,
-        });
+        errorFields.push({ name: "Error Output (stdout)", value: `\`\`\`\n${error.stdout.substring(0, 1000)}\n\`\`\`` });
       }
       if (error.stderr) {
-        errorFields.push({
-          name: "Error Output (stderr)",
-          value: `\`\`\`\n${error.stderr.substring(0, 1000)}\n\`\`\``,
-        });
+        errorFields.push({ name: "Error Output (stderr)", value: `\`\`\`\n${error.stderr.substring(0, 1000)}\n\`\`\`` });
       }
       embed.setFields(errorFields);
 
