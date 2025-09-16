@@ -102,7 +102,7 @@ export default {
 
       if (day % 2 === 0) {
         const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
-        const fakeGitStdout = `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n 1 file changed, 68 insertions(+), 20 deletions(-)`;
+        const fakeGitStdout = `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
         const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
 
         embed.addFields(
@@ -117,6 +117,10 @@ export default {
             {
                 name: "Git Output (Simulated stderr)",
                 value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``
+            },
+            {
+                name: "NPM Install (Simulated)",
+                value: "```\nDependencies in package.json changed. `npm install` would run here.\n```"
             }
         )
         .setColor(Colors.green)
@@ -144,9 +148,13 @@ export default {
 
     try {
       await execPromise('git fetch origin');
+
+      const { stdout: packageJsonDiff } = await execPromise(`git diff HEAD..origin/${PULLED_BRANCH} -- package.json`);
+      const needsNpmInstall = packageJsonDiff.length > 0;
+
       const { stdout: commitLog } = await execPromise(`git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`);
 
-      if (!commitLog) {
+      if (!commitLog && !needsNpmInstall) {
         embed
           .setColor(Colors.purple)
           .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`)
@@ -155,27 +163,33 @@ export default {
         return;
       }
 
-      let formattedCommits = commitLog;
-      const commitLines = commitLog.split('\n');
-      if (commitLog.length > COMMIT_LOG_MAX_LEN) {
-        let currentLength = 0;
-        const visibleLines = [];
-        for (const line of commitLines) {
-          if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) break;
-          visibleLines.push(line);
-          currentLength += line.length + 1;
+      if (commitLog) {
+        let formattedCommits = commitLog;
+        const commitLines = commitLog.split('\n');
+        if (commitLog.length > COMMIT_LOG_MAX_LEN) {
+          let currentLength = 0;
+          const visibleLines = [];
+          for (const line of commitLines) {
+            if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) break;
+            visibleLines.push(line);
+            currentLength += line.length + 1;
+          }
+          formattedCommits = visibleLines.join('\n');
+          const remaining = commitLines.length - visibleLines.length;
+          if (remaining > 0) {
+              formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
+          }
         }
-        formattedCommits = visibleLines.join('\n');
-        const remaining = commitLines.length - visibleLines.length;
-        if (remaining > 0) {
-            formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
-        }
+        embed.addFields({
+          name: "更新内容 / Changes",
+          value: `\`\`\`\n${formattedCommits}\n\`\`\``
+        });
+      } else if (needsNpmInstall) {
+         embed.addFields({
+            name: "更新内容 / Changes",
+            value: "```\npackage.json の依存関係が変更されました。\nDependencies in package.json have been changed.\n```"
+        });
       }
-
-      embed.addFields({
-        name: "更新内容 / Changes",
-        value: `\`\`\`\n${formattedCommits}\n\`\`\``
-      });
 
       embed.setDescription(`更新を適用中... (${PULLED_BRANCH} ブランチ)`);
       await interaction.editReply({ embeds: [embed] });
@@ -198,6 +212,39 @@ export default {
         });
       }
       embed.addFields(...fields);
+      
+      if (needsNpmInstall) {
+        embed.setDescription('更新を適用しました。依存関係をインストール中...');
+        await interaction.editReply({ embeds: [embed] });
+
+        try {
+          const { stdout: npmStdout } = await execPromise('npm install');
+          embed.addFields({
+            name: "NPM Install Output",
+            value: `\`\`\`\n${npmStdout.substring(0, RAW_OUTPUT_MAX_LEN)}\n\`\`\``,
+            inline: false
+          });
+        } catch (npmError) {
+          console.error("Error during npm install:", npmError);
+          embed
+            .setColor(Colors.red)
+            .setDescription("依存関係のインストール中にエラーが発生しました。")
+            .setFooter({ text: "BOTの更新に失敗しました。再起動を中止します。" });
+          
+          const errorFields = [];
+          if (npmError.stdout) {
+              errorFields.push({ name: "NPM Error Output (stdout)", value: `\`\`\`\n${npmError.stdout.substring(0, 1000)}\n\`\`\`` });
+          }
+          if (npmError.stderr) {
+              errorFields.push({ name: "NPM Error Output (stderr)", value: `\`\`\`\n${npmError.stderr.substring(0, 1000)}\n\`\`\`` });
+          }
+          embed.spliceFields(embed.data.fields.length - fields.length, fields.length);
+          embed.addFields(...fields, ...errorFields);
+          
+          await interaction.editReply({ embeds: [embed] });
+          return;
+        }
+      }
 
       embed
         .setColor(Colors.green)
