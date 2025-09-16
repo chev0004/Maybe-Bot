@@ -17,7 +17,6 @@ async function getReminders() {
         const data = await fs.readFile(REMINDERS_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
-        // If file doesn't exist or is empty, return an empty array
         if (error.code === 'ENOENT') {
             return [];
         }
@@ -47,7 +46,6 @@ async function removeReminder(reminderId) {
     reminders = reminders.filter(r => r.id !== reminderId);
     await saveReminders(reminders);
 
-    // Also clear it from active memory
     if (activeTimers.has(reminderId)) {
         clearTimeout(activeTimers.get(reminderId));
         activeTimers.delete(reminderId);
@@ -80,7 +78,6 @@ async function executeReminder(reminder, client) {
     } catch (error) {
         console.error('Failed to execute reminder:', error);
     } finally {
-        // Always remove the reminder after attempting to send it.
         await removeReminder(reminder.id);
     }
 }
