@@ -71,7 +71,7 @@ async function executeReminder(reminder, client) {
         const embedMsg = new EmbedBuilder()
             .setColor(Colors.green)
             .setTitle("バンプタイムです！")
-            .setDescription("2時間経ちました。もう一度 /bump してください。")
+            .setDescription("2時間経ちました。もう一度 /bump が出来るようになりました！")
             .setTimestamp();
 
         await channel.send({ content: `<@&${reminder.roleId}>`, embeds: [embedMsg] });
@@ -112,7 +112,7 @@ function createTimeout(reminder, client) {
  */
 export async function scheduleReminder(reminderDetails, client) {
     const newReminder = {
-        id: Date.now().toString(), // Simple unique ID
+        id: Date.now().toString(),
         ...reminderDetails
     };
 
