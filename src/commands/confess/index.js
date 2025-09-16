@@ -1,53 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { Colors } from "../../constants/Colors.js";
-
-// Mix of random adjectives
-const ADJECTIVES = [
-  "Viscous", "Whiskery", "Wiggly", "Wrinkly",
-  "Mucky", "Mucous", "Mushy", "Oozing", "Playful",
-  "Drooly", "Farty", "Festering", "Fluffy", "Fuzzy", 
-  "Grimy", "Icky", "Infested", "Delicate", "Gentle",
-  "Moist", "Moldy", "Morbid", "Glistening", "Happy",
-  "Chubby", "Chirpy", "Cooing", "Cuddly", "Adorable", 
-  "Sticky", "Suppurating", "Sweet", "Velvety", "Soft",
-  "Creepy", "Crusty", "Decaying", "Drippy", "Blushing",
-  "Gelatinous", "Giggly", "Gooey", "Greasy", "Darling",
-  "Bloated", "Blubbery", "Bouncy", "Bubbly", "Bulbous", 
-  "Plump", "Pox-marked", "Pulpy", "Pungent", "Purring", 
-  "Putrid", "Rancid", "Reeking", "Seeping", "Precious",
-  "Septic", "Shiny", "Sloppy", "Sludgy", "Slimy", "Smelly", 
-  "Snotty", "Soggy", "Sparkly", "Squishy", "Rosy", 'Silky'
-];
-
-// Mix of random nouns
-const NOUNS = [
-  "Botfly", "Bristle", "Bunny", "Caterpillar", "Lollipop",
-  "Chick", "Chinchilla", "Cockroach", "Cupcake", "Bubble",
-  "Fawn", "Fluffball", "Fungus", "Gloop", "Goop", "Cookie",
-  "Abscess", "Axolotl", "Bile", "Blob", "Booger", "Cheese", 
-  "Pustule", "Rat", "Roach", "Scab", "Scum", "Slime", "Sloth", 
-  "Grime", "Gristle", "Gunk", "Hamster", "Jellybean", "Daisy",
-  "Kitten", "Leech", "Lump", "Maggot", "Marshmallow", "Mochi",  
-  "Cyst", "Drool", "Dumpling", "Dustbunny", "Earwax", "Mucus",
-  "Poop", "Porridge", "Pudding", "Puff", "Puppy", "Pus", "Panda",
-  "Tadpole", "Toad", "Troll", "Ulcer", "Vomit", "Worm", "Penguin",
-  "Sludge", "Slug", "Snail", "Snotball", "Spore", "Squid", "Petal",
-  "Mudpie", "Nugget", "Phlegm", "Pickle", "Pigeon", "Koala", "Star"
-];
-
-// Get a random name by mixing random adjectives and nouns
-function generateAnonymousId() {
-  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  return `${adj} ${noun}`;
-}
-
-// Get random colour
-function getRandomColor() {
-  const colorKeys = Object.keys(Colors);
-  const randomKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
-  return Colors[randomKey];
-}
+import { getNextConfessionId, logConfession } from "../../utils/confessionManager.js";
+import { generateAnonymousId, getRandomColor } from "../../utils/confessionUtils.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -80,25 +33,27 @@ export default {
       });
     }
 
-    const confessionMessage = interaction.options.getString("message"); // The message the user sends  
-    const anonymousId = generateAnonymousId(); // The random name
-    const randomColor = getRandomColor(); // The random colour
+    const confessionMessage = interaction.options.getString("message");
+    const anonymousId = generateAnonymousId();
+    const randomColor = getRandomColor();
+    const confessionId = await getNextConfessionId();
 
     const confessionEmbed = new EmbedBuilder()
-      .setTitle(anonymousId)
+      .setTitle(`${anonymousId} (#${confessionId})`)
       .setDescription(confessionMessage)
       .setColor(randomColor)
-      .setFooter({ text: "自分の秘密を共有するには /confess を使用してください。" })
+      .setFooter({ text: "投稿するか返事したい場合は、/confess または /reply を使用してください。" });
     
     try {
-      await interaction.channel.send({ embeds: [confessionEmbed] }); // Send the anonymous meessage
+      const sentMessage = await interaction.channel.send({ embeds: [confessionEmbed] });
+      await logConfession(confessionId, sentMessage.id);
 
       // Send this if all things go smooth
       await interaction.reply({
         content: "あなたの告白は匿名で投稿されました。\nYour confession has been posted anonymously.",
         ephemeral: true,
       });
-    } catch (error) { // Or send this if there's a problem
+    } catch (error) {
       console.error("Error processing confession:", error);
       await interaction.reply({
         content: "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
