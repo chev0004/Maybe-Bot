@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { Colors } from "../../constants/Colors.js";
 
+// Mix of random adjectives
 const ADJECTIVES = [
   "Viscous", "Whiskery", "Wiggly", "Wrinkly",
   "Mucky", "Mucous", "Mushy", "Oozing", "Playful",
@@ -18,6 +19,7 @@ const ADJECTIVES = [
   "Snotty", "Soggy", "Sparkly", "Squishy", "Rosy", 'Silky'
 ];
 
+// Mix of random nouns
 const NOUNS = [
   "Botfly", "Bristle", "Bunny", "Caterpillar", "Lollipop",
   "Chick", "Chinchilla", "Cockroach", "Cupcake", "Bubble",
@@ -33,13 +35,14 @@ const NOUNS = [
   "Mudpie", "Nugget", "Phlegm", "Pickle", "Pigeon", "Koala", "Star"
 ];
 
-
+// Get a random name by mixing random adjectives and nouns
 function generateAnonymousId() {
   const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
   return `${adj} ${noun}`;
 }
 
+// Get random colour
 function getRandomColor() {
   const colorKeys = Object.keys(Colors);
   const randomKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
@@ -58,8 +61,10 @@ export default {
     ),
 
   async execute(interaction) {
+    // Get channel id
     const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
 
+    // Send this if no id is found
     if (!confessionsChannelId) {
       return interaction.reply({
         content: "このコマンドは設定されていません。管理者に連絡してください。\nThis command is not configured. Please contact an administrator.",
@@ -67,6 +72,7 @@ export default {
       });
     }
 
+    // Send this if the command is used in a different channel
     if (interaction.channelId !== confessionsChannelId) {
       return interaction.reply({
         content: `このコマンドはこのチャンネルでは使用できません。<#${confessionsChannelId}> で使用してください。\nThis command can only be used in the <#${confessionsChannelId}> channel.`,
@@ -74,9 +80,9 @@ export default {
       });
     }
 
-    const confessionMessage = interaction.options.getString("message");
-    const anonymousId = generateAnonymousId();
-    const randomColor = getRandomColor();
+    const confessionMessage = interaction.options.getString("message"); // The message the user sends  
+    const anonymousId = generateAnonymousId(); // The random name
+    const randomColor = getRandomColor(); // The random colour
 
     const confessionEmbed = new EmbedBuilder()
       .setTitle(anonymousId)
@@ -85,13 +91,14 @@ export default {
       .setFooter({ text: "自分の秘密を共有するには /confess を使用してください。" })
     
     try {
-      await interaction.channel.send({ embeds: [confessionEmbed] });
+      await interaction.channel.send({ embeds: [confessionEmbed] }); // Send the anonymous meessage
 
+      // Send this if all things go smooth
       await interaction.reply({
         content: "あなたの告白は匿名で投稿されました。\nYour confession has been posted anonymously.",
         ephemeral: true,
       });
-    } catch (error) {
+    } catch (error) { // Or send this if there's a problem
       console.error("Error processing confession:", error);
       await interaction.reply({
         content: "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
