@@ -9,7 +9,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("servermap")
     .setDescription(
-      "Fetches a map of all server categories and channels into a text file."
+      "Fetches a map of all server categories and channels with their IDs into a text file."
     )
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
@@ -25,7 +25,7 @@ export default {
 
     let output = "";
     const serverName = guild.name;
-    output += `Server Map for: ${serverName}\n`;
+    output += `Server Map for: ${serverName} (ID: ${guild.id})\n`;
     output += `Generated on: ${new Date().toUTCString()}\n`;
     output += "==================================================\n\n";
 
@@ -35,8 +35,9 @@ export default {
       .filter((c) => c.type === ChannelType.GuildCategory)
       .sort((a, b) => a.position - b.position);
 
+    // This function formats a single channel entry, now including its ID
     const formatChannel = (channel) => {
-      let channelOutput = `- ${channel.name}\n`;
+      let channelOutput = `- ${channel.name} (ID: ${channel.id})\n`;
       if (
         channel.type === ChannelType.GuildText ||
         channel.type === ChannelType.GuildAnnouncement
@@ -47,8 +48,10 @@ export default {
       return channelOutput;
     };
 
+    // Process each category
     for (const category of categories.values()) {
-      output += `Category: ${category.name}\n`;
+      // Add the category ID to the output
+      output += `Category: ${category.name} (ID: ${category.id})\n`;
 
       const channelsInCategory = channels.filter((c) => c.parentId === category.id);
 
@@ -64,28 +67,18 @@ export default {
         .filter((c) => ![ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice, ChannelType.GuildStageVoice, ChannelType.GuildCategory].includes(c.type))
         .sort((a, b) => a.position - b.position);
 
-      if (textChannels.size > 0) {
-        for (const channel of textChannels.values()) {
-          output += formatChannel(channel);
-        }
-      }
-      if (voiceChannels.size > 0) {
-         for (const channel of voiceChannels.values()) {
-          output += formatChannel(channel);
-        }
-      }
-      if (otherChannels.size > 0) {
-         for (const channel of otherChannels.values()) {
-          output += formatChannel(channel);
-        }
-      }
-       if (channelsInCategory.size === 0) {
+      if (textChannels.size > 0) for (const channel of textChannels.values()) output += formatChannel(channel);
+      if (voiceChannels.size > 0) for (const channel of voiceChannels.values()) output += formatChannel(channel);
+      if (otherChannels.size > 0) for (const channel of otherChannels.values()) output += formatChannel(channel);
+      
+      if (channelsInCategory.size === 0) {
         output += "- (No channels in this category)\n";
       }
 
       output += "\n";
     }
 
+    // Handle uncategorized channels
     const channelsWithoutCategory = channels.filter((c) => !c.parentId && c.type !== ChannelType.GuildCategory);
     
     if (channelsWithoutCategory.size > 0) {
@@ -103,7 +96,7 @@ export default {
     });
 
     await interaction.editReply({
-      content: "Here is the corrected map of your server's channels:",
+      content: "Here is the final map of your server's channels, now with IDs:",
       files: [attachment],
     });
   },
