@@ -6,54 +6,34 @@ import path from "path";
 import { Colors } from "../../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
-const RAW_OUTPUT_MAX_LEN = 450;
 const COMMIT_LOG_MAX_LEN = 950;
-const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
+const FILE_CHANGES_MAX_LEN = 950;
+const RESTART_INFO_FILE = path.join(process.cwd(), "restart.json");
 const PULLED_BRANCH = "develop";
 
-function colorizeGitOutput(text, branchToHighlight) {
+const MAX_PATH_LENGTH = 44;
+const TRUNCATE_START = 15;
+const TRUNCATE_END = 24;
+
+function truncatePath(filePath) {
+  if (filePath.length <= MAX_PATH_LENGTH) {
+    return filePath;
+  }
+  return (
+    filePath.substring(0, TRUNCATE_START) +
+    "..." +
+    filePath.substring(filePath.length - TRUNCATE_END)
+  );
+}
+
+function colorizeGitOutput(text) {
   if (!text) return "";
   let coloredText = text;
-
-  const branchPattern = branchToHighlight
-    ? branchToHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    : null;
-
+  const branchPattern = PULLED_BRANCH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   coloredText = coloredText.replace(
-    /^((?:[^|\n])+?\s*\|\s*\d+\s*)[+-]+$/gm,
-    "$1"
+    new RegExp(`(\\b${branchPattern}\\b)`, "g"),
+    `\u001b[2;34m$1\u001b[0m`
   );
-
-  coloredText = coloredText.replace(
-    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
-    (_, p1, p2, p3) => {
-      const refinedP1 = p1.replace(/\s+$/, " ");
-      const refinedP3 = p3 ? p3.replace(/^\s+/, " ").replace(/\s+$/, "") : "";
-      return `${refinedP1}\u001b[2;34m${p2}\u001b[0m${refinedP3 || ""}`;
-    }
-  );
-
-  coloredText = coloredText.replace(
-    /(\d+)\s+insertions?\(\+\)/g,
-    "\u001b[2;36m+\u001b[0m" + "\u001b[2;36m$1\u001b[0m"
-  );
-
-  coloredText = coloredText.replace(
-    /(\d+)\s+deletions?\(\-\)/g,
-    "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m"
-  );
-
-  if (branchPattern) {
-    coloredText = coloredText.replace(
-      new RegExp(`(\\b${branchPattern}\\b)(\\s*->)`, "g"),
-      `\u001b[2;34m$1\u001b[0m ->`
-    );
-    coloredText = coloredText.replace(
-      new RegExp(`([a-zA-Z0-9_\\-\\/]+\\/)(${branchPattern})(\\b|$)`, "gm"),
-      `$1\u001b[2;34m$2\u001b[0m$3`
-    );
-  }
-
   return coloredText;
 }
 
@@ -85,7 +65,7 @@ export default {
     }
 
     const isTestMode = interaction.options.getBoolean("test") ?? false;
-    
+
     if (isTestMode) {
       await interaction.deferReply({ ephemeral: false });
 
@@ -97,40 +77,47 @@ export default {
         .setFooter({ text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。" });
         
       await interaction.editReply({ embeds: [embed] });
+      
+      const fakeCommitLog = `35ab18a - refactor: project structure`;
 
-      const day = new Date().getDate();
+      const fakeFileChanges = [
+        { path: 'src/commands/addroleall/index.js', num: '129' },
+        { path: 'src/commands/{ => botadmin}/a-very-very-long-folder-name-just-to-test-truncation/restart/index.js', num: '2' }, // Long path for testing
+        { path: 'src/commands/{ => botadmin}/update/index.js', num: '2' },
+        { path: 'src/commands/{ => botadmin}/uptime/index.js', num: '2' },
+        { path: 'src/commands/{ => minecraft}/smite/index.js', num: '2' },
+        { path: 'src/commands/{ => minecraft}/startserver/index.js', num: '2' }
+      ];
 
-      if (day % 2 === 0) {
-        const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
-        const fakeGitStdout = `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
-        const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
+      const truncatedChanges = fakeFileChanges.map(c => ({
+          ...c,
+          path: truncatePath(c.path)
+      }));
 
-        embed.addFields(
-            {
-                name: "更新内容 / Changes (Simulated)",
-                value: `\`\`\`\n${fakeCommitLog}\n\`\`\``
-            },
-            {
-                name: "Git Output (Simulated stdout)",
-                value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``
-            },
-            {
-                name: "Git Output (Simulated stderr)",
-                value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``
-            },
-            {
-                name: "NPM Install (Simulated)",
-                value: "```\nDependencies in package.json changed. `npm install` would run here.\n```"
-            }
-        )
-        .setColor(Colors.green)
-        .setDescription("テスト用のGitプルシミュレーション完了。");
+      const maxPathLength = Math.max(...truncatedChanges.map(c => c.path.length));
+      const maxNumLength = Math.max(...truncatedChanges.map(c => c.num.length));
 
-      } else {
-        embed
-          .setColor(Colors.purple)
-          .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。(シミュレーション)`);
-      }
+      const alignedLines = truncatedChanges.map(change => {
+        const pathPadding = ' '.repeat(maxPathLength - change.path.length);
+        const numPadding = ' '.repeat(maxNumLength - change.num.length);
+        return ` ${change.path}${pathPadding} | ${numPadding}${change.num}`;
+      }).join('\n');
+
+      const fakeGitStdout = `Updating d0e87c5..35ab18a
+Fast-forward
+${alignedLines}`;
+
+      const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot
+ * branch      ${PULLED_BRANCH}     -> FETCH_HEAD`;
+
+      embed.addFields(
+          { name: "更新内容 / Changes", value: `\`\`\`\n${fakeCommitLog}\n\`\`\`` },
+          { name: "Git Output (stdout)", value: `\`\`\`\n${fakeGitStdout}\n\`\`\`` },
+          { name: "Git Output (stderr)", value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr)}\n\`\`\`` }
+      )
+      .setColor(Colors.green)
+      .setDescription("通常に更新されました。 (シミュレーション)")
+      .setFooter({ text: "BOTが再起動中... (シミュレーション)" });
 
       await interaction.editReply({ embeds: [embed] });
       return; 
@@ -148,13 +135,13 @@ export default {
 
     try {
       await execPromise('git fetch origin');
-
       const { stdout: packageJsonDiff } = await execPromise(`git diff HEAD..origin/${PULLED_BRANCH} -- package.json`);
       const needsNpmInstall = packageJsonDiff.length > 0;
-
       const { stdout: commitLog } = await execPromise(`git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`);
+      const { stdout: diffOutput } = await execPromise(`git diff --name-status HEAD..origin/${PULLED_BRANCH}`);
+      const hasFileChanges = diffOutput.trim().length > 0;
 
-      if (!commitLog && !needsNpmInstall) {
+      if (!commitLog && !needsNpmInstall && !hasFileChanges) {
         embed
           .setColor(Colors.purple)
           .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`)
@@ -165,53 +152,51 @@ export default {
 
       if (commitLog) {
         let formattedCommits = commitLog;
-        const commitLines = commitLog.split('\n');
         if (commitLog.length > COMMIT_LOG_MAX_LEN) {
-          let currentLength = 0;
-          const visibleLines = [];
-          for (const line of commitLines) {
-            if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) break;
-            visibleLines.push(line);
-            currentLength += line.length + 1;
-          }
-          formattedCommits = visibleLines.join('\n');
-          const remaining = commitLines.length - visibleLines.length;
-          if (remaining > 0) {
-              formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
-          }
+          formattedCommits = commitLog.substring(0, COMMIT_LOG_MAX_LEN - 50) + `\n...他コミット多数`;
         }
-        embed.addFields({
-          name: "更新内容 / Changes",
-          value: `\`\`\`\n${formattedCommits}\n\`\`\``
-        });
+        embed.addFields({ name: "更新内容 / Changes", value: `\`\`\`\n${formattedCommits}\n\`\`\`` });
       } else if (needsNpmInstall) {
-         embed.addFields({
-            name: "更新内容 / Changes",
-            value: "```\npackage.json の依存関係が変更されました。\nDependencies in package.json have been changed.\n```"
-        });
+         embed.addFields({ name: "更新内容 / Changes", value: "```\npackage.json の依存関係が変更されました。\nDependencies in package.json have been changed.\n```" });
+      }
+
+      const fileChanges = diffOutput.trim().split('\n')
+        .filter(line => line)
+        .map(line => {
+          const parts = line.split('\t');
+          const status = parts[0].trim();
+          const oldFile = truncatePath(parts[1].trim());
+          const newFile = parts[2] ? truncatePath(parts[2].trim()) : null;
+
+          switch (status.charAt(0)) {
+            case 'R': return `• **[MOVED]** \`${oldFile}\` → \`${newFile}\``;
+            case 'A': return `• **[ADDED]** \`${oldFile}\``;
+            case 'M': return `• **[MODIFIED]** \`${oldFile}\``;
+            case 'D': return `• **[DELETED]** \`${oldFile}\``;
+            default: return `• **[${status}]** \`${oldFile}\``;
+          }
+      });
+      
+      if (fileChanges.length > 0) {
+        let changesDescription = fileChanges.join('\n');
+        if (changesDescription.length > FILE_CHANGES_MAX_LEN) {
+          let truncated = '';
+          let visibleCount = 0;
+          for (const change of fileChanges) {
+            if (truncated.length + change.length + 1 > FILE_CHANGES_MAX_LEN) break;
+            truncated += change + '\n';
+            visibleCount++;
+          }
+          const remaining = fileChanges.length - visibleCount;
+          changesDescription = truncated + `\n...他 ${remaining} 件の変更 (...and ${remaining} more changes)`;
+        }
+        embed.addFields({ name: `ファイル変更点 / File Changes (${fileChanges.length})`, value: changesDescription });
       }
 
       embed.setDescription(`更新を適用中... (${PULLED_BRANCH} ブランチ)`);
       await interaction.editReply({ embeds: [embed] });
 
-      const { stdout: gitStdout, stderr: gitStderr } = await execPromise(`git pull origin ${PULLED_BRANCH}`);
-
-      const fields = [];
-      if (gitStdout) {
-        fields.push({
-          name: "Git Output (stdout)",
-          value: `\`\`\`ansi\n${colorizeGitOutput(gitStdout.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-          inline: false,
-        });
-      }
-      if (gitStderr) {
-        fields.push({
-          name: "Git Output (stderr)",
-          value: `\`\`\`ansi\n${colorizeGitOutput(gitStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-          inline: false,
-        });
-      }
-      embed.addFields(...fields);
+      await execPromise(`git pull origin ${PULLED_BRANCH}`);
       
       if (needsNpmInstall) {
         embed.setDescription('更新を適用しました。依存関係をインストール中...');
@@ -219,44 +204,19 @@ export default {
 
         try {
           const { stdout: npmStdout } = await execPromise('npm install');
-          embed.addFields({
-            name: "NPM Install Output",
-            value: `\`\`\`\n${npmStdout.substring(0, RAW_OUTPUT_MAX_LEN)}\n\`\`\``,
-            inline: false
-          });
+          embed.addFields({ name: "NPM Install Output", value: `\`\`\`\n${npmStdout.substring(0, 1000)}\n\`\`\`` });
         } catch (npmError) {
           console.error("Error during npm install:", npmError);
-          embed
-            .setColor(Colors.red)
-            .setDescription("依存関係のインストール中にエラーが発生しました。")
-            .setFooter({ text: "BOTの更新に失敗しました。再起動を中止します。" });
-          
-          const errorFields = [];
-          if (npmError.stdout) {
-              errorFields.push({ name: "NPM Error Output (stdout)", value: `\`\`\`\n${npmError.stdout.substring(0, 1000)}\n\`\`\`` });
-          }
-          if (npmError.stderr) {
-              errorFields.push({ name: "NPM Error Output (stderr)", value: `\`\`\`\n${npmError.stderr.substring(0, 1000)}\n\`\`\`` });
-          }
-          embed.spliceFields(embed.data.fields.length - fields.length, fields.length);
-          embed.addFields(...fields, ...errorFields);
-          
+          embed.setColor(Colors.red).setDescription("依存関係のインストール中にエラーが発生しました。再起動を中止します。").addFields({ name: "NPM Error (stderr)", value: `\`\`\`\n${(npmError.stderr || "N/A").substring(0, 1000)}\n\`\`\`` });
           await interaction.editReply({ embeds: [embed] });
           return;
         }
       }
 
-      embed
-        .setColor(Colors.green)
-        .setDescription(`通常に更新されました。`)
-        .setFooter({ text: "BOTが再起動中..." });
+      embed.setColor(Colors.green).setDescription(`通常に更新されました。`).setFooter({ text: "BOTが再起動中..." });
       await interaction.editReply({ embeds: [embed] });
 
-      const restartInfo = {
-        triggeringUserId: interaction.user.id,
-        channelId: interaction.channel.id,
-        timestamp: Date.now(),
-      };
+      const restartInfo = { triggeringUserId: interaction.user.id, channelId: interaction.channel.id, timestamp: Date.now() };
       await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
       console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
       
@@ -267,20 +227,7 @@ export default {
 
     } catch (error) {
       console.error("Error during update process:", error);
-      embed
-        .setColor(Colors.red)
-        .setDescription("更新プロセス中にエラーが発生しました。")
-        .setFooter({ text: "BOTの更新に失敗しました。" });
-
-      const errorFields = [];
-      if (error.stdout) {
-        errorFields.push({ name: "Error Output (stdout)", value: `\`\`\`\n${error.stdout.substring(0, 1000)}\n\`\`\`` });
-      }
-      if (error.stderr) {
-        errorFields.push({ name: "Error Output (stderr)", value: `\`\`\`\n${error.stderr.substring(0, 1000)}\n\`\`\`` });
-      }
-      embed.setFields(errorFields);
-
+      embed.setColor(Colors.red).setDescription("更新プロセス中にエラーが発生しました。").setFields({ name: "Error (stderr)", value: `\`\`\`\n${(error.stderr || "N/A").substring(0, 1000)}\n\`\`\`` });
       await interaction.editReply({ embeds: [embed] });
     }
   },
