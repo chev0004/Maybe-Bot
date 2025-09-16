@@ -129,7 +129,7 @@ export default {
       } else {
         embed
           .setColor(Colors.purple)
-          .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。(シミュレーション)`);
+          .setDescription(`BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。(シミュレーション)`);
       }
 
       await interaction.editReply({ embeds: [embed] });
