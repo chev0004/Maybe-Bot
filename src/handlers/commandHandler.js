@@ -17,25 +17,31 @@ export default class CommandHandler {
   async loadCommands() {
     try {
       const commandsPath = path.join(__dirname, '..', 'commands');
-      const commandFolders = fs.readdirSync(commandsPath);
+      const categoryFolders = fs.readdirSync(commandsPath);
 
-      for (const folder of commandFolders) {
-        const folderPath = path.join(commandsPath, folder);
-        
-        if (!fs.statSync(folderPath).isDirectory()) continue;
-        
-        const commandFile = path.join(folderPath, 'index.js');
-        
-        if (fs.existsSync(commandFile)) {
-          const commandModule = await import(`file://${commandFile}`);
-          const command = commandModule.default;
-          
-          if (command.data && command.execute) {
-            this.commands.set(command.data.name, command);
-            this.commandsArray.push(command.data.toJSON());
-            console.log(`Loaded command: ${command.data.name}`);
-          } else {
-            console.log(`Command at ${commandFile} is missing required properties`);
+      for (const category of categoryFolders) {
+        const categoryPath = path.join(commandsPath, category);
+        if (!fs.statSync(categoryPath).isDirectory()) continue;
+
+        const commandFolders = fs.readdirSync(categoryPath);
+
+        for (const folder of commandFolders) {
+          const commandPath = path.join(categoryPath, folder);
+          if (!fs.statSync(commandPath).isDirectory()) continue;
+
+          const commandFile = path.join(commandPath, 'index.js');
+
+          if (fs.existsSync(commandFile)) {
+            const commandModule = await import(`file://${commandFile}`);
+            const command = commandModule.default;
+
+            if (command.data && command.execute) {
+              this.commands.set(command.data.name, command);
+              this.commandsArray.push(command.data.toJSON());
+              console.log(`Loaded command: ${category}/${command.data.name}`);
+            } else {
+              console.log(`[WARNING] Command at ${commandFile} is missing required properties.`);
+            }
           }
         }
       }

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { handleApprovalProcess } from '../../utils/approvalProcess.js';
+import { handleApprovalProcess } from '../../../utils/approvalProcess.js';
 
 export default {
   data: new SlashCommandBuilder()

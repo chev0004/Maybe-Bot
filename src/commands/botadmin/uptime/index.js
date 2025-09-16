@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { Colors } from '../../constants/Colors.js';
+import { Colors } from '../../../constants/Colors.js';
 
 /**
  * Formats milliseconds into a human-readable string (e.g., "1日 3時間 5分 22秒").

@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getNextConfessionId, logConfession } from "../../utils/confessionManager.js";
-import { generateAnonymousId, getRandomColor } from "../../utils/confessionUtils.js";
+import { getNextConfessionId, logConfession } from "../../../utils/confessionManager.js";
+import { generateAnonymousId, getRandomColor } from "../../../utils/confessionUtils.js";
 
 export default {
   data: new SlashCommandBuilder()

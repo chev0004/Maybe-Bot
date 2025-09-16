@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import fs from 'fs/promises';
 import path from 'path';
-import { Colors } from '../../constants/Colors.js';
+import { Colors } from '../../../constants/Colors.js';
 
 const RESTART_INFO_FILE = path.join(process.cwd(), 'restart_info.json');
 

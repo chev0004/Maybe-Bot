@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import util from "util";
 import fs from "fs/promises";
 import path from "path";
-import { Colors } from "../../constants/Colors.js";
+import { Colors } from "../../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
