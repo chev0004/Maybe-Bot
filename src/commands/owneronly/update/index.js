@@ -82,7 +82,7 @@ export default {
 
       const { stdout: commitLog } = await execPromise(`git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`);
       if (!commitLog) {
-        embed.setColor(Colors.purple).setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`).setFooter({ text: "変更はありません。BOTは再起動しません。" });
+        embed.setColor(Colors.purple).setDescription(`BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`).setFooter({ text: "変更はありません。BOTは再起動しません。" });
         await interaction.editReply({ embeds: [embed] });
         return;
       }
