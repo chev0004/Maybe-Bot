@@ -1,6 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import fs from 'fs/promises';
+import path from 'path';
 import { Colors } from '../../../constants/Colors.js';
-import { getData, saveData } from '../../../utils/dataManager.js';
+
+const RESTART_INFO_FILE = path.join(process.cwd(), 'restart_info.json');
 
 export default {
   data: new SlashCommandBuilder()
@@ -12,10 +15,11 @@ export default {
     const ownerId = process.env.OWNER_ID;
 
     if (interaction.user.id !== ownerId) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'このコマンドを使用する権限がありません。\nYou are not authorized to use this command.',
         ephemeral: true,
       });
+      return;
     }
 
     await interaction.deferReply({ ephemeral: false });
@@ -29,13 +33,24 @@ export default {
 
     await interaction.editReply({ embeds: [embed] });
 
-    getData().restartInfo = {
+    const restartInfo = {
       triggeringUserId: interaction.user.id,
       channelId: interaction.channel.id,
       timestamp: Date.now(),
     };
-    await saveData();
-    console.log(`Restart info saved to bot_data.json by /restart command.`);
+
+    try {
+      await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
+      console.log(`Restart info saved to ${RESTART_INFO_FILE} by /restart command.`);
+    } catch (writeError) {
+      console.error('Failed to write restart info during manual restart:', writeError);
+      embed
+        .setColor(Colors.red)
+        .setDescription('再起動情報の保存に失敗しました。再起動を中止します。')
+        .setFooter({ text: 'エラーが発生しました。' });
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
 
     setTimeout(() => {
       console.log(`Bot restarting due to /restart command issued by ${interaction.user.tag}...`);
