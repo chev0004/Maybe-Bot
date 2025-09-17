@@ -1,6 +1,8 @@
 import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
 import { Client as ExarotonClient } from "exaroton";
 import dotenv from "dotenv";
+import fs from "fs/promises";
+import path from "path";
 import CommandHandler from "./src/handlers/commandHandler.js";
 import ListenerHandler from "./src/handlers/listenerHandler.js";
 import { Colors } from "./src/constants/Colors.js";
@@ -12,6 +14,7 @@ dotenv.config();
 const DISCORD_TOKEN = process.env.TOKEN;
 const EXAROTON_API_TOKEN = process.env.API_TOKEN;
 const SERVER_ID = process.env.SERVER_ID;
+const RESTART_INFO_FILE = path.join(process.cwd(), 'restart_info.json');
 
 const discordClient = new Client({
   intents: [
@@ -45,7 +48,15 @@ discordClient.once("ready", async () => {
   console.log(`Logged in as ${discordClient.user.tag}! Bot is ready.`);
   await loadAndProcessReminders(discordClient);
 
-  const restartInfo = getData().restartInfo;
+  let restartInfo = null;
+  try {
+    const restartInfoRaw = await fs.readFile(RESTART_INFO_FILE, 'utf8');
+    restartInfo = JSON.parse(restartInfoRaw);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Error reading restart_info.json:', error);
+    }
+  }
 
   if (restartInfo && restartInfo.triggeringUserId && restartInfo.channelId) {
     const channel = await discordClient.channels
@@ -86,9 +97,14 @@ discordClient.once("ready", async () => {
       );
     }
 
-    getData().restartInfo = null;
-    await saveData();
-    console.log(`Cleared restart info from bot_data.json`);
+    try {
+      await fs.unlink(RESTART_INFO_FILE);
+      console.log('Cleared restart_info.json');
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        console.error('Error deleting restart_info.json:', error);
+      }
+    }
   }
 });
 
