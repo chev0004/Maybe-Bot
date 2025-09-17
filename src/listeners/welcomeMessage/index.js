@@ -1,12 +1,33 @@
 import { EmbedBuilder, PermissionsBitField } from "discord.js";
 import { Colors } from "../../constants/Colors.js";
+import fs from "fs/promises";
+import path from "path";
 
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
 const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
 
+const STICKY_MESSAGE_FILE = path.join(process.cwd(), 'sticky_message.json');
 let botStickyMessageId = null;
 const userSubmissionAttempts = new Map();
+
+(async () => {
+    try {
+        await fs.access(STICKY_MESSAGE_FILE);
+        const data = await fs.readFile(STICKY_MESSAGE_FILE, 'utf8');
+        const parsedData = JSON.parse(data);
+        if (parsedData.botStickyMessageId) {
+            botStickyMessageId = parsedData.botStickyMessageId;
+            console.log(`[WelcomeListener] Loaded sticky message ID from file: ${botStickyMessageId}`);
+        }
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.log('[WelcomeListener] sticky_message.json not found. A new one will be created.');
+        } else {
+            console.error('[WelcomeListener] Error loading sticky message ID:', error);
+        }
+    }
+})();
 
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
 const WELCOME_ROLE_ID = process.env.VERIFIED_ROLE_ID;
@@ -255,6 +276,11 @@ export default {
             embeds: [stickyEmbed],
           });
           botStickyMessageId = newStickyMessage.id;
+          try {
+              await fs.writeFile(STICKY_MESSAGE_FILE, JSON.stringify({ botStickyMessageId }));
+          } catch (error) {
+              console.error('[WelcomeListener] Error saving new sticky message ID:', error);
+          }
         }
       } catch (error) {
         console.error(
