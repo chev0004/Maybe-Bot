@@ -42,7 +42,7 @@ export default {
       .setTitle(`${anonymousId} (#${confessionId})`)
       .setDescription(confessionMessage)
       .setColor(randomColor)
-      .setFooter({ text: "投稿するか返事したい場合は、/confess または /reply を使用してください。" });
+      .setFooter({ text: "投稿するか返信したい場合は、/confess または /reply を使用してください。" });
     
     try {
       const sentMessage = await interaction.channel.send({ embeds: [confessionEmbed] });
@@ -50,7 +50,7 @@ export default {
 
       // Send this if all things go smooth
       await interaction.reply({
-        content: "あなたの告白は匿名で投稿されました。\nYour confession has been posted anonymously.",
+        content: "あなたのメッセージは匿名で投稿されました。\nYour confession has been posted anonymously.",
         ephemeral: true,
       });
     } catch (error) {

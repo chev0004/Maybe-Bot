@@ -5,11 +5,11 @@ import { generateAnonymousId, getRandomColor } from "../../../utils/confessionUt
 export default {
   data: new SlashCommandBuilder()
     .setName("reply")
-    .setDescription("特定の告白に匿名で返信する。(Reply anonymously to a specific confession.)")
+    .setDescription("特定の投稿に匿名で返信する。(Reply anonymously to a specific confession.)")
     .addIntegerOption((option) =>
       option
         .setName("id")
-        .setDescription("返信したい告白の番号。(The # of the confession to reply to.)")
+        .setDescription("返信したい投稿の番号。(The # of the confession to reply to.)")
         .setRequired(true)
         .setMinValue(1)
     )
@@ -77,7 +77,7 @@ export default {
         .setTitle(`${newAnonymousId} (#${newReplyId})`)
         .setColor(randomColor)
         .setDescription(`${quotedText}${replyMessage}`)
-        .setFooter({ text: "投稿するか返事したい場合は、/confess または /reply を使用してください。" });
+        .setFooter({ text: "投稿するか返信したい場合は、/confess または /reply を使用してください。" });
 
       const sentMessage = await interaction.channel.send({ embeds: [replyEmbed] });
       
