@@ -1,33 +1,12 @@
 import { EmbedBuilder, PermissionsBitField } from "discord.js";
 import { Colors } from "../../constants/Colors.js";
-import fs from "fs/promises";
-import path from "path";
+import { getStickyMessageId, setStickyMessageId } from "../../utils/dataManager.js";
 
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
 const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
 
-const STICKY_MESSAGE_FILE = path.join(process.cwd(), 'sticky_message.json');
-let botStickyMessageId = null;
 const userSubmissionAttempts = new Map();
-
-(async () => {
-    try {
-        await fs.access(STICKY_MESSAGE_FILE);
-        const data = await fs.readFile(STICKY_MESSAGE_FILE, 'utf8');
-        const parsedData = JSON.parse(data);
-        if (parsedData.botStickyMessageId) {
-            botStickyMessageId = parsedData.botStickyMessageId;
-            console.log(`[WelcomeListener] Loaded sticky message ID from file: ${botStickyMessageId}`);
-        }
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.log('[WelcomeListener] sticky_message.json not found. A new one will be created.');
-        } else {
-            console.error('[WelcomeListener] Error loading sticky message ID:', error);
-        }
-    }
-})();
 
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
 const WELCOME_ROLE_ID = process.env.VERIFIED_ROLE_ID;
@@ -237,6 +216,7 @@ export default {
       }
 
       try {
+        const botStickyMessageId = getStickyMessageId();
         if (botStickyMessageId) {
           try {
             const oldStickyMessage = await channel.messages.fetch(
@@ -258,14 +238,13 @@ export default {
               );
             }
           }
-          botStickyMessageId = null;
         }
 
         const stickyEmbed = new EmbedBuilder()
           .setColor(Colors.green)
           .setTitle("自己紹介へようこそ！")
           .setDescription(
-            `以下のテンプレートを使用して自己紹介をお願いします：\n\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\`\n`
+            `以下のテンプレートを使用して自己紹介をお願いします：\n\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\``
           )
           .setFooter({
             text: "このメッセージは新しい自己紹介が投稿されると更新されます。",
@@ -275,12 +254,7 @@ export default {
           const newStickyMessage = await channel.send({
             embeds: [stickyEmbed],
           });
-          botStickyMessageId = newStickyMessage.id;
-          try {
-              await fs.writeFile(STICKY_MESSAGE_FILE, JSON.stringify({ botStickyMessageId }));
-          } catch (error) {
-              console.error('[WelcomeListener] Error saving new sticky message ID:', error);
-          }
+          await setStickyMessageId(newStickyMessage.id);
         }
       } catch (error) {
         console.error(

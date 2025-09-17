@@ -1,9 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import fs from 'fs/promises';
-import path from 'path';
+import { setRestartInfo } from '../../../utils/dataManager.js';
 import { Colors } from '../../../constants/Colors.js';
-
-const RESTART_INFO_FILE = path.join(process.cwd(), 'restart_info.json');
 
 export default {
   data: new SlashCommandBuilder()
@@ -40,8 +37,8 @@ export default {
     };
 
     try {
-      await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
-      console.log(`Restart info saved to ${RESTART_INFO_FILE} by /restart command.`);
+      await setRestartInfo(restartInfo);
+      console.log(`Restart info saved by /restart command.`);
     } catch (writeError) {
       console.error('Failed to write restart info during manual restart:', writeError);
       embed

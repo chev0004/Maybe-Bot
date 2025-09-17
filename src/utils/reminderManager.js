@@ -1,56 +1,8 @@
-import fs from 'fs/promises';
-import path from 'path';
 import { EmbedBuilder } from 'discord.js';
 import { Colors } from '../constants/Colors.js';
-
-const REMINDERS_FILE = path.join(process.cwd(), 'reminders.json');
+import { getReminders, addReminder, removeReminderById } from './dataManager.js';
 
 const activeTimers = new Map();
-
-/**
- * Reads reminders from the JSON file.
- * @returns {Promise<Array>} An array of reminder objects.
- */
-async function getReminders() {
-    try {
-        await fs.access(REMINDERS_FILE);
-        const data = await fs.readFile(REMINDERS_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            return [];
-        }
-        console.error('Error reading reminders file:', error);
-        return [];
-    }
-}
-
-/**
- * Saves an array of reminders to the JSON file.
- * @param {Array} reminders The array of reminder objects to save.
- */
-async function saveReminders(reminders) {
-    try {
-        await fs.writeFile(REMINDERS_FILE, JSON.stringify(reminders, null, 2));
-    } catch (error) {
-        console.error('Error saving reminders file:', error);
-    }
-}
-
-/**
- * Removes a reminder by its ID from the file.
- * @param {string} reminderId The ID of the reminder to remove.
- */
-async function removeReminder(reminderId) {
-    let reminders = await getReminders();
-    reminders = reminders.filter(r => r.id !== reminderId);
-    await saveReminders(reminders);
-
-    if (activeTimers.has(reminderId)) {
-        clearTimeout(activeTimers.get(reminderId));
-        activeTimers.delete(reminderId);
-    }
-}
 
 /**
  * The core function that executes when a timer is up.
@@ -62,7 +14,7 @@ async function executeReminder(reminder, client) {
         const channel = await client.channels.fetch(reminder.channelId).catch(() => null);
         if (!channel) {
             console.warn(`Could not find channel ${reminder.channelId} for reminder.`);
-            await removeReminder(reminder.id);
+            await removeReminderById(reminder.id);
             return;
         }
 
@@ -78,7 +30,10 @@ async function executeReminder(reminder, client) {
     } catch (error) {
         console.error('Failed to execute reminder:', error);
     } finally {
-        await removeReminder(reminder.id);
+        await removeReminderById(reminder.id);
+        if (activeTimers.has(reminder.id)) {
+            activeTimers.delete(reminder.id);
+        }
     }
 }
 
@@ -88,6 +43,10 @@ async function executeReminder(reminder, client) {
  * @param {Client} client The Discord client instance.
  */
 function createTimeout(reminder, client) {
+    if (activeTimers.has(reminder.id)) {
+        clearTimeout(activeTimers.get(reminder.id));
+    }
+
     const now = Date.now();
     const delay = reminder.triggerAt - now;
 
@@ -103,7 +62,7 @@ function createTimeout(reminder, client) {
 }
 
 /**
- * Schedules a new reminder and saves it to the file.
+ * Schedules a new reminder and saves it.
  * @param {object} reminderDetails Details for the new reminder.
  * @param {Client} client The Discord client instance.
  */
@@ -113,16 +72,13 @@ export async function scheduleReminder(reminderDetails, client) {
         ...reminderDetails
     };
 
-    const reminders = await getReminders();
-    reminders.push(newReminder);
-    await saveReminders(reminders);
-
+    await addReminder(newReminder);
     createTimeout(newReminder, client);
     console.log(`Scheduled new reminder ${newReminder.id} for ${new Date(newReminder.triggerAt).toLocaleTimeString()}`);
 }
 
 /**
- * Loads all reminders from the file on bot startup and schedules them.
+ * Loads all reminders from the data store on bot startup and schedules them.
  * @param {Client} client The Discord client instance.
  */
 export async function loadAndProcessReminders(client) {

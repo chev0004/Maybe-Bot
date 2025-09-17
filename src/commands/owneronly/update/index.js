@@ -1,14 +1,12 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { exec } from "child_process";
 import util from "util";
-import fs from "fs/promises";
-import path from "path";
+import { setRestartInfo } from "../../../utils/dataManager.js";
 import { Colors } from "../../../constants/Colors.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
 const COMMIT_LOG_MAX_LEN = 950;
-const RESTART_INFO_FILE = path.join(process.cwd(), "restart_info.json");
 const PULLED_BRANCH = "develop";
 
 function colorizeGitOutput(text, branchToHighlight) {
@@ -257,8 +255,8 @@ export default {
         channelId: interaction.channel.id,
         timestamp: Date.now(),
       };
-      await fs.writeFile(RESTART_INFO_FILE, JSON.stringify(restartInfo));
-      console.log(`Restart info saved to ${RESTART_INFO_FILE}`);
+      await setRestartInfo(restartInfo);
+      console.log(`Restart info saved after /update command.`);
       
       setTimeout(() => {
         console.log(`Bot restarting due to /update command (${PULLED_BRANCH} branch)...`);
