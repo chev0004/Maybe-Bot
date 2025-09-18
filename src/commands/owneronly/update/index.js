@@ -155,7 +155,7 @@ export default {
       if (!commitLog && !needsNpmInstall) {
         embed
           .setColor(Colors.purple)
-          .setDescription(`ボットは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`)
+          .setDescription(`BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`)
           .setFooter({ text: "変更はありません。BOTは再起動しません。" });
         await interaction.editReply({ embeds: [embed] });
         return;

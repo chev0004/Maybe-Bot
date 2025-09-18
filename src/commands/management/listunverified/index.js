@@ -54,7 +54,7 @@ export default {
       );
       await interaction.editReply({
         content:
-          "ボットのメンバー情報を取得できませんでした。\nCould not retrieve bot's member information.",
+          "BOTのメンバー情報を取得できませんでした。\nCould not retrieve bot's member information.",
         flags: [Discord.InteractionResponseFlags.Ephemeral],
       });
       return;
@@ -63,7 +63,7 @@ export default {
     if (!botMember.permissions.has(PermissionsBitField.Flags.ViewChannel)) {
       await interaction.editReply({
         content:
-          "ボットにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
+          "BOTにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
         flags: [Discord.InteractionResponseFlags.Ephemeral],
       });
       return;
