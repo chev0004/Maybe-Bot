@@ -160,6 +160,7 @@ export default {
       );
       try {
         await appendFile(GIT_LOG_FILE, logParts.join("\n"), "utf8");
+        console.log("git output written")
       } catch (writeError) {
         console.error("Failed to write to git_outputs.txt:", writeError);
       }
