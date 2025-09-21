@@ -1,7 +1,7 @@
 import {
-	SlashCommandBuilder,
 	EmbedBuilder,
 	PermissionsBitField,
+	SlashCommandBuilder,
 } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 

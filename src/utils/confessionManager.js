@@ -15,16 +15,19 @@ export async function getConfessionData() {
 	try {
 		await fs.access(CONFESSIONS_FILE);
 		const data = await fs.readFile(CONFESSIONS_FILE, "utf8");
-		let parsedData = JSON.parse(data);
+		const parsedData = JSON.parse(data);
 
-		if (typeof parsedData.lastId !== "number" || !isFinite(parsedData.lastId)) {
+		if (
+			typeof parsedData.lastId !== "number" ||
+			!Number.isFinite(parsedData.lastId)
+		) {
 			console.warn(
 				`[ConfessionManager] Malformed data detected: 'lastId' is not a valid number. Attempting to repair.`,
 			);
 
 			const confessionIds = Object.keys(parsedData.messageMap)
 				.map(Number)
-				.filter((id) => !isNaN(id));
+				.filter((id) => !Number.isNaN(id));
 			const maxId = confessionIds.length > 0 ? Math.max(...confessionIds) : 0;
 			parsedData.lastId = maxId;
 

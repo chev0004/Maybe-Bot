@@ -1,6 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { setRestartInfo } from "../../../utils/dataManager.js";
+import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { setRestartInfo } from "../../../utils/dataManager.js";
 
 export default {
 	data: new SlashCommandBuilder()

@@ -1,8 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { exec } from "child_process";
+import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import util from "util";
-import { setRestartInfo } from "../../../utils/dataManager.js";
 import { Colors } from "../../../constants/Colors.js";
+import { setRestartInfo } from "../../../utils/dataManager.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;
@@ -23,7 +23,7 @@ function colorizeGitOutput(text, branchToHighlight) {
 	);
 
 	coloredText = coloredText.replace(
-		/^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-\/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
+		/^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
 		(_, p1, p2, p3) => {
 			const refinedP1 = p1.replace(/\s+$/, " ");
 			const refinedP3 = p3 ? p3.replace(/^\s+/, " ").replace(/\s+$/, "") : "";
@@ -37,7 +37,7 @@ function colorizeGitOutput(text, branchToHighlight) {
 	);
 
 	coloredText = coloredText.replace(
-		/(\d+)\s+deletions?\(\-\)/g,
+		/(\d+)\s+deletions?\(-\)/g,
 		"\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m",
 	);
 

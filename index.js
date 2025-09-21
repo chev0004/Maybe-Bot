@@ -1,11 +1,11 @@
-import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
-import { Client as ExarotonClient } from "exaroton";
+import { Client, EmbedBuilder, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
+import { Client as ExarotonClient } from "exaroton";
+import { Colors } from "./src/constants/Colors.js";
 import CommandHandler from "./src/handlers/commandHandler.js";
 import ListenerHandler from "./src/handlers/listenerHandler.js";
-import { Colors } from "./src/constants/Colors.js";
+import { clearRestartInfo, getRestartInfo } from "./src/utils/dataManager.js";
 import { loadAndProcessReminders } from "./src/utils/reminderManager.js";
-import { getRestartInfo, clearRestartInfo } from "./src/utils/dataManager.js";
 
 dotenv.config();
 
@@ -46,7 +46,7 @@ discordClient.once("ready", async () => {
 
 	const restartInfo = getRestartInfo();
 
-	if (restartInfo && restartInfo.triggeringUserId && restartInfo.channelId) {
+	if (restartInfo?.triggeringUserId && restartInfo.channelId) {
 		const channel = await discordClient.channels
 			.fetch(restartInfo.channelId)
 			.catch((err) => {

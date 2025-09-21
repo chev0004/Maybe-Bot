@@ -75,7 +75,7 @@ export default {
 				embed.addFields({
 					name: "通話時間",
 					value:
-						userId == "272518543113715722"
+						userId === "272518543113715722"
 							? "44日44時間44分44秒"
 							: formattedDuration,
 					inline: true,

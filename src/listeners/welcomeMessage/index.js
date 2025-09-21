@@ -47,8 +47,8 @@ function createAlignmentPointer(line, errorIndex) {
 
 	console.log(pointerParts);
 
-	let allFullWidth = [];
-	let fullWidthChars = [];
+	const allFullWidth = [];
+	const fullWidthChars = [];
 
 	for (let i = 0; i < line.length; i++) {
 		const char = line[i];
@@ -227,8 +227,7 @@ export default {
 							{ force: true, cache: false },
 						);
 						if (
-							oldStickyMessage &&
-							oldStickyMessage.deletable &&
+							oldStickyMessage?.deletable &&
 							channelPermissions.has(PermissionsBitField.Flags.ManageMessages)
 						) {
 							await oldStickyMessage.delete();

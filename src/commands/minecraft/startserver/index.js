@@ -38,7 +38,7 @@ export default {
 							clearInterval(intervalId);
 							await startMsg.edit("サーバーの起動確認がタイムアウトしました。");
 						}
-					} catch (err) {
+					} catch (_err) {
 						clearInterval(intervalId);
 						await startMsg.edit("サーバー状態の確認に失敗しました。");
 					}

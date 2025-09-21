@@ -1,8 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../constants/Colors.js";
 import {
-	getReminders,
 	addReminder,
+	getReminders,
 	removeReminderById,
 } from "./dataManager.js";
 

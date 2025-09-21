@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 
 export default {
@@ -96,11 +96,7 @@ export default {
 				errorMessage = error.message;
 			}
 
-			if (
-				error.response &&
-				error.response.body &&
-				typeof error.response.body === "string"
-			) {
+			if (error.response?.body && typeof error.response.body === "string") {
 				try {
 					const errorBody = JSON.parse(error.response.body);
 					if (errorBody.success === false && errorBody.error) {
