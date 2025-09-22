@@ -10,7 +10,7 @@ const RAW_OUTPUT_MAX_LEN = 450;
 const COMMIT_LOG_MAX_LEN = 950;
 const PULLED_BRANCH = "develop";
 
-function colorizeGitOutput(text, branchToHighlight) {
+const colorizeGitOutput = (text, branchToHighlight) => {
   if (!text) return "";
   let coloredText = text;
 
@@ -54,7 +54,7 @@ function colorizeGitOutput(text, branchToHighlight) {
   }
 
   return coloredText;
-}
+};
 
 export default createChatCommand(
   "update",

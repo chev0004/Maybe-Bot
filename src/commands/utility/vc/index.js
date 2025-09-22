@@ -2,15 +2,15 @@ import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-function isEmoji(str) {
+const isEmoji = (str) => {
   if (str.length > 2) {
     return false;
   }
   const emojiRegex = /\p{Emoji}/u;
   return emojiRegex.test(str);
-}
+};
 
-async function sendVoiceChannelCreationLog(
+const sendVoiceChannelCreationLog = async (
   interaction,
   client,
   channel,
@@ -18,7 +18,7 @@ async function sendVoiceChannelCreationLog(
   jpName,
   enName,
   limit,
-) {
+) => {
   const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
   if (!logChannelId) return;
 
@@ -59,9 +59,9 @@ async function sendVoiceChannelCreationLog(
     .setTimestamp();
 
   await logChannel.send({ embeds: [embed] });
-}
+};
 
-async function sendVoiceChannelDeletionLog(_, client, channel) {
+const sendVoiceChannelDeletionLog = async (_, client, channel) => {
   const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
   if (!logChannelId) return;
 
@@ -79,7 +79,7 @@ async function sendVoiceChannelDeletionLog(_, client, channel) {
     .setTimestamp();
 
   await logChannel.send({ embeds: [embed] });
-}
+};
 
 export default createChatCommand(
   "vc",

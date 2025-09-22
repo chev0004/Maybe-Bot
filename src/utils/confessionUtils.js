@@ -306,15 +306,15 @@ export const NOUNS = [
 ];
 
 // Get a random name by mixing random adjectives and nouns
-export function generateAnonymousId() {
+export const generateAnonymousId = () => {
   const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
   return `${adj} ${noun}`;
-}
+};
 
 // Get random colour
-export function getRandomColor() {
+export const getRandomColor = () => {
   const colorKeys = Object.keys(Colors);
   const randomKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
   return Colors[randomKey];
-}
+};

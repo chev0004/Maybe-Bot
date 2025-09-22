@@ -13,7 +13,7 @@ const defaultData = {
 
 let memoryStore = null;
 
-async function loadData() {
+const loadData = async () => {
   try {
     await fs.access(BOT_DATA_FILE);
     const data = await fs.readFile(BOT_DATA_FILE, "utf8");
@@ -32,9 +32,9 @@ async function loadData() {
       memoryStore = { ...defaultData };
     }
   }
-}
+};
 
-async function saveData() {
+const saveData = async () => {
   if (memoryStore === null) {
     console.error("[DataManager] Attempted to save before data was loaded.");
     return;
@@ -47,7 +47,7 @@ async function saveData() {
   } catch (error) {
     console.error("[DataManager] Error saving data:", error);
   }
-}
+};
 
 // Initialize and load data
 (async () => {
@@ -56,16 +56,16 @@ async function saveData() {
 })();
 
 // Reminder Functions
-export async function getReminders() {
+export const getReminders = async () => {
   return memoryStore.reminders;
-}
+};
 
-export async function addReminder(reminder) {
+export const addReminder = async (reminder) => {
   memoryStore.reminders.push(reminder);
   await saveData();
-}
+};
 
-export async function removeReminderById(reminderId) {
+export const removeReminderById = async (reminderId) => {
   const initialLength = memoryStore.reminders.length;
   memoryStore.reminders = memoryStore.reminders.filter(
     (r) => r.id !== reminderId,
@@ -73,29 +73,29 @@ export async function removeReminderById(reminderId) {
   if (memoryStore.reminders.length < initialLength) {
     await saveData();
   }
-}
+};
 
 // Sticky Message Functions
-export function getStickyMessageId() {
+export const getStickyMessageId = () => {
   return memoryStore.stickyMessage.botStickyMessageId;
-}
+};
 
-export async function setStickyMessageId(id) {
+export const setStickyMessageId = async (id) => {
   memoryStore.stickyMessage.botStickyMessageId = id;
   await saveData();
-}
+};
 
 // Restart Info Functions
-export function getRestartInfo() {
+export const getRestartInfo = () => {
   return memoryStore.restartInfo;
-}
+};
 
-export async function setRestartInfo(info) {
+export const setRestartInfo = async (info) => {
   memoryStore.restartInfo = info;
   await saveData();
-}
+};
 
-export async function clearRestartInfo() {
+export const clearRestartInfo = async () => {
   memoryStore.restartInfo = null;
   await saveData();
-}
+};

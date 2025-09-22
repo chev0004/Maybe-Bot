@@ -13,7 +13,7 @@ const activeTimers = new Map();
  * @param {object} reminder The reminder object.
  * @param {Client} client The Discord client instance.
  */
-async function executeReminder(reminder, client) {
+const executeReminder = async (reminder, client) => {
   try {
     const channel = await client.channels
       .fetch(reminder.channelId)
@@ -47,14 +47,14 @@ async function executeReminder(reminder, client) {
       activeTimers.delete(reminder.id);
     }
   }
-}
+};
 
 /**
  * Creates an in-memory setTimeout for a given reminder.
  * @param {object} reminder The reminder object.
  * @param {Client} client The Discord client instance.
  */
-function createTimeout(reminder, client) {
+const createTimeout = (reminder, client) => {
   if (activeTimers.has(reminder.id)) {
     clearTimeout(activeTimers.get(reminder.id));
   }
@@ -71,14 +71,14 @@ function createTimeout(reminder, client) {
     }, delay);
     activeTimers.set(reminder.id, timeoutId);
   }
-}
+};
 
 /**
  * Schedules a new reminder and saves it.
  * @param {object} reminderDetails Details for the new reminder.
  * @param {Client} client The Discord client instance.
  */
-export async function scheduleReminder(reminderDetails, client) {
+export const scheduleReminder = async (reminderDetails, client) => {
   const newReminder = {
     id: Date.now().toString(),
     ...reminderDetails,
@@ -89,13 +89,13 @@ export async function scheduleReminder(reminderDetails, client) {
   console.log(
     `Scheduled new reminder ${newReminder.id} for ${new Date(newReminder.triggerAt).toLocaleTimeString()}`,
   );
-}
+};
 
 /**
  * Loads all reminders from the data store on bot startup and schedules them.
  * @param {Client} client The Discord client instance.
  */
-export async function loadAndProcessReminders(client) {
+export const loadAndProcessReminders = async (client) => {
   console.log("Loading and processing pending reminders...");
   const reminders = await getReminders();
   if (reminders.length === 0) {
@@ -107,4 +107,4 @@ export async function loadAndProcessReminders(client) {
     console.log(`Found pending reminder: ${reminder.id}`);
     createTimeout(reminder, client);
   });
-}
+};

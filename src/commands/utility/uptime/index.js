@@ -7,7 +7,7 @@ import { createChatCommand } from "../../../utils/commandBuilder.js";
  * @param {number} milliseconds The total milliseconds of uptime.
  * @returns {string} A formatted uptime string.
  */
-function formatUptime(milliseconds) {
+const formatUptime = (milliseconds) => {
   let totalSeconds = Math.floor(milliseconds / 1000);
   const days = Math.floor(totalSeconds / 86400);
   totalSeconds %= 86400;
@@ -29,7 +29,7 @@ function formatUptime(milliseconds) {
   parts.push(`${seconds}秒`);
 
   return parts.join(" ");
-}
+};
 
 export default createChatCommand(
   "uptime",

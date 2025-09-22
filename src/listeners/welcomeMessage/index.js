@@ -32,7 +32,7 @@ const CORRECT_TEMPLATE_STRING = CORRECT_TEMPLATE_HEADERS.join("\n");
  * @param {number} errorIndex The index in the line where the error occurred.
  * @returns {string} A string with mixed spaces and a '^' to point at the error.
  */
-function createAlignmentPointer(line, errorIndex) {
+const createAlignmentPointer = (line, errorIndex) => {
   const specificFullWidthRegex = /[【】名前出身言語勉強趣味一]/;
   const pointerParts = [];
 
@@ -63,9 +63,9 @@ function createAlignmentPointer(line, errorIndex) {
   }
 
   return pointerParts.join("");
-}
+};
 
-function validateWelcomeMessage(content) {
+const validateWelcomeMessage = (content) => {
   const messageLines = content.split("\n");
 
   for (let i = 0; i < CORRECT_TEMPLATE_HEADERS.length; i++) {
@@ -119,7 +119,7 @@ function validateWelcomeMessage(content) {
     };
   }
   return { isValid: true };
-}
+};
 
 export default createListener(
   "welcomeMessageFormatChecker",

@@ -10,12 +10,12 @@ import { SlashCommandBuilder } from "discord.js";
  * @param {function(SlashCommandBuilder): SlashCommandBuilder} [options.setup] An optional function to configure the SlashCommandBuilder.
  * @returns {Object} A command object compatible with the bot's command handler.
  */
-export function createChatCommand(
+export const createChatCommand = (
   name,
   description,
   execute,
   { ownerOnly = false, setup = (builder) => builder } = {},
-) {
+) => {
   const data = setup(
     new SlashCommandBuilder().setName(name).setDescription(description),
   );
@@ -35,4 +35,4 @@ export function createChatCommand(
       await execute(interaction, client, options);
     },
   };
-}
+};

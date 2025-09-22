@@ -4,7 +4,7 @@ import { createListener } from "../../utils/listenerBuilder.js";
 
 const userJoinTimes = new Map();
 
-function formatDuration(milliseconds) {
+const formatDuration = (milliseconds) => {
   const seconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -16,7 +16,7 @@ function formatDuration(milliseconds) {
   } else {
     return `${seconds}秒`;
   }
-}
+};
 
 export default createListener(
   "voiceChannelLogger",
