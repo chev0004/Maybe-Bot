@@ -12,43 +12,43 @@ const CONFESSIONS_FILE = path.join(process.cwd(), "confessions_log.json");
  * @returns {Promise<{lastId: number, messageMap: {[key: string]: string}}>}
  */
 export async function getConfessionData() {
-	try {
-		await fs.access(CONFESSIONS_FILE);
-		const data = await fs.readFile(CONFESSIONS_FILE, "utf8");
-		const parsedData = JSON.parse(data);
+  try {
+    await fs.access(CONFESSIONS_FILE);
+    const data = await fs.readFile(CONFESSIONS_FILE, "utf8");
+    const parsedData = JSON.parse(data);
 
-		if (
-			typeof parsedData.lastId !== "number" ||
-			!Number.isFinite(parsedData.lastId)
-		) {
-			console.warn(
-				`[ConfessionManager] Malformed data detected: 'lastId' is not a valid number. Attempting to repair.`,
-			);
+    if (
+      typeof parsedData.lastId !== "number" ||
+      !Number.isFinite(parsedData.lastId)
+    ) {
+      console.warn(
+        `[ConfessionManager] Malformed data detected: 'lastId' is not a valid number. Attempting to repair.`,
+      );
 
-			const confessionIds = Object.keys(parsedData.messageMap)
-				.map(Number)
-				.filter((id) => !Number.isNaN(id));
-			const maxId = confessionIds.length > 0 ? Math.max(...confessionIds) : 0;
-			parsedData.lastId = maxId;
+      const confessionIds = Object.keys(parsedData.messageMap)
+        .map(Number)
+        .filter((id) => !Number.isNaN(id));
+      const maxId = confessionIds.length > 0 ? Math.max(...confessionIds) : 0;
+      parsedData.lastId = maxId;
 
-			console.log(
-				`[ConfessionManager] Repaired 'lastId' to ${maxId}. Saving corrected data.`,
-			);
-			await saveConfessionData(parsedData);
-		}
+      console.log(
+        `[ConfessionManager] Repaired 'lastId' to ${maxId}. Saving corrected data.`,
+      );
+      await saveConfessionData(parsedData);
+    }
 
-		return parsedData;
-	} catch (error) {
-		if (error.code === "ENOENT") {
-			// File doesn't exist, create it with initial data
-			const initialData = { lastId: 0, messageMap: {} };
-			await saveConfessionData(initialData);
-			return initialData;
-		}
-		console.error("Error reading or parsing confessions file:", error);
-		// Return default data on other errors to prevent crashes
-		return { lastId: 0, messageMap: {} };
-	}
+    return parsedData;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      // File doesn't exist, create it with initial data
+      const initialData = { lastId: 0, messageMap: {} };
+      await saveConfessionData(initialData);
+      return initialData;
+    }
+    console.error("Error reading or parsing confessions file:", error);
+    // Return default data on other errors to prevent crashes
+    return { lastId: 0, messageMap: {} };
+  }
 }
 
 /**
@@ -56,11 +56,11 @@ export async function getConfessionData() {
  * @param {object} data The data to save.
  */
 async function saveConfessionData(data) {
-	try {
-		await fs.writeFile(CONFESSIONS_FILE, JSON.stringify(data, null, 2));
-	} catch (error) {
-		console.error("Error saving confessions file:", error);
-	}
+  try {
+    await fs.writeFile(CONFESSIONS_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Error saving confessions file:", error);
+  }
 }
 
 /**
@@ -69,11 +69,11 @@ async function saveConfessionData(data) {
  * @returns {Promise<number>} The next confession ID.
  */
 export async function getNextConfessionId() {
-	const data = await getConfessionData();
-	const nextId = data.lastId + 1;
-	data.lastId = nextId;
-	await saveConfessionData(data);
-	return nextId;
+  const data = await getConfessionData();
+  const nextId = data.lastId + 1;
+  data.lastId = nextId;
+  await saveConfessionData(data);
+  return nextId;
 }
 
 /**
@@ -82,7 +82,7 @@ export async function getNextConfessionId() {
  * @param {string} messageId The Discord message ID.
  */
 export async function logConfession(confessionId, messageId) {
-	const data = await getConfessionData();
-	data.messageMap[confessionId] = messageId;
-	await saveConfessionData(data);
+  const data = await getConfessionData();
+  data.messageMap[confessionId] = messageId;
+  await saveConfessionData(data);
 }

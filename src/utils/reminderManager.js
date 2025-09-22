@@ -1,9 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../constants/Colors.js";
 import {
-	addReminder,
-	getReminders,
-	removeReminderById,
+  addReminder,
+  getReminders,
+  removeReminderById,
 } from "./dataManager.js";
 
 const activeTimers = new Map();
@@ -14,39 +14,39 @@ const activeTimers = new Map();
  * @param {Client} client The Discord client instance.
  */
 async function executeReminder(reminder, client) {
-	try {
-		const channel = await client.channels
-			.fetch(reminder.channelId)
-			.catch(() => null);
-		if (!channel) {
-			console.warn(
-				`Could not find channel ${reminder.channelId} for reminder.`,
-			);
-			await removeReminderById(reminder.id);
-			return;
-		}
+  try {
+    const channel = await client.channels
+      .fetch(reminder.channelId)
+      .catch(() => null);
+    if (!channel) {
+      console.warn(
+        `Could not find channel ${reminder.channelId} for reminder.`,
+      );
+      await removeReminderById(reminder.id);
+      return;
+    }
 
-		const embedMsg = new EmbedBuilder()
-			.setColor(Colors.green)
-			.setTitle("バンプタイムです！")
-			.setDescription(
-				"2時間経ちました。もう一度 /bump が出来るようになりました！",
-			)
-			.setTimestamp();
+    const embedMsg = new EmbedBuilder()
+      .setColor(Colors.green)
+      .setTitle("バンプタイムです！")
+      .setDescription(
+        "2時間経ちました。もう一度 /bump が出来るようになりました！",
+      )
+      .setTimestamp();
 
-		await channel.send({
-			content: `<@&${reminder.roleId}>`,
-			embeds: [embedMsg],
-		});
-		console.log(`Sent bump reminder to channel ${reminder.channelId}.`);
-	} catch (error) {
-		console.error("Failed to execute reminder:", error);
-	} finally {
-		await removeReminderById(reminder.id);
-		if (activeTimers.has(reminder.id)) {
-			activeTimers.delete(reminder.id);
-		}
-	}
+    await channel.send({
+      content: `<@&${reminder.roleId}>`,
+      embeds: [embedMsg],
+    });
+    console.log(`Sent bump reminder to channel ${reminder.channelId}.`);
+  } catch (error) {
+    console.error("Failed to execute reminder:", error);
+  } finally {
+    await removeReminderById(reminder.id);
+    if (activeTimers.has(reminder.id)) {
+      activeTimers.delete(reminder.id);
+    }
+  }
 }
 
 /**
@@ -55,22 +55,22 @@ async function executeReminder(reminder, client) {
  * @param {Client} client The Discord client instance.
  */
 function createTimeout(reminder, client) {
-	if (activeTimers.has(reminder.id)) {
-		clearTimeout(activeTimers.get(reminder.id));
-	}
+  if (activeTimers.has(reminder.id)) {
+    clearTimeout(activeTimers.get(reminder.id));
+  }
 
-	const now = Date.now();
-	const delay = reminder.triggerAt - now;
+  const now = Date.now();
+  const delay = reminder.triggerAt - now;
 
-	if (delay <= 0) {
-		console.log(`Executing overdue reminder ${reminder.id} immediately.`);
-		executeReminder(reminder, client);
-	} else {
-		const timeoutId = setTimeout(() => {
-			executeReminder(reminder, client);
-		}, delay);
-		activeTimers.set(reminder.id, timeoutId);
-	}
+  if (delay <= 0) {
+    console.log(`Executing overdue reminder ${reminder.id} immediately.`);
+    executeReminder(reminder, client);
+  } else {
+    const timeoutId = setTimeout(() => {
+      executeReminder(reminder, client);
+    }, delay);
+    activeTimers.set(reminder.id, timeoutId);
+  }
 }
 
 /**
@@ -79,16 +79,16 @@ function createTimeout(reminder, client) {
  * @param {Client} client The Discord client instance.
  */
 export async function scheduleReminder(reminderDetails, client) {
-	const newReminder = {
-		id: Date.now().toString(),
-		...reminderDetails,
-	};
+  const newReminder = {
+    id: Date.now().toString(),
+    ...reminderDetails,
+  };
 
-	await addReminder(newReminder);
-	createTimeout(newReminder, client);
-	console.log(
-		`Scheduled new reminder ${newReminder.id} for ${new Date(newReminder.triggerAt).toLocaleTimeString()}`,
-	);
+  await addReminder(newReminder);
+  createTimeout(newReminder, client);
+  console.log(
+    `Scheduled new reminder ${newReminder.id} for ${new Date(newReminder.triggerAt).toLocaleTimeString()}`,
+  );
 }
 
 /**
@@ -96,15 +96,15 @@ export async function scheduleReminder(reminderDetails, client) {
  * @param {Client} client The Discord client instance.
  */
 export async function loadAndProcessReminders(client) {
-	console.log("Loading and processing pending reminders...");
-	const reminders = await getReminders();
-	if (reminders.length === 0) {
-		console.log("No pending reminders found.");
-		return;
-	}
+  console.log("Loading and processing pending reminders...");
+  const reminders = await getReminders();
+  if (reminders.length === 0) {
+    console.log("No pending reminders found.");
+    return;
+  }
 
-	reminders.forEach((reminder) => {
-		console.log(`Found pending reminder: ${reminder.id}`);
-		createTimeout(reminder, client);
-	});
+  reminders.forEach((reminder) => {
+    console.log(`Found pending reminder: ${reminder.id}`);
+    createTimeout(reminder, client);
+  });
 }

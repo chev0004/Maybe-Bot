@@ -1,27 +1,27 @@
 {
-	"name": "maybe-bot",
-	"version": "1.0.0",
-	"type": "module",
-	"description": "May be a bot to start perhaps a Minecaft server",
-	"main": "index.js",
-	"scripts": {
-		"test": "echo \"Error: no test specified\"",
-		"prepare": "husky",
-		"lint": "npx biome check --write --no-errors-on-unmatched .",
-		"format": "npx @biomejs/biome format --write ."
-	},
-	"author": "chev",
-	"license": "ISC",
-	"dependencies": {
-		"discord.js": "^14.18.0",
-		"dotenv": "^16.4.7",
-		"exaroton": "^1.11.3",
-		"pm2": "^5.4.3"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.2.4",
-		"@commitlint/cli": "^19.8.1",
-		"@commitlint/config-conventional": "^19.8.1",
-		"husky": "^9.1.7"
-	}
+  "name": "maybe-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "May be a bot to start perhaps a Minecaft server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\"",
+    "prepare": "husky",
+    "lint": "npx biome check --write --no-errors-on-unmatched .",
+    "format": "npx @biomejs/biome format --write ."
+  },
+  "author": "chev",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "exaroton": "^1.11.3",
+    "pm2": "^5.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  }
 }
