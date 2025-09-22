@@ -11,45 +11,37 @@ import { createChatCommand } from "../../../utils/commandBuilder.js";
 
 export default createChatCommand(
   "listunverified",
-  "特定のロールを持たないメンバーをリスト表示します。(Lists members without a specific role.)",
+  "認証ロールを持たないメンバーをリスト表示します。(Lists members without the verified role.)",
   async (interaction) => {
     await interaction.deferReply({ ephemeral: false });
 
     const guild = interaction.guild;
+    const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
+
     if (!guild) {
-      await interaction.editReply({
-        content:
-          "このコマンドはサーバー内でのみ実行できます。\nThis command can only be executed within a server.",
-      });
-      return;
+      return await interaction.editReply(
+        "このコマンドはサーバー内でのみ実行できます。\nThis command can only be executed within a server.",
+      );
     }
 
-    const role = interaction.options.getRole("role");
+    if (!verifiedRoleId) {
+      return await interaction.editReply(
+        "認証ロールIDが設定されていません。管理者に連絡してください。\nVerified role ID is not configured. Please contact an administrator.",
+      );
+    }
+
+    const role = guild.roles.cache.get(verifiedRoleId);
     if (!role) {
-      await interaction.editReply({
-        content: `指定されたロールが見つかりませんでした。\nThe specified role was not found.`,
-      });
-      return;
+      return await interaction.editReply(
+        `指定された認証ロール (ID: ${verifiedRoleId}) が見つかりませんでした。\nThe specified verified role (ID: ${verifiedRoleId}) was not found.`,
+      );
     }
 
     const botMember = guild.members.me;
-    if (!botMember) {
-      console.error(
-        "listunverified command: Could not get bot's member object.",
+    if (!botMember?.permissions.has(PermissionsBitField.Flags.ViewChannel)) {
+      return await interaction.editReply(
+        "BOTにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
       );
-      await interaction.editReply({
-        content:
-          "BOTのメンバー情報を取得できませんでした。\nCould not retrieve bot's member information.",
-      });
-      return;
-    }
-
-    if (!botMember.permissions.has(PermissionsBitField.Flags.ViewChannel)) {
-      await interaction.editReply({
-        content:
-          "BOTにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
-      });
-      return;
     }
 
     try {
@@ -75,13 +67,38 @@ export default createChatCommand(
       }
 
       const memberArray = Array.from(membersWithoutRole.values());
-      let sortOrder = "asc";
       let currentPage = 0;
       const itemsPerPage = 10;
 
-      memberArray.sort((a, b) =>
-        a.user.username.localeCompare(b.user.username),
-      );
+      const sortModes = [
+        {
+          label: "名前 A-Z",
+          sort: (a, b) => a.user.username.localeCompare(b.user.username),
+        },
+        {
+          label: "名前 Z-A",
+          sort: (a, b) => b.user.username.localeCompare(a.user.username),
+        },
+        {
+          label: "参加日 新→古",
+          sort: (a, b) => b.joinedTimestamp - a.joinedTimestamp,
+        },
+        {
+          label: "参加日 古→新",
+          sort: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
+        },
+        {
+          label: "作成日 新→古",
+          sort: (a, b) => b.user.createdTimestamp - a.user.createdTimestamp,
+        },
+        {
+          label: "作成日 古→新",
+          sort: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
+        },
+      ];
+      let sortIndex = 0;
+
+      memberArray.sort(sortModes[sortIndex].sort);
 
       const generatePage = () => {
         const totalPages = Math.ceil(memberArray.length / itemsPerPage);
@@ -93,7 +110,7 @@ export default createChatCommand(
           currentItems
             .map(
               (member) =>
-                `**${member.user.username}** (${member.id}) - \`@${member.user.username}\``,
+                `**${member.user.username}** (${member.id}) - <@${member.id}>`,
             )
             .join("\n") || "このページにメンバーはいません。";
 
@@ -123,7 +140,7 @@ export default createChatCommand(
             .setDisabled(currentPage >= totalPages - 1),
           new ButtonBuilder()
             .setCustomId("sort")
-            .setLabel(`⇅ ソート (${sortOrder === "asc" ? "A-Z" : "Z-A"})`)
+            .setLabel(`⇅ 並べ替え (${sortModes[sortIndex].label})`)
             .setStyle(ButtonStyle.Secondary),
         );
 
@@ -134,7 +151,7 @@ export default createChatCommand(
 
       const collector = message.createMessageComponentCollector({
         componentType: ComponentType.Button,
-        time: 5 * 60 * 1000,
+        time: 4 * 60 * 1000,
       });
 
       collector.on("collect", async (i) => {
@@ -154,11 +171,8 @@ export default createChatCommand(
         } else if (i.customId === "prev_page") {
           currentPage--;
         } else if (i.customId === "sort") {
-          sortOrder = sortOrder === "asc" ? "desc" : "asc";
-          memberArray.sort((a, b) => {
-            const comparison = a.user.username.localeCompare(b.user.username);
-            return sortOrder === "asc" ? comparison : -comparison;
-          });
+          sortIndex = (sortIndex + 1) % sortModes.length;
+          memberArray.sort(sortModes[sortIndex].sort);
           currentPage = 0;
         }
 
@@ -188,16 +202,6 @@ export default createChatCommand(
   },
   {
     ownerOnly: true,
-    setup: (builder) =>
-      builder
-        .addRoleOption((option) =>
-          option
-            .setName("role")
-            .setDescription(
-              "メンバーが持っているか確認するロール。(The role to check for.)",
-            )
-            .setRequired(true),
-        )
-        .setDefaultMemberPermissions(0),
+    setup: (builder) => builder.setDefaultMemberPermissions(0),
   },
 );
