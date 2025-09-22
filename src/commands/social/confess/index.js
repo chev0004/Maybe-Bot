@@ -1,4 +1,13 @@
-import { EmbedBuilder } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+  MessageFlags,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+} from "discord.js";
 import { createChatCommand } from "../../../utils/commandBuilder.js";
 import {
   getNextConfessionId,
@@ -9,73 +18,110 @@ import {
   getRandomColor,
 } from "../../../utils/confessionUtils.js";
 
+const handleModalSubmit = async (interaction) => {
+  const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
+  if (interaction.channelId !== confessionsChannelId) {
+    console.error("confessModal: Interaction channel ID mismatch. Aborting.");
+    return;
+  }
+
+  const confessionMessage =
+    interaction.fields.getTextInputValue("confession_input");
+  const anonymousId = generateAnonymousId();
+  const confessionId = await getNextConfessionId();
+  const randomColor = getRandomColor();
+
+  const replyButton = new ButtonBuilder()
+    .setCustomId(`reply_button_${confessionId}`)
+    .setLabel("返信 / Reply")
+    .setStyle(ButtonStyle.Primary);
+
+  const row = new ActionRowBuilder().addComponents(replyButton);
+
+  const confessionEmbed = new EmbedBuilder()
+    .setTitle(`${anonymousId} (#${confessionId})`)
+    .setColor(randomColor)
+    .setDescription(confessionMessage)
+    .setFooter({
+      text: "投稿するか返信したい場合は、/confess または /reply を使用してください。",
+    });
+
+  try {
+    const sentMessage = await interaction.channel.send({
+      embeds: [confessionEmbed],
+      components: [row],
+    });
+    await logConfession(confessionId, sentMessage.id);
+    console.log(
+      `Logged confession #${confessionId} with message ID ${sentMessage.id}`,
+    );
+
+    await interaction.deferUpdate();
+  } catch (error) {
+    console.error("Error posting confession message:", error);
+    await interaction.reply({
+      content:
+        "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
+      flags: MessageFlags.Ephemeral,
+    });
+  }
+};
+
 export default createChatCommand(
   "confess",
-  "匿名でメッセージを投稿します。(Post a message anonymously.)",
+  "匿名でメッセージを投稿します。Post a message anonymously.",
   async (interaction) => {
-    // Get channel id
     const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
 
-    // Send this if no id is found
     if (!confessionsChannelId) {
+      console.warn("confessCommand: CONFESSIONS_CHANNEL_ID is not set.");
       return interaction.reply({
         content:
           "このコマンドは設定されていません。管理者に連絡してください。\nThis command is not configured. Please contact an administrator.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
-    // Send this if the command is used in a different channel
     if (interaction.channelId !== confessionsChannelId) {
+      console.log(
+        `confessCommand: Used in wrong channel. Expected <#${confessionsChannelId}>, got <#${interaction.channelId}>.`,
+      );
       return interaction.reply({
-        content: `このコマンドはこのチャンネルでは使用できません。<#${confessionsChannelId}> で使用してください。\nThis command can only be used in the <#${confessionsChannelId}> channel.`,
-        ephemeral: true,
+        content: `このコマンドはこのチャンネルでは使用できません。<#${confessionsChannelId}> で使用してください。`,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
-    const confessionMessage = interaction.options.getString("message");
-    const anonymousId = generateAnonymousId();
-    const randomColor = getRandomColor();
-    const confessionId = await getNextConfessionId();
+    const modal = new ModalBuilder()
+      .setCustomId("confess_modal")
+      .setTitle("匿名で投稿 / Post an Anonymous Confession");
 
-    const confessionEmbed = new EmbedBuilder()
-      .setTitle(`${anonymousId} (#${confessionId})`)
-      .setDescription(confessionMessage)
-      .setColor(randomColor)
-      .setFooter({
-        text: "投稿するか返信したい場合は、/confess または /reply を使用してください。",
-      });
+    const messageInput = new TextInputBuilder()
+      .setCustomId("confession_input")
+      .setLabel("投稿したいメッセージ。The message you want to confess.")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder(
+        "ここにメッセージを入力してください。\nWrite the anonymous message you want to send.",
+      );
+
+    const actionRow = new ActionRowBuilder().addComponents(messageInput);
+    modal.addComponents(actionRow);
+
+    await interaction.showModal(modal);
 
     try {
-      const sentMessage = await interaction.channel.send({
-        embeds: [confessionEmbed],
+      const modalInteraction = await interaction.awaitModalSubmit({
+        filter: (i) =>
+          i.customId === "confess_modal" && i.user.id === interaction.user.id,
+        time: 600_000,
       });
-      await logConfession(confessionId, sentMessage.id);
-
-      // Send this if all things go smooth
-      await interaction.reply({
-        content:
-          "あなたのメッセージは匿名で投稿されました。\nYour confession has been posted anonymously.",
-        ephemeral: true,
-      });
-    } catch (error) {
-      console.error("Error processing confession:", error);
-      await interaction.reply({
-        content:
-          "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
-        ephemeral: true,
-      });
+      console.log(`Confess modal submitted by user ${interaction.user.tag}`);
+      await handleModalSubmit(modalInteraction);
+    } catch (err) {
+      console.warn(
+        `Confess modal error for user ${interaction.user.tag} `,
+        err,
+      );
     }
-  },
-  {
-    setup: (builder) =>
-      builder.addStringOption((option) =>
-        option
-          .setName("message")
-          .setDescription(
-            "投稿したいメッセージ。(The message you want to confess.)",
-          )
-          .setRequired(true),
-      ),
   },
 );
