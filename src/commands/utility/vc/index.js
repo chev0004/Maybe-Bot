@@ -1,4 +1,4 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createChatCommand } from "../../../utils/commandBuilder.js";
 
@@ -99,7 +99,7 @@ export default createChatCommand(
             "有効な絵文字を入力してください。カスタム絵文字や一部の新しい絵文字は対応されていません。",
             "Please provide a valid emoji. Custom and some new emojis are not supported.",
           ].join("\n"),
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -178,7 +178,7 @@ export default createChatCommand(
           "ボイスチャンネルの作成中にエラーが発生しました。",
           "There was an error while creating the voice channel.",
         ].join("\n"),
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

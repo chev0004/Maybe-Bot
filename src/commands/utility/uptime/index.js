@@ -1,4 +1,4 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createChatCommand } from "../../../utils/commandBuilder.js";
 
@@ -38,7 +38,7 @@ export default createChatCommand(
     if (!client.readyAt) {
       await interaction.reply({
         content: "Bot is not ready yet. Please try again in a moment.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

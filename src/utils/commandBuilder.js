@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { MessageFlags, SlashCommandBuilder } from "discord.js";
 
 /**
  * A custom command builder that simplifies creating chat input commands.
@@ -28,7 +28,7 @@ export const createChatCommand = (
         await interaction.reply({
           content:
             "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }

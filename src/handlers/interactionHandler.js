@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -69,12 +70,12 @@ export default class InteractionHandler {
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({
           content: "There was an error while executing this interaction!",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.reply({
           content: "There was an error while executing this interaction!",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }

@@ -1,4 +1,4 @@
-import { REST, Routes } from "discord.js";
+import { MessageFlags, REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -86,7 +86,7 @@ export default class CommandHandler {
         .reply({
           content:
             "エラーが発生しました。An error occurred while executing this command.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         })
         .catch(console.error);
     }
