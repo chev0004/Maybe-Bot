@@ -71,27 +71,6 @@ export default createChatCommand(
   "confess",
   "匿名でメッセージを投稿します。Post a message anonymously.",
   async (interaction) => {
-    const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
-
-    if (!confessionsChannelId) {
-      console.warn("confessCommand: CONFESSIONS_CHANNEL_ID is not set.");
-      return interaction.reply({
-        content:
-          "このコマンドは設定されていません。管理者に連絡してください。\nThis command is not configured. Please contact an administrator.",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    if (interaction.channelId !== confessionsChannelId) {
-      console.log(
-        `confessCommand: Used in wrong channel. Expected <#${confessionsChannelId}>, got <#${interaction.channelId}>.`,
-      );
-      return interaction.reply({
-        content: `このコマンドはこのチャンネルでは使用できません。<#${confessionsChannelId}> で使用してください。`,
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
     const modal = new ModalBuilder()
       .setCustomId("confess_modal")
       .setTitle("匿名で投稿 / Post an Anonymous Confession");
@@ -123,5 +102,9 @@ export default createChatCommand(
         err,
       );
     }
+  },
+  {
+    allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID],
+    requiredEnvVars: ["CONFESSIONS_CHANNEL_ID"],
   },
 );

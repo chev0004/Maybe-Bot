@@ -134,17 +134,6 @@ export default createChatCommand(
       }
       memberArray = fakeMembers;
     } else {
-      const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
-      if (!guild) {
-        return await interaction.editReply(
-          "このコマンドはサーバー内でのみ実行できます。\nThis command can only be executed within a server.",
-        );
-      }
-      if (!verifiedRoleId) {
-        return await interaction.editReply(
-          "認証ロールIDが設定されていません。管理者に連絡してください。\nVerified role ID is not configured. Please contact an administrator.",
-        );
-      }
       const role = guild.roles.cache.get(verifiedRoleId);
       if (!role) {
         return await interaction.editReply(
@@ -207,6 +196,7 @@ export default createChatCommand(
   },
   {
     ownerOnly: true,
+    requiredEnvVars: ["VERIFIED_ROLE_ID"],
     setup: (builder) =>
       builder
         .addBooleanOption((option) =>

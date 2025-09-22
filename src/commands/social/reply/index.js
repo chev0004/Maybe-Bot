@@ -1,6 +1,5 @@
 import {
   ActionRowBuilder,
-  MessageFlags,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -11,22 +10,6 @@ export default createChatCommand(
   "reply",
   "特定の投稿に匿名で返信する。(Reply anonymously to a specific confession.)",
   async (interaction) => {
-    const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
-
-    if (!confessionsChannelId) {
-      return interaction.reply({
-        content: "このコマンドは設定されていません。管理者に連絡してください。",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
-    if (interaction.channelId !== confessionsChannelId) {
-      return interaction.reply({
-        content: `このコマンドはこのチャンネルでは使用できません。<#${confessionsChannelId}> で使用してください。`,
-        flags: MessageFlags.Ephemeral,
-      });
-    }
-
     const targetId = interaction.options.getInteger("id");
 
     const modal = new ModalBuilder()
@@ -47,6 +30,8 @@ export default createChatCommand(
     await interaction.showModal(modal);
   },
   {
+    allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID],
+    requiredEnvVars: ["CONFESSIONS_CHANNEL_ID"],
     setup: (builder) =>
       builder.addIntegerOption((option) =>
         option

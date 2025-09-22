@@ -18,21 +18,7 @@ import {
 export default {
   customId: "reply_modal",
   async execute(interaction) {
-    const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
     const targetIdStr = interaction.customId.split("_")[2];
-
-    if (
-      !confessionsChannelId ||
-      interaction.channelId !== confessionsChannelId
-    ) {
-      console.warn(
-        "Reply modal submitted in wrong channel or confessions channel ID not set.",
-      );
-      return await interaction.reply({
-        content: "このコマンドは設定されていません。管理者に連絡してください。",
-        flags: MessageFlags.Ephemeral,
-      });
-    }
 
     const targetId = parseInt(targetIdStr, 10);
     const replyMessage = interaction.fields.getTextInputValue("reply_input");
@@ -117,4 +103,6 @@ export default {
       });
     }
   },
+  allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID],
+  requiredEnvVars: ["CONFESSIONS_CHANNEL_ID"],
 };
