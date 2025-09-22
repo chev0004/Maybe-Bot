@@ -1,5 +1,6 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
 /**
  * Formats milliseconds into a human-readable string (e.g., "1日 3時間 5分 22秒").
@@ -30,12 +31,10 @@ function formatUptime(milliseconds) {
   return parts.join(" ");
 }
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("uptime")
-    .setDescription("BOTの稼働時間を表示します。(Displays the bot's uptime.)"),
-
-  async execute(interaction, client) {
+export default createChatCommand(
+  "uptime",
+  "BOTの稼働時間を表示します。(Displays the bot's uptime.)",
+  async (interaction, client) => {
     if (!client.readyAt) {
       await interaction.reply({
         content: "Bot is not ready yet. Please try again in a moment.",
@@ -45,9 +44,7 @@ export default {
     }
 
     const uptimeMilliseconds = Date.now() - client.readyAt.getTime();
-
     const uptimeString = formatUptime(uptimeMilliseconds);
-
     const startTime = Math.floor(client.readyAt.getTime() / 1000);
     const startTimeString = `<t:${startTime}:F>`;
 
@@ -74,4 +71,4 @@ export default {
 
     await interaction.reply({ embeds: [embed] });
   },
-};
+);

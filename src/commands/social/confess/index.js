@@ -1,4 +1,5 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 import {
   getNextConfessionId,
   logConfession,
@@ -8,22 +9,10 @@ import {
   getRandomColor,
 } from "../../../utils/confessionUtils.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("confess")
-    .setDescription(
-      "匿名でメッセージを投稿します。(Post a message anonymously.)",
-    )
-    .addStringOption((option) =>
-      option
-        .setName("message")
-        .setDescription(
-          "投稿したいメッセージ。(The message you want to confess.)",
-        )
-        .setRequired(true),
-    ),
-
-  async execute(interaction) {
+export default createChatCommand(
+  "confess",
+  "匿名でメッセージを投稿します。(Post a message anonymously.)",
+  async (interaction) => {
     // Get channel id
     const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
 
@@ -78,4 +67,15 @@ export default {
       });
     }
   },
-};
+  {
+    setup: (builder) =>
+      builder.addStringOption((option) =>
+        option
+          .setName("message")
+          .setDescription(
+            "投稿したいメッセージ。(The message you want to confess.)",
+          )
+          .setRequired(true),
+      ),
+  },
+);

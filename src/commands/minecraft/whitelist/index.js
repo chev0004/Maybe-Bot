@@ -1,41 +1,11 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("whitelist")
-    .setDescription(
-      "マイクラサーバーのホワイトリストにユーザーを追加する。(Adds a user to the Minecraft server whitelist.)",
-    )
-    .addStringOption((option) =>
-      option
-        .setName("username")
-        .setDescription(
-          "ホワイトリストに追加するユーザー名。(The username to add to the whitelist.)",
-        )
-        .setRequired(true),
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName("bedrock")
-        .setDescription(
-          "統合版ユーザーの場合はtrueを選択。(Set to true if the user is a Bedrock player.)",
-        )
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(0),
-
-  async execute(interaction, _client, options) {
-    const ownerId = process.env.OWNER_ID;
-    if (interaction.user.id !== ownerId) {
-      await interaction.reply({
-        content:
-          "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        flags: [Discord.InteractionResponseFlags.Ephemeral],
-      });
-      return;
-    }
-
+export default createChatCommand(
+  "whitelist",
+  "マイクラサーバーのホワイトリストにユーザーを追加する。(Adds a user to the Minecraft server whitelist.)",
+  async (interaction, _client, options) => {
     await interaction.deferReply({ ephemeral: false });
 
     const { exarotonClient, SERVER_ID } = options;
@@ -148,4 +118,26 @@ export default {
       await interaction.editReply({ embeds: [embed] });
     }
   },
-};
+  {
+    ownerOnly: true,
+    setup: (builder) =>
+      builder
+        .addStringOption((option) =>
+          option
+            .setName("username")
+            .setDescription(
+              "ホワイトリストに追加するユーザー名。(The username to add to the whitelist.)",
+            )
+            .setRequired(true),
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("bedrock")
+            .setDescription(
+              "統合版ユーザーの場合はtrueを選択。(Set to true if the user is a Bedrock player.)",
+            )
+            .setRequired(false),
+        )
+        .setDefaultMemberPermissions(0),
+  },
+);

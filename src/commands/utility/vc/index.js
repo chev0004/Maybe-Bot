@@ -1,46 +1,90 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("vc")
+function isEmoji(str) {
+  if (str.length > 2) {
+    return false;
+  }
+  const emojiRegex = /\p{Emoji}/u;
+  return emojiRegex.test(str);
+}
+
+async function sendVoiceChannelCreationLog(
+  interaction,
+  client,
+  channel,
+  emoji,
+  jpName,
+  enName,
+  limit,
+) {
+  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
+  if (!logChannelId) return;
+
+  const logChannel = await client.channels
+    .fetch(logChannelId)
+    .catch(() => null);
+  if (!logChannel) return;
+
+  const member = interaction.member;
+  if (!member) return;
+
+  const embed = new EmbedBuilder()
+    .setAuthor({
+      name: member.user.tag,
+      iconURL: member.user.displayAvatarURL({ dynamic: true }),
+    })
+    .setTitle("一時的なボイスチャンネル作成")
     .setDescription(
-      "一時的なボイスチャンネルを作成する。Create a temporary voice channel.",
+      `${member} が一時的なボイスチャンネル <#${channel.id}> を作成しました。`,
     )
-    .addStringOption((option) =>
-      option
-        .setName("emoji")
-        .setDescription("チャンネル名の絵文字。Emoji for the channel name.")
-        .setRequired(true),
+    .setColor(Colors.green)
+    .addFields(
+      {
+        name: "チャンネル名",
+        value: `${emoji}${jpName} | ${enName}`,
+        inline: false,
+      },
+      {
+        name: "ユーザー制限",
+        value: limit === 0 ? "無制限" : `${limit}人`,
+        inline: true,
+      },
+      { name: "自動削除", value: "4分間の非アクティブ状態後", inline: true },
     )
-    .addStringOption((option) =>
-      option
-        .setName("jpname")
-        .setDescription(
-          "ボイスチャンネルの名前 (日本語)。Name of the voice channel (Japanese).",
-        )
-        .setRequired(true),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("enname")
-        .setDescription(
-          "ボイスチャンネルの名前 (英語)。Name of the voice channel (English).",
-        )
-        .setRequired(true),
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName("limit")
-        .setDescription(
-          "ユーザー制限 (0は無制限)。User limit (0 for unlimited).",
-        )
-        .setRequired(true)
-        .setMinValue(0)
-        .setMaxValue(99),
-    ),
+    .setFooter({
+      text: `ID: ${member.user.id}`,
+    })
+    .setTimestamp();
 
-  async execute(interaction, client) {
+  await logChannel.send({ embeds: [embed] });
+}
+
+async function sendVoiceChannelDeletionLog(_, client, channel) {
+  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
+  if (!logChannelId) return;
+
+  const logChannel = await client.channels
+    .fetch(logChannelId)
+    .catch(() => null);
+  if (!logChannel) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle("一時的なボイスチャンネル削除")
+    .setDescription(
+      `一時的なボイスチャンネル **${channel.name}** が非アクティブのため削除されました。`,
+    )
+    .setColor(Colors.red)
+    .setTimestamp();
+
+  await logChannel.send({ embeds: [embed] });
+}
+
+export default createChatCommand(
+  "vc",
+  "一時的なボイスチャンネルを作成する。Create a temporary voice channel.",
+  async (interaction, client) => {
     try {
       await interaction.deferReply();
 
@@ -49,14 +93,13 @@ export default {
       const enName = interaction.options.getString("enname");
       const limit = interaction.options.getInteger("limit");
 
-      const isValidEmoji = this.isEmoji(emoji);
-      if (!isValidEmoji) {
+      if (!isEmoji(emoji)) {
         return await interaction.editReply({
           content: [
             "有効な絵文字を入力してください。カスタム絵文字や一部の新しい絵文字は対応されていません。",
             "Please provide a valid emoji. Custom and some new emojis are not supported.",
           ].join("\n"),
-          flags: [Discord.InteractionResponseFlags.Ephemeral],
+          ephemeral: true,
         });
       }
 
@@ -67,7 +110,7 @@ export default {
         parent: process.env.VOICE_CATEGORY_ID,
       });
 
-      await this.sendVoiceChannelCreationLog(
+      await sendVoiceChannelCreationLog(
         interaction,
         client,
         channel,
@@ -91,11 +134,7 @@ export default {
                 .catch(() => null);
               if (currentVC && currentVC.members.size === 0) {
                 await currentVC.delete().catch(console.error);
-                await this.sendVoiceChannelDeletionLog(
-                  interaction,
-                  client,
-                  channel,
-                );
+                await sendVoiceChannelDeletionLog(interaction, client, channel);
               }
             },
             1000 * 60 * 4,
@@ -139,88 +178,44 @@ export default {
           "ボイスチャンネルの作成中にエラーが発生しました。",
           "There was an error while creating the voice channel.",
         ].join("\n"),
-        flags: [Discord.InteractionResponseFlags.Ephemeral],
+        ephemeral: true,
       });
     }
   },
-
-  isEmoji(str) {
-    if (str.length > 2) {
-      return false;
-    }
-
-    const emojiRegex = /\p{Emoji}/u;
-    return emojiRegex.test(str);
+  {
+    setup: (builder) =>
+      builder
+        .addStringOption((option) =>
+          option
+            .setName("emoji")
+            .setDescription("チャンネル名の絵文字。Emoji for the channel name.")
+            .setRequired(true),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("jpname")
+            .setDescription(
+              "ボイスチャンネルの名前 (日本語)。Name of the voice channel (Japanese).",
+            )
+            .setRequired(true),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("enname")
+            .setDescription(
+              "ボイスチャンネルの名前 (英語)。Name of the voice channel (English).",
+            )
+            .setRequired(true),
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("limit")
+            .setDescription(
+              "ユーザー制限 (0は無制限)。User limit (0 for unlimited).",
+            )
+            .setRequired(true)
+            .setMinValue(0)
+            .setMaxValue(99),
+        ),
   },
-
-  async sendVoiceChannelCreationLog(
-    interaction,
-    client,
-    channel,
-    emoji,
-    jpName,
-    enName,
-    limit,
-  ) {
-    const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
-    if (!logChannelId) return;
-
-    const logChannel = await client.channels
-      .fetch(logChannelId)
-      .catch(() => null);
-    if (!logChannel) return;
-
-    const member = interaction.member;
-    if (!member) return;
-
-    const embed = new EmbedBuilder()
-      .setAuthor({
-        name: member.user.tag,
-        iconURL: member.user.displayAvatarURL({ dynamic: true }),
-      })
-      .setTitle("一時的なボイスチャンネル作成")
-      .setDescription(
-        `${member} が一時的なボイスチャンネル <#${channel.id}> を作成しました。`,
-      )
-      .setColor(Colors.green)
-      .addFields(
-        {
-          name: "チャンネル名",
-          value: `${emoji}${jpName} | ${enName}`,
-          inline: false,
-        },
-        {
-          name: "ユーザー制限",
-          value: limit === 0 ? "無制限" : `${limit}人`,
-          inline: true,
-        },
-        { name: "自動削除", value: "4分間の非アクティブ状態後", inline: true },
-      )
-      .setFooter({
-        text: `ID: ${member.user.id}`,
-      })
-      .setTimestamp();
-
-    await logChannel.send({ embeds: [embed] });
-  },
-
-  async sendVoiceChannelDeletionLog(_, client, channel) {
-    const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
-    if (!logChannelId) return;
-
-    const logChannel = await client.channels
-      .fetch(logChannelId)
-      .catch(() => null);
-    if (!logChannel) return;
-
-    const embed = new EmbedBuilder()
-      .setTitle("一時的なボイスチャンネル削除")
-      .setDescription(
-        `一時的なボイスチャンネル **${channel.name}** が非アクティブのため削除されました。`,
-      )
-      .setColor(Colors.red)
-      .setTimestamp();
-
-    await logChannel.send({ embeds: [embed] });
-  },
-};
+);

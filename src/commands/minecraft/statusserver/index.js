@@ -1,14 +1,11 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("statusserver")
-    .setDescription(
-      "マイクラサーバーの現在状況を表示。Display the current server stats",
-    ),
-
-  async execute(interaction, _client, options) {
+export default createChatCommand(
+  "statusserver",
+  "マイクラサーバーの現在状況を表示。Display the current server stats",
+  async (interaction, _client, options) => {
     const { exarotonClient, SERVER_ID } = options;
 
     await interaction.deferReply({ ephemeral: false });
@@ -74,4 +71,4 @@ export default {
       await interaction.editReply("サーバー情報の取得に失敗しました。");
     }
   },
-};
+);

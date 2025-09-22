@@ -1,7 +1,8 @@
 import { exec } from "child_process";
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import util from "util";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 import { setRestartInfo } from "../../../utils/dataManager.js";
 
 const execPromise = util.promisify(exec);
@@ -55,33 +56,10 @@ function colorizeGitOutput(text, branchToHighlight) {
   return coloredText;
 }
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("update")
-    .setDescription(
-      "GitHubから最新のコミットを取得し、BOTを再起動する。(Pulls the latest changes from GitHub and restarts the bot.)",
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName("test")
-        .setDescription(
-          "テストモードで実行し、実際の更新や再起動は行いません。(Run in test mode without actual update/restart.)",
-        )
-        .setRequired(false),
-    )
-    .setDefaultMemberPermissions(0),
-
-  async execute(interaction) {
-    const ownerId = process.env.OWNER_ID;
-    if (interaction.user.id !== ownerId) {
-      await interaction.reply({
-        content:
-          "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        ephemeral: true,
-      });
-      return;
-    }
-
+export default createChatCommand(
+  "update",
+  "GitHubから最新のコミットを取得し、BOTを再起動する。(Pulls the latest changes from GitHub and restarts the bot.)",
+  async (interaction) => {
     const isTestMode = interaction.options.getBoolean("test") ?? false;
 
     if (isTestMode) {
@@ -314,4 +292,18 @@ export default {
       await interaction.editReply({ embeds: [embed] });
     }
   },
-};
+  {
+    ownerOnly: true,
+    setup: (builder) =>
+      builder
+        .addBooleanOption((option) =>
+          option
+            .setName("test")
+            .setDescription(
+              "テストモードで実行し、実際の更新や再起動は行いません。(Run in test mode without actual update/restart.)",
+            )
+            .setRequired(false),
+        )
+        .setDefaultMemberPermissions(0),
+  },
+);

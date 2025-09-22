@@ -1,20 +1,10 @@
-import { SlashCommandBuilder } from "discord.js";
 import { handleApprovalProcess } from "../../../utils/approvalProcess.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("smite")
-    .setDescription("人に神罰を与える。Punish someone with the God's Wrath.")
-    .addStringOption((option) =>
-      option
-        .setName("victim")
-        .setDescription(
-          "神罰を受ける者の名を入力。Enter the username of the victim to be smitten.",
-        )
-        .setRequired(true),
-    ),
-
-  async execute(interaction, _client, options) {
+export default createChatCommand(
+  "smite",
+  "人に神罰を与える。Punish someone with the God's Wrath.",
+  async (interaction, _client, options) => {
     const { exarotonClient, SERVER_ID } = options;
     const victim = interaction.options.getString("victim");
 
@@ -41,4 +31,15 @@ export default {
       "神罰が失敗しました。",
     );
   },
-};
+  {
+    setup: (builder) =>
+      builder.addStringOption((option) =>
+        option
+          .setName("victim")
+          .setDescription(
+            "神罰を受ける者の名を入力。Enter the username of the victim to be smitten.",
+          )
+          .setRequired(true),
+      ),
+  },
+);

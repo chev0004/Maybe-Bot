@@ -1,14 +1,10 @@
-import { SlashCommandBuilder } from "discord.js";
 import { handleApprovalProcess } from "../../../utils/approvalProcess.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("startserver")
-    .setDescription(
-      "マイクラサーバーを起動させる。Starts the MineCraft server.",
-    ),
-
-  async execute(interaction, _client, options) {
+export default createChatCommand(
+  "startserver",
+  "マイクラサーバーを起動させる。Starts the MineCraft server.",
+  async (interaction, _client, options) => {
     const { exarotonClient, SERVER_ID } = options;
     const requiredApprovals = 1;
     const actionMessage = "サーバーを起動する";
@@ -47,4 +43,4 @@ export default {
       "サーバーの起動に失敗しました。",
     );
   },
-};
+);

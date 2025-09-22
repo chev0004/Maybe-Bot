@@ -1,25 +1,12 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 import { setRestartInfo } from "../../../utils/dataManager.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("restart")
-    .setDescription("BOTを再起動します。(Restarts the bot.)")
-    .setDefaultMemberPermissions(0),
-
-  async execute(interaction) {
-    const ownerId = process.env.OWNER_ID;
-
-    if (interaction.user.id !== ownerId) {
-      await interaction.reply({
-        content:
-          "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        ephemeral: true,
-      });
-      return;
-    }
-
+export default createChatCommand(
+  "restart",
+  "BOTを再起動します。(Restarts the bot.)",
+  async (interaction) => {
     await interaction.deferReply({ ephemeral: false });
 
     const embed = new EmbedBuilder()
@@ -60,4 +47,8 @@ export default {
       process.exit(0);
     }, 3000);
   },
-};
+  {
+    ownerOnly: true,
+    setup: (builder) => builder.setDefaultMemberPermissions(0),
+  },
+);

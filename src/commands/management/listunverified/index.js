@@ -1,31 +1,11 @@
-import {
-  EmbedBuilder,
-  PermissionsBitField,
-  SlashCommandBuilder,
-} from "discord.js";
+import { EmbedBuilder, PermissionsBitField } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("listunverified")
-    .setDescription(
-      "特定のロールを持たないメンバーをリスト表示します。(Lists members without a specific role.)",
-    )
-    .setDefaultMemberPermissions(0),
-
-  async execute(interaction) {
-    const ownerId = process.env.OWNER_ID;
-    const targetRoleId = process.env.VERIFIED_ROLE_ID;
-
-    if (interaction.user.id !== ownerId) {
-      await interaction.reply({
-        content:
-          "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
-        flags: [Discord.InteractionResponseFlags.Ephemeral],
-      });
-      return;
-    }
-
+export default createChatCommand(
+  "listunverified",
+  "特定のロールを持たないメンバーをリスト表示します。(Lists members without a specific role.)",
+  async (interaction) => {
     await interaction.deferReply({ ephemeral: false });
 
     const guild = interaction.guild;
@@ -151,4 +131,8 @@ export default {
       await interaction.editReply({ embeds: [embed] });
     }
   },
-};
+  {
+    ownerOnly: true,
+    setup: (builder) => builder.setDefaultMemberPermissions(0),
+  },
+);

@@ -1,4 +1,5 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
+import { createChatCommand } from "../../../utils/commandBuilder.js";
 import {
   getConfessionData,
   getNextConfessionId,
@@ -9,29 +10,10 @@ import {
   getRandomColor,
 } from "../../../utils/confessionUtils.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("reply")
-    .setDescription(
-      "特定の投稿に匿名で返信する。(Reply anonymously to a specific confession.)",
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName("id")
-        .setDescription(
-          "返信したい投稿の番号。(The # of the confession to reply to.)",
-        )
-        .setRequired(true)
-        .setMinValue(1),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("message")
-        .setDescription("返信メッセージ。(The reply message.)")
-        .setRequired(true),
-    ),
-
-  async execute(interaction) {
+export default createChatCommand(
+  "reply",
+  "特定の投稿に匿名で返信する。(Reply anonymously to a specific confession.)",
+  async (interaction) => {
     const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;
 
     if (!confessionsChannelId) {
@@ -120,4 +102,23 @@ export default {
       });
     }
   },
-};
+  {
+    setup: (builder) =>
+      builder
+        .addIntegerOption((option) =>
+          option
+            .setName("id")
+            .setDescription(
+              "返信したい投稿の番号。(The # of the confession to reply to.)",
+            )
+            .setRequired(true)
+            .setMinValue(1),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("message")
+            .setDescription("返信メッセージ。(The reply message.)")
+            .setRequired(true),
+        ),
+  },
+);
