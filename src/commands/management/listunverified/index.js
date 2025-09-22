@@ -5,6 +5,7 @@ import {
   ComponentType,
   EmbedBuilder,
   PermissionsBitField,
+  StringSelectMenuBuilder,
 } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createChatCommand } from "../../../utils/commandBuilder.js";
@@ -70,35 +71,23 @@ export default createChatCommand(
       let currentPage = 0;
       const itemsPerPage = 10;
 
-      const sortModes = [
-        {
-          label: "名前 A-Z",
-          sort: (a, b) => a.user.username.localeCompare(b.user.username),
-        },
-        {
-          label: "名前 Z-A",
-          sort: (a, b) => b.user.username.localeCompare(a.user.username),
-        },
-        {
-          label: "参加日 新→古",
-          sort: (a, b) => b.joinedTimestamp - a.joinedTimestamp,
-        },
-        {
-          label: "参加日 古→新",
-          sort: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
-        },
-        {
-          label: "作成日 新→古",
-          sort: (a, b) => b.user.createdTimestamp - a.user.createdTimestamp,
-        },
-        {
-          label: "作成日 古→新",
-          sort: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
-        },
-      ];
-      let sortIndex = 0;
+      let sortCriteria = "username"; // 'username', 'joinedAt', 'createdAt'
+      let sortOrder = "asc"; // 'asc', 'desc'
 
-      memberArray.sort(sortModes[sortIndex].sort);
+      const sortFunctions = {
+        username: (a, b) => a.user.username.localeCompare(b.user.username),
+        joinedAt: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
+        createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
+      };
+
+      const performSort = () => {
+        memberArray.sort((a, b) => {
+          const comparison = sortFunctions[sortCriteria](a, b);
+          return sortOrder === "asc" ? comparison : -comparison;
+        });
+      };
+
+      performSort();
 
       const generatePage = () => {
         const totalPages = Math.ceil(memberArray.length / itemsPerPage);
@@ -127,7 +116,7 @@ export default createChatCommand(
             text: `ページ ${currentPage + 1} / ${totalPages}`,
           });
 
-        const buttons = new ActionRowBuilder().addComponents(
+        const buttonRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("prev_page")
             .setLabel("◀")
@@ -139,26 +128,49 @@ export default createChatCommand(
             .setStyle(ButtonStyle.Primary)
             .setDisabled(currentPage >= totalPages - 1),
           new ButtonBuilder()
-            .setCustomId("sort")
-            .setLabel(`⇅ 並べ替え (${sortModes[sortIndex].label})`)
+            .setCustomId("toggle_sort_order")
+            .setLabel(sortOrder === "asc" ? "昇順 ▲" : "降順 ▼")
             .setStyle(ButtonStyle.Secondary),
         );
 
-        return { embeds: [embed], components: [buttons] };
+        const selectMenuRow = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("select_sort_criteria")
+            .setPlaceholder("並べ替えの基準を選択")
+            .addOptions(
+              {
+                label: "名前 (Username)",
+                value: "username",
+                default: sortCriteria === "username",
+              },
+              {
+                label: "参加日 (Join Date)",
+                value: "joinedAt",
+                default: sortCriteria === "joinedAt",
+              },
+              {
+                label: "作成日 (Account Date)",
+                value: "createdAt",
+                default: sortCriteria === "createdAt",
+              },
+            ),
+        );
+
+        return { embeds: [embed], components: [selectMenuRow, buttonRow] };
       };
 
       const message = await interaction.editReply(generatePage());
 
       const collector = message.createMessageComponentCollector({
-        componentType: ComponentType.Button,
-        time: 4 * 60 * 1000,
+        componentType: ComponentType.Button | ComponentType.StringSelect,
+        time: 5 * 60 * 1000,
       });
 
       collector.on("collect", async (i) => {
         if (i.user.id !== interaction.user.id) {
           await i.reply({
             content:
-              "コマンドを実行したユーザーのみがボタンを使用できます。\nOnly the user who ran the command can use these buttons.",
+              "コマンドを実行したユーザーのみがコンポーネントを使用できます。\nOnly the user who ran the command can use these components.",
             ephemeral: true,
           });
           return;
@@ -166,24 +178,28 @@ export default createChatCommand(
 
         await i.deferUpdate();
 
-        if (i.customId === "next_page") {
-          currentPage++;
-        } else if (i.customId === "prev_page") {
-          currentPage--;
-        } else if (i.customId === "sort") {
-          sortIndex = (sortIndex + 1) % sortModes.length;
-          memberArray.sort(sortModes[sortIndex].sort);
+        if (i.isButton()) {
+          if (i.customId === "next_page") {
+            currentPage++;
+          } else if (i.customId === "prev_page") {
+            currentPage--;
+          } else if (i.customId === "toggle_sort_order") {
+            sortOrder = sortOrder === "asc" ? "desc" : "asc";
+          }
+        } else if (i.isStringSelectMenu()) {
+          sortCriteria = i.values[0];
           currentPage = 0;
         }
 
+        performSort();
         await message.edit(generatePage());
       });
 
       collector.on("end", async () => {
         const finalPage = generatePage();
         finalPage.components.forEach((row) => {
-          row.components.forEach((button) => {
-            button.setDisabled(true);
+          row.components.forEach((component) => {
+            component.setDisabled(true);
           });
         });
         await message.edit(finalPage).catch(() => {});
@@ -197,7 +213,7 @@ export default createChatCommand(
           "メンバーリストの取得中にエラーが発生しました。\nAn error occurred while fetching the member list.",
         )
         .addFields({ name: "詳細", value: `\`\`\`${error.message}\`\`\`` });
-      await interaction.editReply({ embeds: [errorEmbed] });
+      await interaction.editReply({ embeds: [errorEmbed], components: [] });
     }
   },
   {
