@@ -4,6 +4,7 @@ import {
   getStickyMessageId,
   setStickyMessageId,
 } from "../../utils/dataManager.js";
+import { createListener } from "../../utils/listenerBuilder.js";
 
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
@@ -124,21 +125,10 @@ function validateWelcomeMessage(content) {
   return { isValid: true };
 }
 
-export default {
-  name: "welcomeMessageFormatChecker",
-  event: "messageCreate",
-  async execute(message) {
-    if (!WELCOME_CHANNEL_ID) {
-      console.warn(
-        "welcomeMessage listener: WELCOME_CHANNEL_ID is not set in .env. Listener will not function.",
-      );
-      return;
-    }
-
-    if (message.author.bot || message.channel.id !== WELCOME_CHANNEL_ID) {
-      return;
-    }
-
+export default createListener(
+  "welcomeMessageFormatChecker",
+  "messageCreate",
+  async (message) => {
     const channel = message.channel;
     const author = message.author;
     const member = message.member;
@@ -183,8 +173,7 @@ export default {
             `welcomeMessage listener: Welcome role (ID: ${WELCOME_ROLE_ID}) not found in guild ${guild.id}.`,
           );
         } else {
-          if (member.roles.cache.has(WELCOME_ROLE_ID)) {
-          } else {
+          if (!member.roles.cache.has(WELCOME_ROLE_ID)) {
             if (
               !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
             ) {
@@ -400,4 +389,5 @@ export default {
       }
     }
   },
-};
+  { channels: [WELCOME_CHANNEL_ID] },
+);

@@ -1,32 +1,22 @@
+import { createListener } from "../../utils/listenerBuilder.js";
 import { scheduleReminder } from "../../utils/reminderManager.js";
 
-export default {
-  name: "bumpHandler",
-  event: "messageCreate",
+const bumpChannelId = process.env.BUMP_CHANNEL_ID;
+const pingRoleId = process.env.BUMP_ROLE_ID;
 
-  async execute(message, client) {
-    const bumpChannelId = process.env.BUMP_CHANNEL_ID;
-    const pingRoleId = process.env.BUMP_ROLE_ID;
-
-    if (message.channel.id !== bumpChannelId) return;
-
-    const disboardBotId = "302050872383242240";
-    const dissokuBotId = "761562078095867916";
-
-    if (![disboardBotId, dissokuBotId].includes(message.author.id)) return;
-
-    const embed = message.embeds[0];
-    if (!embed) return;
-
-    const desc = embed.description || "";
-
+export default createListener(
+  "bumpHandler",
+  "messageCreate",
+  async (message, client) => {
     const isDisboardBump =
-      message.author.id === disboardBotId &&
-      (desc.includes("表示順をアップしたよ") || desc.includes("👍"));
+      message.author.id === "302050872383242240" &&
+      (message.embeds[0]?.description.includes("表示順をアップしたよ") ||
+        message.embeds[0]?.description.includes("👍"));
 
     const isDissokuBump =
-      message.author.id === dissokuBotId &&
-      (desc.includes("をアップしたよ") || desc.toLowerCase().includes("up!"));
+      message.author.id === "761562078095867916" &&
+      (message.embeds[0]?.description.includes("をアップしたよ") ||
+        message.embeds[0]?.description.toLowerCase().includes("up!"));
 
     if (!isDisboardBump && !isDissokuBump) return;
 
@@ -41,4 +31,8 @@ export default {
 
     await scheduleReminder(reminderDetails, client);
   },
-};
+  {
+    channels: [bumpChannelId],
+    users: ["302050872383242240", "761562078095867916"],
+  },
+);

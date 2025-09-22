@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../constants/Colors.js";
+import { createListener } from "../../utils/listenerBuilder.js";
 
 const userJoinTimes = new Map();
 
@@ -17,11 +18,10 @@ function formatDuration(milliseconds) {
   }
 }
 
-export default {
-  name: "voiceChannelLogger",
-  event: "voiceStateUpdate",
-
-  async execute(oldState, newState, client) {
+export default createListener(
+  "voiceChannelLogger",
+  "voiceStateUpdate",
+  async (oldState, newState, client) => {
     const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
     if (!logChannelId) return;
 
@@ -74,10 +74,7 @@ export default {
 
         embed.addFields({
           name: "通話時間",
-          value:
-            userId === "272518543113715722"
-              ? "44日44時間44分44秒"
-              : formattedDuration,
+          value: formattedDuration,
           inline: true,
         });
 
@@ -121,44 +118,5 @@ export default {
 
       logChannel.send({ embeds: [embed] });
     }
-    // else if (oldState.channelId && newState.channelId && oldState.channelId === newState.channelId) {
-    //   if (oldState.serverMute !== newState.serverMute ||
-    //       oldState.serverDeaf !== newState.serverDeaf ||
-    //       oldState.selfMute !== newState.selfMute ||
-    //       oldState.selfDeaf !== newState.selfDeaf) {
-
-    //     embed
-    //       .setTitle('ボイスステータス変更')
-    //       .setDescription(`${member} が <#${newState.channelId}> でステータスを変更しました。`)
-    //       .setColor(Colors.purple);
-
-    //     const changes = [];
-
-    //     if (oldState.serverMute !== newState.serverMute) {
-    //       const status = newState.serverMute ? 'サーバーミュート: オン' : 'サーバーミュート: オフ';
-    //       changes.push(status);
-    //     }
-
-    //     if (oldState.serverDeaf !== newState.serverDeaf) {
-    //       const status = newState.serverDeaf ? 'サーバースピーカーミュート: オン' : 'サーバースピーカーミュート: オフ';
-    //       changes.push(status);
-    //     }
-
-    //     if (oldState.selfMute !== newState.selfMute) {
-    //       const status = newState.selfMute ? 'ミュート: オン' : 'セルフミュート: オフ';
-    //       changes.push(status);
-    //     }
-
-    //     if (oldState.selfDeaf !== newState.selfDeaf) {
-    //       const status = newState.selfDeaf ? 'スピーカーミュート: オン' : 'スピーカーミュート: オフ';
-    //       changes.push(status);
-    //     }
-
-    //     if (changes.length > 0) {
-    //       embed.addFields({ name: 'ステータス変更', value: changes.join('\n'), inline: false });
-    //       logChannel.send({ embeds: [embed] });
-    //     }
-    //   }
-    // }
   },
-};
+);
