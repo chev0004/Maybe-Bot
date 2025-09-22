@@ -46,8 +46,6 @@ function createAlignmentPointer(line, errorIndex) {
     pointerParts.push(specificFullWidthRegex.test(char) ? "　" : " ");
   }
 
-  console.log(pointerParts);
-
   const allFullWidth = [];
   const fullWidthChars = [];
 
@@ -64,8 +62,6 @@ function createAlignmentPointer(line, errorIndex) {
     }
   }
 
-  console.log("Full-width characters found:", fullWidthChars);
-  console.log("All character types:", allFullWidth);
   return pointerParts.join("");
 }
 
