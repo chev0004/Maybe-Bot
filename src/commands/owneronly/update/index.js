@@ -2,7 +2,7 @@ import { exec } from "child_process";
 import { EmbedBuilder } from "discord.js";
 import util from "util";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 import { setRestartInfo } from "../../../utils/dataManager.js";
 
 const execPromise = util.promisify(exec);
@@ -56,7 +56,7 @@ const colorizeGitOutput = (text, branchToHighlight) => {
   return coloredText;
 };
 
-export default createChatCommand(
+export default createCommand(
   "update",
   "GitHubから最新のコミットを取得し、BOTを再起動する。Pulls the latest changes from GitHub and restarts the bot.",
   async (interaction) => {

@@ -1,8 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
-export default createChatCommand(
+export default createCommand(
   "statusserver",
   "マイクラサーバーの現在状況を表示。Display the current server stats",
   async (interaction, _client, options) => {

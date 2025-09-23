@@ -1,8 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
-export default createChatCommand(
+export default createCommand(
   "whitelist",
   "マイクラサーバーのホワイトリストにユーザーを追加する。Adds a user to the Minecraft server whitelist.",
   async (interaction, _client, options) => {

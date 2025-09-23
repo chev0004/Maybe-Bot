@@ -4,9 +4,9 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
-export default createChatCommand(
+export default createCommand(
   "reply",
   "特定の投稿に匿名で返信する。Reply anonymously to a specific confession.",
   async (interaction) => {

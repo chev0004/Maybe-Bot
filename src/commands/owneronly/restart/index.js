@@ -1,9 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 import { setRestartInfo } from "../../../utils/dataManager.js";
 
-export default createChatCommand(
+export default createCommand(
   "restart",
   "BOTを再起動します。Restarts the bot.",
   async (interaction) => {

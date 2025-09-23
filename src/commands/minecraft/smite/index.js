@@ -1,7 +1,7 @@
 import { handleApprovalProcess } from "../../../utils/approvalProcess.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
-export default createChatCommand(
+export default createCommand(
   "smite",
   "人に神罰を与える。Punish someone with the God's Wrath.",
   async (interaction, _client, options) => {

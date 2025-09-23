@@ -8,7 +8,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 import {
   getNextConfessionId,
   logConfession,
@@ -67,7 +67,7 @@ const handleModalSubmit = async (interaction) => {
   }
 };
 
-export default createChatCommand(
+export default createCommand(
   "confess",
   "匿名でメッセージを投稿します。Post a message anonymously.",
   async (interaction) => {

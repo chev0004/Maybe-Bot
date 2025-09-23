@@ -12,7 +12,7 @@ import { MessageFlags, SlashCommandBuilder } from "discord.js";
  * @param {function(SlashCommandBuilder): SlashCommandBuilder} [options.setup] An optional function to configure the SlashCommandBuilder.
  * @returns {Object} A command object compatible with the bot's command handler.
  */
-export const createChatCommand = (
+export const createCommand = (
   name,
   description,
   execute,

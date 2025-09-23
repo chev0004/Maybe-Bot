@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
 /**
  * Formats milliseconds into a human-readable string (e.g., "1日 3時間 5分 22秒").
@@ -31,7 +31,7 @@ const formatUptime = (milliseconds) => {
   return parts.join(" ");
 };
 
-export default createChatCommand(
+export default createCommand(
   "uptime",
   "BOTの稼働時間を表示します。Displays the bot's uptime.",
   async (interaction, client) => {

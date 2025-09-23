@@ -7,7 +7,7 @@ import {
   StringSelectMenuBuilder,
 } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
 export const paginationState = new Map();
 const PAGE_SIZE = 10;
@@ -91,7 +91,7 @@ const sortFunctions = {
   createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
 };
 
-export default createChatCommand(
+export default createCommand(
   "listunverified",
   "認証ロールを持たないメンバーをリスト表示します。Lists members without the verified role.",
   async (interaction) => {

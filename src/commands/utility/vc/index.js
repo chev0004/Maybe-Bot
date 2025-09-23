@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
 const isEmoji = (str) => {
   if (str.length > 2) {
@@ -81,7 +81,7 @@ const sendVoiceChannelDeletionLog = async (_, client, channel) => {
   await logChannel.send({ embeds: [embed] });
 };
 
-export default createChatCommand(
+export default createCommand(
   "vc",
   "一時的なボイスチャンネルを作成する。Create a temporary voice channel.",
   async (interaction, client) => {

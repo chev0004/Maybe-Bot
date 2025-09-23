@@ -1,7 +1,7 @@
 import { handleApprovalProcess } from "../../../utils/approvalProcess.js";
-import { createChatCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/commandBuilder.js";
 
-export default createChatCommand(
+export default createCommand(
   "startserver",
   "マイクラサーバーを起動させる。Starts the MineCraft server.",
   async (interaction, _client, options) => {
