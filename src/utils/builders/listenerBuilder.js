@@ -4,7 +4,8 @@
  * @param {string} event The name of the Discord event to listen for.
  * @param {Function} execute The function to execute when the event is triggered.
  * @param {Object} [options={}] Filtering options for the listener.
- * @param {boolean} [options.ignoreBots=true] Whether to ignore bot users.
+ * @param {boolean} [options.ignoreBots=true] Whether to ignore other bot users.
+ * @param {boolean} [options.ignoreSelf=true] Whether to ignore the bot's own events.
  * @param {string[]} [options.channels] An array of channel IDs where the listener should be active.
  * @param {string[]} [options.ignoreChannels] An array of channel IDs where the listener should be ignored.
  * @param {string[]} [options.users] An array of user IDs where the listener should be active.
@@ -19,6 +20,7 @@ export const createListener = (name, event, execute, options = {}) => {
     channels,
     ignoreChannels,
     ignoreBots = true,
+    ignoreSelf = true,
     users,
     ignoreUsers,
     roles,
@@ -27,9 +29,18 @@ export const createListener = (name, event, execute, options = {}) => {
 
   const filterFunction = (...args) => {
     const context = event === "messageUpdate" ? args[1] : args[0];
-
-    if (!context || (ignoreBots && context.author?.bot)) {
+    if (!context) {
       return false;
+    }
+
+    if (context.author?.bot) {
+      const isSelf = context.author.id === context.client.user.id;
+      if (isSelf && ignoreSelf) {
+        return false;
+      }
+      if (!isSelf && ignoreBots) {
+        return false;
+      }
     }
 
     if (ignoreChannels?.length && ignoreChannels.includes(context.channelId)) {
