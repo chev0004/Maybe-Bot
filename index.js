@@ -5,8 +5,11 @@ import { Colors } from "./src/constants/Colors.js";
 import CommandHandler from "./src/handlers/commandHandler.js";
 import InteractionHandler from "./src/handlers/interactionHandler.js";
 import ListenerHandler from "./src/handlers/listenerHandler.js";
-import { clearRestartInfo, getRestartInfo } from "./src/utils/dataManager.js";
-import { loadAndProcessReminders } from "./src/utils/reminderManager.js";
+import {
+  clearRestartInfo,
+  getRestartInfo,
+} from "./src/utils/managers/dataManager.js";
+import { loadAndProcessReminders } from "./src/utils/managers/reminderManager.js";
 
 dotenv.config();
 

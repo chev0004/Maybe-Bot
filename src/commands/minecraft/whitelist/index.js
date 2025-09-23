@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 
 export default createCommand(
   "whitelist",

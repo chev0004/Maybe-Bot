@@ -4,7 +4,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 
 export default createCommand(
   "reply",

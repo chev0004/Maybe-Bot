@@ -1,5 +1,5 @@
-import { createListener } from "../../utils/listenerBuilder.js";
-import { scheduleReminder } from "../../utils/reminderManager.js";
+import { createListener } from "../../utils/builders/listenerBuilder.js";
+import { scheduleReminder } from "../../utils/managers/reminderManager.js";
 
 export default createListener(
   "bumpHandler",

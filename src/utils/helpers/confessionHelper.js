@@ -1,4 +1,4 @@
-import { Colors } from "../constants/Colors.js";
+import { Colors } from "../../constants/Colors.js";
 
 // Mix of random adjectives
 export const ADJECTIVES = [

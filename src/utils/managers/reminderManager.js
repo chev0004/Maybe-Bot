@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { Colors } from "../constants/Colors.js";
+import { Colors } from "../../constants/Colors.js";
 import {
   addReminder,
   getReminders,

@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 
 const isEmoji = (str) => {
   if (str.length > 2) {

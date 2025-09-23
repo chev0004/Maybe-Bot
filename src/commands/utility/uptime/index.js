@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 
 /**
  * Formats milliseconds into a human-readable string (e.g., "1日 3時間 5分 22秒").

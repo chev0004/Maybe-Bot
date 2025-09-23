@@ -7,7 +7,7 @@ import {
   StringSelectMenuBuilder,
 } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 
 export const paginationState = new Map();
 const PAGE_SIZE = 10;

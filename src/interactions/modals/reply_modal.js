@@ -6,14 +6,14 @@ import {
   MessageFlags,
 } from "discord.js";
 import {
+  generateAnonymousId,
+  getRandomColor,
+} from "../../utils/helpers/confessionHelper.js";
+import {
   getConfessionData,
   getNextConfessionId,
   logConfession,
-} from "../../utils/confessionManager.js";
-import {
-  generateAnonymousId,
-  getRandomColor,
-} from "../../utils/confessionUtils.js";
+} from "../../utils/managers/confessionManager.js";
 
 export default {
   customId: "reply_modal",

@@ -2,8 +2,8 @@ import { exec } from "child_process";
 import { EmbedBuilder } from "discord.js";
 import util from "util";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
-import { setRestartInfo } from "../../../utils/dataManager.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
+import { setRestartInfo } from "../../../utils/managers/dataManager.js";
 
 const execPromise = util.promisify(exec);
 const RAW_OUTPUT_MAX_LEN = 450;

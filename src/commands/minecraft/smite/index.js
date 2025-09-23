@@ -1,5 +1,5 @@
-import { handleApprovalProcess } from "../../../utils/approvalProcess.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
+import { handleApprovalProcess } from "../../../utils/helpers/approvalHelper.js";
 
 export default createCommand(
   "smite",

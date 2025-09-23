@@ -1,7 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../constants/Colors.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
-import { setRestartInfo } from "../../../utils/dataManager.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
+import { setRestartInfo } from "../../../utils/managers/dataManager.js";
 
 export default createCommand(
   "restart",

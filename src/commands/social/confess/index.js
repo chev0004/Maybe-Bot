@@ -8,15 +8,15 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from "discord.js";
-import { createCommand } from "../../../utils/commandBuilder.js";
-import {
-  getNextConfessionId,
-  logConfession,
-} from "../../../utils/confessionManager.js";
+import { createCommand } from "../../../utils/builders/commandBuilder.js";
 import {
   generateAnonymousId,
   getRandomColor,
-} from "../../../utils/confessionUtils.js";
+} from "../../../utils/helpers/confessionHelper.js";
+import {
+  getNextConfessionId,
+  logConfession,
+} from "../../../utils/managers/confessionManager.js";
 
 const handleModalSubmit = async (interaction) => {
   const confessionsChannelId = process.env.CONFESSIONS_CHANNEL_ID;

@@ -1,10 +1,10 @@
 import { EmbedBuilder, PermissionsBitField } from "discord.js";
 import { Colors } from "../../constants/Colors.js";
+import { createListener } from "../../utils/builders/listenerBuilder.js";
 import {
   getStickyMessageId,
   setStickyMessageId,
-} from "../../utils/dataManager.js";
-import { createListener } from "../../utils/listenerBuilder.js";
+} from "../../utils/managers/dataManager.js";
 
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
