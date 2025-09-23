@@ -1,0 +1,66 @@
+import { createListener } from "../../utils/builders/listenerBuilder.js";
+import { scheduleReminder } from "../../utils/managers/reminderManager.js";
+
+/**
+ * Recursively checks if a given text exists anywhere in an embed's fields.
+ * @param {object} embed The embed object to check.
+ * @param {string} text The text to search for.
+ * @returns {boolean}
+ */
+const isTextInEmbed = (embed, text) => {
+  if (!embed) return false;
+
+  const searchText = text.toLowerCase();
+
+  if (embed.title?.toLowerCase().includes(searchText)) return true;
+  if (embed.description?.toLowerCase().includes(searchText)) return true;
+  if (embed.footer?.text?.toLowerCase().includes(searchText)) return true;
+
+  if (embed.fields) {
+    for (const field of embed.fields) {
+      if (field.name?.toLowerCase().includes(searchText)) return true;
+      if (field.value?.toLowerCase().includes(searchText)) return true;
+    }
+  }
+
+  return false;
+};
+
+export default createListener(
+  "bumpHandler",
+  "messageUpdate",
+  async (_oldMessage, newMessage, client) => {
+    if (!newMessage.embeds || newMessage.embeds.length === 0) return;
+
+    const embed = newMessage.embeds[0];
+
+    const isDisboardBump =
+      isTextInEmbed(embed, "表示順をアップしたよ") ||
+      isTextInEmbed(embed, "👍");
+
+    const isDissokuBump =
+      isTextInEmbed(embed, "をアップしたよ") || isTextInEmbed(embed, "up!");
+
+    if (!isDisboardBump && !isDissokuBump) return;
+
+    const bumpSource = isDisboardBump ? "Disboard" : "Dissoku";
+
+    const interval = 2 * 60 * 60 * 1000;
+    const triggerAt = Date.now() + interval;
+
+    const reminderDetails = {
+      channelId: process.env.BUMP_CHANNEL_ID,
+      roleId: process.env.BUMP_ROLE_ID,
+      triggerAt: triggerAt,
+      source: bumpSource,
+    };
+
+    await scheduleReminder(reminderDetails, client);
+  },
+  {
+    ignoreBots: false,
+    requiredEnvVars: ["BUMP_CHANNEL_ID", "BUMP_ROLE_ID"],
+    channels: [process.env.BUMP_CHANNEL_ID],
+    users: ["302050872383242240", "761562078095867916"],
+  },
+);
