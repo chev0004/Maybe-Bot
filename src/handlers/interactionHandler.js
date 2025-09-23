@@ -48,7 +48,6 @@ export default class InteractionHandler {
     if (!interaction.isMessageComponent() && !interaction.isModalSubmit())
       return;
 
-    // Find a handler that matches the start of the interaction's customId
     const handler = Array.from(this.interactions.keys()).find((key) =>
       interaction.customId.startsWith(key),
     );
