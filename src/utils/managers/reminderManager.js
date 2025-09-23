@@ -30,10 +30,10 @@ const executeReminder = async (reminder, client) => {
     const title = `${bumpSource}のバンプタイムです！`;
 
     const embedMsg = new EmbedBuilder()
-      .setColor(Colors.green)
+      .setColor(Colors.blue)
       .setTitle(title)
       .setDescription(
-        `2時間経ちました。もう一度${bumpSource}の /bump が出来るようになりました！`,
+        `2時間経ちました。もう一度 **${bumpSource}** の \`\`/bump\`\` が出来るようになりました！`,
       )
       .setTimestamp();
 

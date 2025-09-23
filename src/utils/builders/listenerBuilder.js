@@ -1,5 +1,3 @@
-import { Client } from "discord.js";
-
 /**
  * A custom listener builder with advanced filtering options.
  * @param {string} name The descriptive name for the listener.
@@ -17,21 +15,13 @@ import { Client } from "discord.js";
  * @returns {Object} A listener object compatible with the bot's listener handler.
  */
 export const createListener = (name, event, execute, options = {}) => {
-  const {
-    ignoreBots = true,
-    channels,
-    ignoreChannels,
-    users,
-    ignoreUsers,
-    roles,
-    ignoreRoles,
-    requiredEnvVars,
-  } = options;
+  const { channels, ignoreChannels, users, ignoreUsers, roles, ignoreRoles } =
+    options;
 
   const filterFunction = (...args) => {
-    const context = args[0];
+    const context = event === "messageUpdate" ? args[1] : args[0];
 
-    if (!context || !context.client || (ignoreBots && context.author?.bot)) {
+    if (!context || (options.ignoreBots && context.author?.bot)) {
       return false;
     }
 
@@ -73,8 +63,8 @@ export const createListener = (name, event, execute, options = {}) => {
     name,
     event,
     execute: async (...args) => {
-      if (requiredEnvVars?.length) {
-        const missingVar = requiredEnvVars.find((v) => !process.env[v]);
+      if (options.requiredEnvVars?.length) {
+        const missingVar = options.requiredEnvVars.find((v) => !process.env[v]);
         if (missingVar) {
           console.error(
             `Listener "${name}" is missing required environment variable: ${missingVar}`,
@@ -84,16 +74,7 @@ export const createListener = (name, event, execute, options = {}) => {
       }
 
       if (filterFunction(...args)) {
-        const client = args.find((arg) => arg instanceof Client);
-        const filteredArgs = args.filter(
-          (arg) =>
-            arg !== client &&
-            arg !==
-              args.find(
-                (a) => typeof a === "object" && Object.hasOwn(a, "channels"),
-              ),
-        );
-        await execute(...filteredArgs);
+        await execute(...args);
       }
     },
   };
