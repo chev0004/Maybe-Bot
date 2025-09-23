@@ -8,7 +8,7 @@ export default createCommand(
   async (interaction, _client, options) => {
     const { exarotonClient, SERVER_ID } = options;
 
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
     try {
       const server = exarotonClient.server(SERVER_ID);
       await server.get();

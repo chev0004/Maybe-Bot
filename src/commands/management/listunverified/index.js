@@ -16,7 +16,7 @@ export default createCommand(
   "listunverified",
   "認証ロールを持たないメンバーをリスト表示します。Lists members without the verified role.",
   async (interaction) => {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const guild = interaction.guild;

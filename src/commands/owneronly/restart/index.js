@@ -7,7 +7,7 @@ export default createCommand(
   "restart",
   "BOTを再起動します。Restarts the bot.",
   async (interaction) => {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const embed = new EmbedBuilder()
       .setTitle("BOTの再起動")

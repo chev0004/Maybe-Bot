@@ -6,7 +6,7 @@ export const handleApprovalProcess = async (
   successCallback,
   failureMessage,
 ) => {
-  await interaction.deferReply({ ephemeral: false });
+  await interaction.deferReply();
   try {
     const pollMessage = await interaction.editReply(
       `${actionMessage}には${requiredApprovals}つの承認が必要です。\n✅を押して承認してください。\nWe need ${requiredApprovals} ${requiredApprovals === 1 ? "approval" : "approvals"} to ${actionMessageEN}.\nReact with ✅ to approve.`,

@@ -6,7 +6,7 @@ export default createCommand(
   "whitelist",
   "マイクラサーバーのホワイトリストにユーザーを追加する。Adds a user to the Minecraft server whitelist.",
   async (interaction, _client, options) => {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const { exarotonClient, SERVER_ID } = options;
     const originalUsername = interaction.options.getString("username");

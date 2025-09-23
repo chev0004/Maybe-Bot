@@ -63,7 +63,7 @@ export default createCommand(
     const isTestMode = interaction.options.getBoolean("test") ?? false;
 
     if (isTestMode) {
-      await interaction.deferReply({ ephemeral: false });
+      await interaction.deferReply();
 
       const embed = new EmbedBuilder()
         .setTitle("BOTの更新 (テストモード)")
@@ -117,7 +117,7 @@ export default createCommand(
       return;
     }
 
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const embed = new EmbedBuilder()
       .setTitle("BOTの更新")
