@@ -1,9 +1,6 @@
 import { createListener } from "../../utils/listenerBuilder.js";
 import { scheduleReminder } from "../../utils/reminderManager.js";
 
-const bumpChannelId = process.env.BUMP_CHANNEL_ID;
-const pingRoleId = process.env.BUMP_ROLE_ID;
-
 export default createListener(
   "bumpHandler",
   "messageCreate",
@@ -24,15 +21,16 @@ export default createListener(
     const triggerAt = Date.now() + twoHoursInMillis;
 
     const reminderDetails = {
-      channelId: bumpChannelId,
-      roleId: pingRoleId,
+      channelId: process.env.BUMP_CHANNEL_ID,
+      roleId: process.env.BUMP_ROLE_ID,
       triggerAt: triggerAt,
     };
 
     await scheduleReminder(reminderDetails, client);
   },
   {
-    channels: [bumpChannelId],
+    requiredEnvVars: ["BUMP_CHANNEL_ID", "BUMP_ROLE_ID"],
+    channels: [process.env.BUMP_CHANNEL_ID],
     users: ["302050872383242240", "761562078095867916"],
   },
 );

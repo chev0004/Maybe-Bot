@@ -13,6 +13,7 @@ import { Client } from "discord.js";
  * @param {string[]} [options.ignoreUsers] An array of user IDs where the listener should be ignored.
  * @param {string[]} [options.roles] An array of role IDs where the listener should be active.
  * @param {string[]} [options.ignoreRoles] An array of role IDs where the listener should be ignored.
+ * @param {string[]} [options.requiredEnvVars] An array of environment variable names required for the listener to run.
  * @returns {Object} A listener object compatible with the bot's listener handler.
  */
 export const createListener = (name, event, execute, options = {}) => {
@@ -24,6 +25,7 @@ export const createListener = (name, event, execute, options = {}) => {
     ignoreUsers,
     roles,
     ignoreRoles,
+    requiredEnvVars,
   } = options;
 
   const filterFunction = (...args) => {
@@ -71,6 +73,16 @@ export const createListener = (name, event, execute, options = {}) => {
     name,
     event,
     execute: async (...args) => {
+      if (requiredEnvVars?.length) {
+        const missingVar = requiredEnvVars.find((v) => !process.env[v]);
+        if (missingVar) {
+          console.error(
+            `Listener "${name}" is missing required environment variable: ${missingVar}`,
+          );
+          return;
+        }
+      }
+
       if (filterFunction(...args)) {
         const client = args.find((arg) => arg instanceof Client);
         const filteredArgs = args.filter(

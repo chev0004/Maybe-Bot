@@ -23,8 +23,6 @@ export default createListener(
   "voiceStateUpdate",
   async (oldState, newState) => {
     const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
-    if (!logChannelId) return;
-
     const logChannel = await newState.client.channels
       .fetch(logChannelId)
       .catch(() => null);
@@ -118,5 +116,8 @@ export default createListener(
 
       logChannel.send({ embeds: [embed] });
     }
+  },
+  {
+    requiredEnvVars: ["VOICE_LOG_CHANNEL_ID"],
   },
 );

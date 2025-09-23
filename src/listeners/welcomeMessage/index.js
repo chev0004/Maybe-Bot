@@ -12,9 +12,6 @@ const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
 
 const userSubmissionAttempts = new Map();
 
-const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
-const WELCOME_ROLE_ID = process.env.VERIFIED_ROLE_ID;
-
 const CORRECT_TEMPLATE_HEADERS = [
   "【名前/Name】",
   "【出身/Country】",
@@ -162,14 +159,15 @@ export default createListener(
     const validationResult = validateWelcomeMessage(message.content);
 
     if (validationResult.isValid) {
-      if (WELCOME_ROLE_ID) {
-        const roleToAssign = guild.roles.cache.get(WELCOME_ROLE_ID);
+      const welcomeRoleId = process.env.VERIFIED_ROLE_ID;
+      if (welcomeRoleId) {
+        const roleToAssign = guild.roles.cache.get(welcomeRoleId);
         if (!roleToAssign) {
           console.error(
-            `welcomeMessage listener: Welcome role (ID: ${WELCOME_ROLE_ID}) not found in guild ${guild.id}.`,
+            `welcomeMessage listener: Welcome role (ID: ${welcomeRoleId}) not found in guild ${guild.id}.`,
           );
         } else {
-          if (!member.roles.cache.has(WELCOME_ROLE_ID)) {
+          if (!member.roles.cache.has(welcomeRoleId)) {
             if (
               !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
             ) {
@@ -385,5 +383,8 @@ export default createListener(
       }
     }
   },
-  { channels: [WELCOME_CHANNEL_ID] },
+  {
+    requiredEnvVars: ["WELCOME_CHANNEL_ID", "VERIFIED_ROLE_ID"],
+    channels: [process.env.WELCOME_CHANNEL_ID],
+  },
 );
