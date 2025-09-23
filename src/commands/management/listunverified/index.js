@@ -93,7 +93,7 @@ const sortFunctions = {
 
 export default createChatCommand(
   "listunverified",
-  "認証ロールを持たないメンバーをリスト表示します。(Lists members without the verified role.)",
+  "認証ロールを持たないメンバーをリスト表示します。Lists members without the verified role.",
   async (interaction) => {
     await interaction.deferReply({ ephemeral: false });
 

@@ -21,11 +21,11 @@ const formatDuration = (milliseconds) => {
 export default createListener(
   "voiceChannelLogger",
   "voiceStateUpdate",
-  async (oldState, newState, client) => {
+  async (oldState, newState) => {
     const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
     if (!logChannelId) return;
 
-    const logChannel = await client.channels
+    const logChannel = await newState.client.channels
       .fetch(logChannelId)
       .catch(() => null);
     if (!logChannel) return;

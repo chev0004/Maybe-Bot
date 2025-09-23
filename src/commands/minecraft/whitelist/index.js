@@ -4,7 +4,7 @@ import { createChatCommand } from "../../../utils/commandBuilder.js";
 
 export default createChatCommand(
   "whitelist",
-  "マイクラサーバーのホワイトリストにユーザーを追加する。(Adds a user to the Minecraft server whitelist.)",
+  "マイクラサーバーのホワイトリストにユーザーを追加する。Adds a user to the Minecraft server whitelist.",
   async (interaction, _client, options) => {
     await interaction.deferReply({ ephemeral: false });
 
@@ -126,7 +126,7 @@ export default createChatCommand(
           option
             .setName("username")
             .setDescription(
-              "ホワイトリストに追加するユーザー名。(The username to add to the whitelist.)",
+              "ホワイトリストに追加するユーザー名。The username to add to the whitelist.",
             )
             .setRequired(true),
         )
@@ -134,7 +134,7 @@ export default createChatCommand(
           option
             .setName("bedrock")
             .setDescription(
-              "統合版ユーザーの場合はtrueを選択。(Set to true if the user is a Bedrock player.)",
+              "統合版ユーザーの場合はtrueを選択。Set to true if the user is a Bedrock player.",
             )
             .setRequired(false),
         )

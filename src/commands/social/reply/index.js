@@ -8,7 +8,7 @@ import { createChatCommand } from "../../../utils/commandBuilder.js";
 
 export default createChatCommand(
   "reply",
-  "特定の投稿に匿名で返信する。(Reply anonymously to a specific confession.)",
+  "特定の投稿に匿名で返信する。Reply anonymously to a specific confession.",
   async (interaction) => {
     const targetId = interaction.options.getInteger("id");
 
@@ -37,7 +37,7 @@ export default createChatCommand(
         option
           .setName("id")
           .setDescription(
-            "返信したい投稿の番号。(The # of the confession to reply to.)",
+            "返信したい投稿の番号。The # of the confession to reply to.",
           )
           .setRequired(true)
           .setMinValue(1),

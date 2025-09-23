@@ -58,7 +58,7 @@ const colorizeGitOutput = (text, branchToHighlight) => {
 
 export default createChatCommand(
   "update",
-  "GitHubから最新のコミットを取得し、BOTを再起動する。(Pulls the latest changes from GitHub and restarts the bot.)",
+  "GitHubから最新のコミットを取得し、BOTを再起動する。Pulls the latest changes from GitHub and restarts the bot.",
   async (interaction) => {
     const isTestMode = interaction.options.getBoolean("test") ?? false;
 
@@ -300,7 +300,7 @@ export default createChatCommand(
           option
             .setName("test")
             .setDescription(
-              "テストモードで実行し、実際の更新や再起動は行いません。(Run in test mode without actual update/restart.)",
+              "テストモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
             )
             .setRequired(false),
         )

@@ -5,7 +5,7 @@ import { setRestartInfo } from "../../../utils/dataManager.js";
 
 export default createChatCommand(
   "restart",
-  "BOTを再起動します。(Restarts the bot.)",
+  "BOTを再起動します。Restarts the bot.",
   async (interaction) => {
     await interaction.deferReply({ ephemeral: false });
 

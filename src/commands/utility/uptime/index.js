@@ -33,7 +33,7 @@ const formatUptime = (milliseconds) => {
 
 export default createChatCommand(
   "uptime",
-  "BOTの稼働時間を表示します。(Displays the bot's uptime.)",
+  "BOTの稼働時間を表示します。Displays the bot's uptime.",
   async (interaction, client) => {
     if (!client.readyAt) {
       await interaction.reply({
