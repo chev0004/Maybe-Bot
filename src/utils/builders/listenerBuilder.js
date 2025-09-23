@@ -15,13 +15,20 @@
  * @returns {Object} A listener object compatible with the bot's listener handler.
  */
 export const createListener = (name, event, execute, options = {}) => {
-  const { channels, ignoreChannels, users, ignoreUsers, roles, ignoreRoles } =
-    options;
+  const {
+    channels,
+    ignoreChannels,
+    ignoreBots = true,
+    users,
+    ignoreUsers,
+    roles,
+    ignoreRoles,
+  } = options;
 
   const filterFunction = (...args) => {
     const context = event === "messageUpdate" ? args[1] : args[0];
 
-    if (!context || (options.ignoreBots && context.author?.bot)) {
+    if (!context || (ignoreBots && context.author?.bot)) {
       return false;
     }
 

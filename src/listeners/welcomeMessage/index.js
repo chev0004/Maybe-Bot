@@ -384,6 +384,7 @@ export default createListener(
     }
   },
   {
+    ignoreBots: false,
     requiredEnvVars: ["WELCOME_CHANNEL_ID", "VERIFIED_ROLE_ID"],
     channels: [process.env.WELCOME_CHANNEL_ID],
   },
