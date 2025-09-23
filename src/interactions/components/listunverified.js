@@ -1,98 +1,12 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder,
-  MessageFlags,
-  StringSelectMenuBuilder,
-} from "discord.js";
+import { MessageFlags } from "discord.js";
 import { paginationState } from "../../commands/management/listunverified/index.js";
-import { Colors } from "../../constants/Colors.js";
+import { generatePage } from "../../utils/helpers/listUnverifiedHelper.js";
 
 const PAGE_SIZE = 10;
 const sortFunctions = {
   username: (a, b) => a.user.username.localeCompare(b.user.username),
   joinedAt: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
   createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
-};
-
-const generatePage = (
-  memberArray,
-  sortCriteria,
-  sortOrder,
-  currentPage,
-  totalPages,
-) => {
-  const start = currentPage * PAGE_SIZE;
-  const end = Math.min(start + PAGE_SIZE, memberArray.length);
-  const currentItems = memberArray.slice(start, end);
-  const listContent =
-    currentItems
-      .map(
-        (member) =>
-          `**${member.user.username}** (${member.id}) - <@${member.id}>`,
-      )
-      .join("\n") || "このページにメンバーはいません。";
-
-  const title = `未認証メンバー (${memberArray.length}人)`;
-  const sortLabel = sortOrder === "asc" ? "昇順 ▲" : "降順 ▼";
-  const criteriaLabel =
-    {
-      username: "名前",
-      joinedAt: "参加日",
-      createdAt: "作成日",
-    }[sortCriteria] || "名前";
-
-  const embed = new EmbedBuilder()
-    .setTitle(title)
-    .setDescription(
-      `認証ロールを持っていないメンバーの一覧です。\nリストは**${criteriaLabel}**で**${sortLabel}**に並べ替えられています。\nList of members without the verified role, sorted by **${criteriaLabel}** in **${sortOrder}** order.`,
-    )
-    .setColor(Colors.yellow)
-    .addFields({ name: "メンバーリスト", value: listContent })
-    .setFooter({ text: `ページ ${currentPage + 1} / ${totalPages}` });
-
-  const buttonRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("listunverified_prev")
-      .setLabel("◀")
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(currentPage === 0),
-    new ButtonBuilder()
-      .setCustomId("listunverified_sort")
-      .setLabel(sortOrder === "asc" ? "昇順 ▲" : "降順 ▼")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId("listunverified_next")
-      .setLabel("▶")
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(currentPage >= totalPages - 1),
-  );
-
-  const selectMenuRow = new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId("listunverified_select_sort")
-      .setPlaceholder("並べ替えの基準を選択")
-      .addOptions(
-        {
-          label: "名前 (Username)",
-          value: "username",
-          default: sortCriteria === "username",
-        },
-        {
-          label: "参加日 (Join Date)",
-          value: "joinedAt",
-          default: sortCriteria === "joinedAt",
-        },
-        {
-          label: "作成日 (Account Date)",
-          value: "createdAt",
-          default: sortCriteria === "createdAt",
-        },
-      ),
-  );
-
-  return { embeds: [embed], components: [selectMenuRow, buttonRow] };
 };
 
 export default {
