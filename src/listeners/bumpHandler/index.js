@@ -19,16 +19,19 @@ export default createListener(
 
     const twoHoursInMillis = 2 * 60 * 60 * 1000;
     const triggerAt = Date.now() + twoHoursInMillis;
+    const bumpSource = isDisboardBump ? "Disboard" : "Dissoku";
 
     const reminderDetails = {
       channelId: process.env.BUMP_CHANNEL_ID,
       roleId: process.env.BUMP_ROLE_ID,
       triggerAt: triggerAt,
+      source: bumpSource,
     };
 
     await scheduleReminder(reminderDetails, client);
   },
   {
+    ignoreBots: false,
     requiredEnvVars: ["BUMP_CHANNEL_ID", "BUMP_ROLE_ID"],
     channels: [process.env.BUMP_CHANNEL_ID],
     users: ["302050872383242240", "761562078095867916"],

@@ -26,11 +26,14 @@ const executeReminder = async (reminder, client) => {
       return;
     }
 
+    const bumpSource = reminder.source;
+    const title = `${bumpSource}のバンプタイムです！`;
+
     const embedMsg = new EmbedBuilder()
       .setColor(Colors.green)
-      .setTitle("バンプタイムです！")
+      .setTitle(title)
       .setDescription(
-        "2時間経ちました。もう一度 /bump が出来るようになりました！",
+        `2時間経ちました。もう一度${bumpSource}の /bump が出来るようになりました！`,
       )
       .setTimestamp();
 
@@ -38,7 +41,9 @@ const executeReminder = async (reminder, client) => {
       content: `<@&${reminder.roleId}>`,
       embeds: [embedMsg],
     });
-    console.log(`Sent bump reminder to channel ${reminder.channelId}.`);
+    console.log(
+      `Sent ${bumpSource} reminder to channel ${reminder.channelId}.`,
+    );
   } catch (error) {
     console.error("Failed to execute reminder:", error);
   } finally {
