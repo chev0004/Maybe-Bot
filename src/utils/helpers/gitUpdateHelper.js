@@ -1,7 +1,6 @@
 import { setColor } from "./ansiColorHelper.js";
 
-const summaryRegex =
-  /(\d+ files? changed)(?:, (\d+ insertions?\(\+\)))?(?:, (\d+ deletions?\(-\))?)?/;
+const summaryLineRegex = /(\d+ files? changed.*)/;
 const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
 const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
 
@@ -21,7 +20,6 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     })
     .join("\n");
 
-  // Hard coded just in case
   let repoUrl = "https://github.com/chev0004/Maybe-Bot";
   let branchName = "develop";
 
@@ -57,11 +55,16 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     }
   }
 
-  const summaryMatch = gitStdout.match(summaryRegex);
+  const summaryMatch = gitStdout.match(summaryLineRegex);
   if (summaryMatch) {
-    const summaryText = summaryMatch[1];
-    const insertions = summaryMatch[2] || "0";
-    const deletions = summaryMatch[3] || "0";
+    const summaryLine = summaryMatch[1];
+    const insertionsMatch = summaryLine.match(/(\d+) insertions?\(\+\)/);
+    const deletionsMatch = summaryLine.match(/(\d+) deletions?\(-\)/);
+
+    const insertions = insertionsMatch ? insertionsMatch[1] : "0";
+    const deletions = deletionsMatch ? deletionsMatch[1] : "0";
+
+    const summaryText = summaryLine.split(",")[0];
 
     const coloredSummary = `${summaryText}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
 
