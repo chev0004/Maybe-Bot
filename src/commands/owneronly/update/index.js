@@ -1,60 +1,13 @@
 import { exec } from "child_process";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import util from "util";
 import { Colors } from "../../../constants/Colors.js";
 import { createCommand } from "../../../utils/builders/commandBuilder.js";
+import { parseGitUpdateOutput } from "../../../utils/helpers/gitUpdateHelper.js";
 import { setRestartInfo } from "../../../utils/managers/dataManager.js";
 
 const execPromise = util.promisify(exec);
-const RAW_OUTPUT_MAX_LEN = 450;
-const COMMIT_LOG_MAX_LEN = 950;
 const PULLED_BRANCH = "develop";
-
-const colorizeGitOutput = (text, branchToHighlight) => {
-  if (!text) return "";
-  let coloredText = text;
-
-  const branchPattern = branchToHighlight
-    ? branchToHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    : null;
-
-  coloredText = coloredText.replace(
-    /^((?:[^|\n])+?\s*\|\s*\d+\s*)[+-]+$/gm,
-    "$1",
-  );
-
-  coloredText = coloredText.replace(
-    /^(\s*\*\s*branch\s+)([a-zA-Z0-9_\-/]+)((?:\s*->\s*.+)?|\s*\(.+\)|\s+[0-9a-fA-F]{7,}\s+.+)?/gm,
-    (_, p1, p2, p3) => {
-      const refinedP1 = p1.replace(/\s+$/, " ");
-      const refinedP3 = p3 ? p3.replace(/^\s+/, " ").replace(/\s+$/, "") : "";
-      return `${refinedP1}\u001b[2;34m${p2}\u001b[0m${refinedP3 || ""}`;
-    },
-  );
-
-  coloredText = coloredText.replace(
-    /(\d+)\s+insertions?\(\+\)/g,
-    "\u001b[2;36m+\u001b[0m" + "\u001b[2;36m$1\u001b[0m",
-  );
-
-  coloredText = coloredText.replace(
-    /(\d+)\s+deletions?\(-\)/g,
-    "\u001b[2;31m-\u001b[0m" + "\u001b[2;31m$1\u001b[0m",
-  );
-
-  if (branchPattern) {
-    coloredText = coloredText.replace(
-      new RegExp(`(\\b${branchPattern}\\b)(\\s*->)`, "g"),
-      `\u001b[2;34m$1\u001b[0m ->`,
-    );
-    coloredText = coloredText.replace(
-      new RegExp(`([a-zA-Z0-9_\\-\\/]+\\/)(${branchPattern})(\\b|$)`, "gm"),
-      `$1\u001b[2;34m$2\u001b[0m$3`,
-    );
-  }
-
-  return coloredText;
-};
 
 export default createCommand(
   "update",
@@ -62,51 +15,80 @@ export default createCommand(
   async (interaction) => {
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const isForceMode = interaction.options.getBoolean("force") ?? false;
+    const testScenario = interaction.options.getString("test_scenario");
 
     if (isTestMode) {
-      await interaction.deferReply();
+      await interaction.deferReply({ Flags: MessageFlags.Ephemeral });
+
+      let fakeCommitLog, fakePullStdout, fakeFetchStderr, fakeNpmOutput;
+      let needsNpmInstall = false;
+      let npmFieldName = "NPM Install (Simulated)";
+
+      switch (testScenario) {
+        case "rename":
+          fakeCommitLog = "1ecc43f - refactor: rename folder";
+          fakePullStdout = `Updating 442cd19..1ecc43f\nFast-forward\n src/commands/{confessions => social}/confess/index.js | 0\n 2 files changed, 0 insertions(+), 0 deletions(-)\n rename src/commands/{confessions => social}/confess/index.js (100%)`;
+          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   442cd19..1ecc43f  develop    -> origin/develop`;
+          break;
+        case "npm":
+          fakeCommitLog = "a1b2c3d - feat: add new dependency";
+          fakePullStdout = `Updating 1ecc43f..a1b2c3d\nFast-forward\n package.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)`;
+          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   1ecc43f..a1b2c3d  develop    -> origin/develop`;
+          needsNpmInstall = true;
+          npmFieldName = "依存関係 / Dependencies (Simulated)";
+          fakeNpmOutput = [
+            "+ some-new-package@1.2.3",
+            "+ another-dependency@4.5.6",
+            "",
+            "Added 2 packages, audited 153 packages in 4.2s",
+            "Found 3 low severity vulnerabilities",
+          ].join("\n");
+          break;
+        default:
+          fakeCommitLog = "442cd19 - test: see git output";
+          fakePullStdout = `Updating 2c3c50f..442cd19\nFast-forward\n src/commands/owneronly/update/index.js | 1 +\n 1 file changed, 1 insertion(+)`;
+          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   2c3c50f..442cd19  develop    -> origin/develop`;
+          break;
+      }
+
+      const { changes, files, repo } = parseGitUpdateOutput(
+        fakeCommitLog,
+        fakePullStdout,
+        fakeFetchStderr,
+      );
 
       const embed = new EmbedBuilder()
-        .setTitle(`BOTの更新 (${isForceMode ? "FORCE" : "TEST"})`)
+        .setTitle(`BOTの更新 (TEST${isForceMode ? " / FORCE" : ""})`)
         .setColor(Colors.yellow)
-        .setDescription(`テスト用のGitプルシミュレーション中...`)
-        .setFooter({
-          text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。",
-        });
-
-      await interaction.editReply({ embeds: [embed] });
-
-      const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
-      const fakeGitStdout = isForceMode
-        ? `HEAD is now at def5678 fix: Correctly handle API rate limits`
-        : `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
-      const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
-
-      embed
-        .addFields(
+        .setDescription(
+          "これはテスト実行です。BOTは実際の更新や再起動を行いません。",
+        )
+        .setFields(
           {
-            name: "更新内容 / Changes (Simulated)",
-            value: `\`\`\`\n${fakeCommitLog}\n\`\`\``,
+            name: "更新内容 / Changes",
+            value: `\`\`\`ansi\n${changes}\n\`\`\``,
           },
           {
-            name: `Git Output (Simulated ${isForceMode ? "reset" : "pull"})`,
-            value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``,
+            name: "更新ファイル / Files Changed",
+            value: `\`\`\`ansi\n${files}\n\`\`\``,
           },
           {
-            name: "Git Output (Simulated stderr)",
-            value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``,
-          },
-          {
-            name: "NPM Install (Simulated)",
-            value:
-              "```\nDependencies in package.json changed. `npm install` would run here.\n```",
+            name: "リポジトリ / Repository",
+            value: `\`\`\`ansi\n${repo}\n\`\`\``,
           },
         )
-        .setColor(Colors.green)
-        .setDescription("テスト用のGitプルシミュレーション完了。");
+        .setFooter({
+          text: `BOTは再起動しません • ${new Date().toLocaleDateString("ja-JP")}`,
+        });
 
-      await interaction.editReply({ embeds: [embed] });
-      return;
+      if (needsNpmInstall) {
+        embed.addFields({
+          name: npmFieldName,
+          value: `\`\`\`\n${fakeNpmOutput}\n\`\`\``,
+        });
+      }
+
+      return await interaction.editReply({ embeds: [embed] });
     }
 
     await interaction.deferReply();
@@ -115,164 +97,105 @@ export default createCommand(
       .setTitle(`BOTの更新${isForceMode ? " (FORCE)" : ""}`)
       .setColor(Colors.yellow)
       .setDescription(`最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`);
-
     await interaction.editReply({ embeds: [embed] });
 
     try {
-      await execPromise("git fetch origin");
+      const { stderr: fetchStderr } = await execPromise("git fetch origin");
+
+      const { stdout: commitLog } = await execPromise(
+        `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
+      );
 
       const { stdout: packageJsonDiff } = await execPromise(
         `git diff HEAD..origin/${PULLED_BRANCH} -- package.json`,
       );
       const needsNpmInstall = packageJsonDiff.length > 0;
 
-      const { stdout: commitLog } = await execPromise(
-        `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
-      );
-
-      if (!commitLog && !needsNpmInstall && !isForceMode) {
+      if (!commitLog && !needsNpmInstall) {
         embed
           .setColor(Colors.purple)
           .setDescription(
             `BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`,
-          )
-          .setFooter({ text: "変更はありません。BOTは再起動しません。" });
-        await interaction.editReply({ embeds: [embed] });
-        return;
-      }
-
-      if (commitLog) {
-        let formattedCommits = commitLog;
-        const commitLines = commitLog.split("\n");
-        if (commitLog.length > COMMIT_LOG_MAX_LEN) {
-          let currentLength = 0;
-          const visibleLines = [];
-          for (const line of commitLines) {
-            if (currentLength + line.length + 1 > COMMIT_LOG_MAX_LEN) break;
-            visibleLines.push(line);
-            currentLength += line.length + 1;
-          }
-          formattedCommits = visibleLines.join("\n");
-          const remaining = commitLines.length - visibleLines.length;
-          if (remaining > 0) {
-            formattedCommits += `\n...他 ${remaining} 件のコミット (...and ${remaining} more commits)`;
-          }
-        }
-        embed.addFields({
-          name: "更新内容 / Changes",
-          value: `\`\`\`\n${formattedCommits}\n\`\`\``,
-        });
-      } else if (needsNpmInstall) {
-        embed.addFields({
-          name: "更新内容 / Changes",
-          value:
-            "```\npackage.json の依存関係が変更されました。\nDependencies in package.json have been changed.\n```",
-        });
-      }
-
-      embed.setDescription(
-        `更新を適用中... (${PULLED_BRANCH} ブランチ)${isForceMode ? "\n**強制モードが有効です。ローカルの変更は上書きされます。**" : ""}`,
-      );
-      await interaction.editReply({ embeds: [embed] });
-
-      const fields = [];
-
-      if (isForceMode) {
-        try {
-          const { stderr: dryRunStderr } = await execPromise(
-            `git pull --dry-run origin ${PULLED_BRANCH}`,
           );
-          if (dryRunStderr) {
-            fields.push({
-              name: "Git Summary (from dry-run)",
-              value: `\`\`\`ansi\n${colorizeGitOutput(dryRunStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-              inline: false,
-            });
-          }
-        } catch (dryRunError) {
-          if (dryRunError.stderr) {
-            fields.push({
-              name: "Git Summary (from dry-run)",
-              value: `\`\`\`ansi\n${colorizeGitOutput(dryRunError.stderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-              inline: false,
-            });
-          }
-        }
+        return await interaction.editReply({ embeds: [embed] });
       }
 
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
-      const { stdout: gitStdout, stderr: gitStderr } =
-        await execPromise(pullCommand);
 
-      if (gitStdout) {
-        fields.push({
-          name: `Git Output (${isForceMode ? "reset" : "pull"} stdout)`,
-          value: `\`\`\`ansi\n${colorizeGitOutput(gitStdout.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-          inline: false,
-        });
-      }
-      if (gitStderr && !isForceMode) {
-        fields.push({
-          name: "Git Output (stderr)",
-          value: `\`\`\`ansi\n${colorizeGitOutput(gitStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
-          inline: false,
-        });
-      }
+      const { stdout: pullStdout } = await execPromise(pullCommand);
 
-      if (fields.length > 0) {
-        embed.addFields(...fields);
-      }
+      const { changes, files, repo } = parseGitUpdateOutput(
+        commitLog,
+        pullStdout,
+        fetchStderr,
+      );
+
+      embed
+        .setColor(Colors.green)
+        .setDescription("正常に更新されました。")
+        .setFields(
+          {
+            name: "更新内容 / Changes",
+            value: `\`\`\`ansi\n${changes}\n\`\`\``,
+          },
+          {
+            name: "更新ファイル / Files Changed",
+            value: `\`\`\`ansi\n${files}\n\`\`\``,
+          },
+          {
+            name: "リポジトリ / Repository",
+            value: `\`\`\`ansi\n${repo}\n\`\`\``,
+          },
+        );
 
       if (needsNpmInstall) {
-        embed.setDescription("更新を適用しました。依存関係をインストール中...");
+        embed.addFields({
+          name: "依存関係 / Dependencies",
+          value: "依存関係をインストール中...",
+        });
         await interaction.editReply({ embeds: [embed] });
 
         try {
           const { stdout: npmStdout } = await execPromise("npm install");
-          embed.addFields({
-            name: "NPM Install Output",
-            value: `\`\`\`\n${npmStdout.substring(0, RAW_OUTPUT_MAX_LEN)}\n\`\`\``,
-            inline: false,
+
+          const addedMatch = npmStdout.match(/added (\d+ packages?)/);
+          const auditMatch = npmStdout.match(/audited (\d+ packages?)/);
+          const timeMatch = npmStdout.match(/in (\d+s|\d+\.\d+s)/);
+          const vulnerabilityMatch = npmStdout.match(
+            /(\d+)\s+(low|moderate|high|critical)\s+severity vulnerabilities/,
+          );
+
+          const summaryLines = [];
+          if (addedMatch) summaryLines.push(`- Added: ${addedMatch[1]}`);
+          if (auditMatch) summaryLines.push(`- Audited: ${auditMatch[1]}`);
+          if (timeMatch) summaryLines.push(`- Time: ${timeMatch[1]}`);
+          if (vulnerabilityMatch)
+            summaryLines.push(`- Vulnerabilities: ${vulnerabilityMatch[0]}`);
+
+          embed.spliceFields(-1, 1, {
+            name: "依存関係 / Dependencies",
+            value: `\`\`\`\n${summaryLines.join("\n")}\n\`\`\``,
           });
         } catch (npmError) {
           console.error("Error during npm install:", npmError);
           embed
             .setColor(Colors.red)
-            .setDescription("依存関係のインストール中にエラーが発生しました。")
-            .setFooter({
-              text: "BOTの更新に失敗しました。再起動を中止します。",
+            .setDescription(
+              "依存関係のインストール中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。",
+            )
+            .spliceFields(-1, 1, {
+              name: "NPM Install Error",
+              value: `\`\`\`\n${npmError.stderr || npmError.stdout || npmError.message}\n\`\`\``,
             });
-
-          const errorFields = [];
-          if (npmError.stdout) {
-            errorFields.push({
-              name: "NPM Error Output (stdout)",
-              value: `\`\`\`\n${npmError.stdout.substring(0, 1000)}\n\`\`\``,
-            });
-          }
-          if (npmError.stderr) {
-            errorFields.push({
-              name: "NPM Error Output (stderr)",
-              value: `\`\`\`\n${npmError.stderr.substring(0, 1000)}\n\`\`\``,
-            });
-          }
-          embed.spliceFields(
-            embed.data.fields.length - fields.length,
-            fields.length,
-          );
-          embed.addFields(...fields, ...errorFields);
-
-          await interaction.editReply({ embeds: [embed] });
-          return;
+          return await interaction.editReply({ embeds: [embed] });
         }
       }
 
-      embed
-        .setColor(Colors.green)
-        .setDescription(`正常に更新されました。`)
-        .setFooter({ text: "BOTが再起動中..." });
+      embed.setFooter({
+        text: `BOTが再起動中... • ${new Date().toLocaleDateString("ja-JP")}`,
+      });
       await interaction.editReply({ embeds: [embed] });
 
       const restartInfo = {
@@ -281,12 +204,9 @@ export default createCommand(
         timestamp: Date.now(),
       };
       await setRestartInfo(restartInfo);
-      console.log(`Restart info saved after /update command.`);
 
       setTimeout(() => {
-        console.log(
-          `Bot restarting due to /update command (${PULLED_BRANCH} branch)...`,
-        );
+        console.log(`Bot restarting due to /update command...`);
         process.exit(0);
       }, 3000);
     } catch (error) {
@@ -294,22 +214,10 @@ export default createCommand(
       embed
         .setColor(Colors.red)
         .setDescription("更新プロセス中にエラーが発生しました。")
-        .setFooter({ text: "BOTの更新に失敗しました。" });
-
-      const errorFields = [];
-      if (error.stdout) {
-        errorFields.push({
-          name: "Error Output (stdout)",
-          value: `\`\`\`\n${error.stdout.substring(0, 1000)}\n\`\`\``,
+        .setFields({
+          name: "Error",
+          value: `\`\`\`\n${error.stderr || error.message}\n\`\`\``,
         });
-      }
-      if (error.stderr) {
-        errorFields.push({
-          name: "Error Output (stderr)",
-          value: `\`\`\`\n${error.stderr.substring(0, 1000)}\n\`\`\``,
-        });
-      }
-      embed.setFields(errorFields);
 
       await interaction.editReply({ embeds: [embed] }).catch(console.error);
     }
@@ -322,17 +230,28 @@ export default createCommand(
           option
             .setName("test")
             .setDescription(
-              "TESTモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
+              "TESTモードで実行し、実際の更新や再起動は行いません。",
             )
             .setRequired(false),
         )
         .addBooleanOption((option) =>
           option
             .setName("force")
-            .setDescription(
-              "ローカルの変更をブランチの最新の状態で強制的に上書きします。Force overwrite local changes with the latest from the branch.",
-            )
+            .setDescription("ローカルの変更を強制的に上書きします。")
             .setRequired(false),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("test_scenario")
+            .setDescription(
+              "testモードでシミュレーションするシナリオを選択します。",
+            )
+            .setRequired(false)
+            .addChoices(
+              { name: "Normal Update", value: "normal" },
+              { name: "Rename Update", value: "rename" },
+              { name: "NPM Install Update", value: "npm" },
+            ),
         ),
   },
 );
