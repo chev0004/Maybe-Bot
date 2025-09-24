@@ -21,7 +21,6 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     })
     .join("\n");
 
-  // Hard codeed just in case
   let repoUrl = "https://github.com/chev0004/Maybe-Bot";
   let branchName = "develop";
 
@@ -57,7 +56,6 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     }
   }
 
-  let files = "No file changes detected.";
   const summaryMatch = gitStdout.match(summaryRegex);
   if (summaryMatch) {
     const insertions = summaryMatch[2] ? summaryMatch[2].match(/\d+/)[0] : "0";
@@ -66,12 +64,11 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     const summaryText = summaryMatch[1].split(",")[0];
     const coloredSummary = `${summaryText}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
 
-    if (formattedFileLines.length > 0) {
-      files = `${formattedFileLines.join("\n")}\n${coloredSummary}`;
-    } else {
-      files = coloredSummary;
-    }
-  } else if (formattedFileLines.length > 0) {
+    formattedFileLines.push(coloredSummary);
+  }
+
+  let files = "No file changes detected.";
+  if (formattedFileLines.length > 0) {
     files = formattedFileLines.join("\n");
   }
 
