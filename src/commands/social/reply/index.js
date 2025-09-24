@@ -31,7 +31,6 @@ export default createCommand(
   },
   {
     allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID],
-    requiredEnvVars: ["CONFESSIONS_CHANNEL_ID"],
     setup: (builder) =>
       builder.addIntegerOption((option) =>
         option

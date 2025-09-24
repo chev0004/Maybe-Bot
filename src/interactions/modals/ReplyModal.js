@@ -104,5 +104,4 @@ export default {
     }
   },
   allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID],
-  requiredEnvVars: ["CONFESSIONS_CHANNEL_ID"],
 };

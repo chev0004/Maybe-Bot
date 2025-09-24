@@ -9,7 +9,6 @@ export default createListener(
   },
   {
     ignoreBots: false,
-    requiredEnvVars: ["BUMP_CHANNEL_ID", "BUMP_ROLE_ID"],
     channels: [process.env.BUMP_CHANNEL_ID],
     users: ["302050872383242240"],
   },

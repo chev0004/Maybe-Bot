@@ -103,7 +103,6 @@ export default createCommand(
   },
   {
     adminOnly: true,
-    requiredEnvVars: ["VERIFIED_ROLE_ID"],
     setup: (builder) =>
       builder
         .addBooleanOption((option) =>

@@ -117,7 +117,4 @@ export default createListener(
       logChannel.send({ embeds: [embed] });
     }
   },
-  {
-    requiredEnvVars: ["VOICE_LOG_CHANNEL_ID"],
-  },
 );

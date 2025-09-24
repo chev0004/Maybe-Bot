@@ -10,8 +10,25 @@ import {
   getRestartInfo,
 } from "./src/utils/managers/dataManager.js";
 import { loadAndProcessReminders } from "./src/utils/managers/reminderManager.js";
+import { validateEnvVars } from "./src/utils/validators/envValidator.js";
 
 dotenv.config();
+
+validateEnvVars([
+  "TOKEN",
+  "API_TOKEN",
+  "SERVER_ID",
+  "CLIENT_ID",
+  "GUILD_ID",
+  "OWNER_ID",
+  "BUMP_CHANNEL_ID",
+  "BUMP_ROLE_ID",
+  "CONFESSIONS_CHANNEL_ID",
+  "VOICE_LOG_CHANNEL_ID",
+  "VOICE_CATEGORY_ID",
+  "WELCOME_CHANNEL_ID",
+  "VERIFIED_ROLE_ID",
+]);
 
 const DISCORD_TOKEN = process.env.TOKEN;
 const EXAROTON_API_TOKEN = process.env.API_TOKEN;
@@ -97,9 +114,9 @@ discordClient.once("ready", async () => {
 
 discordClient.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
-    await commandHandler.handleInteraction(interaction);
+    commandHandler.handleInteraction(interaction);
   } else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
-    await interactionHandler.handleInteraction(interaction);
+    interactionHandler.handleInteraction(interaction);
   }
 });
 

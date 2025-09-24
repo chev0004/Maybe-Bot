@@ -3,19 +3,7 @@ import {
   PermissionsBitField,
   SlashCommandBuilder,
 } from "discord.js";
-/**
- * A custom command builder that simplifies creating chat input commands.
- * @param {string} name The name of the command.
- * @param {string} description The description of the command.
- * @param {Function} execute The function to execute when the command is run.
- * @param {Object} options Additional options for the command.
- * @param {boolean} [options.ownerOnly=false] Whether the command should only be usable by the owner.
- * @param {boolean} [options.adminOnly=false] Whether the command should only be usable by server administrators.
- * @param {string[]} [options.allowedChannels=[]] An array of channel IDs where the command can be used.
- * @param {string[]} [options.requiredEnvVars=[]] An array of environment variable names required for the command to run.
- * @param {function(SlashCommandBuilder): SlashCommandBuilder} [options.setup] An optional function to configure the SlashCommandBuilder.
- * @returns {Object} A command object compatible with the bot's command handler.
- */
+
 export const createCommand = (
   name,
   description,
@@ -25,7 +13,6 @@ export const createCommand = (
     adminOnly = false,
     setup = (builder) => builder,
     allowedChannels = [],
-    requiredEnvVars = [],
   } = {},
 ) => {
   const builder = new SlashCommandBuilder()
@@ -60,19 +47,6 @@ export const createCommand = (
         await interaction.reply({
           content:
             "このコマンドは管理者のみが使用できます。\nOnly administrators can use this command.",
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-
-      const missingVar = requiredEnvVars.find((v) => !process.env[v]);
-      if (missingVar) {
-        console.error(
-          `Command "${name}" is missing required environment variable: ${missingVar}`,
-        );
-        await interaction.reply({
-          content:
-            "このコマンドは設定されていません。管理者に連絡してください。\nThis command is not configured. Please contact an administrator.",
           flags: MessageFlags.Ephemeral,
         });
         return;
