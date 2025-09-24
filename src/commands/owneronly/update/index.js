@@ -153,7 +153,7 @@ export default createCommand(
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
-          value: "```依存関係をインストール中...```",
+          value: "```依存関係を処理中...```",
         });
         await interaction.editReply({ embeds: [embed] });
 
