@@ -2,8 +2,8 @@ import { setColor } from "./ansiColorHelper.js";
 
 const summaryRegex =
   /(\d+ files? changed(?:, (\d+ insertions?\(\+\))?(?:, (\d+ deletions?\(-\))?)))/;
-
 const renameRegex = /rename (.+)\{(.+) => (.+)\}(.+) \((\d+%)\)/;
+const fileChangeRegex = /(.+?)\s+\|\s+\d+\s+[+-]+/;
 
 /**
  * Parses the raw output from git commands to create formatted, colorized text for an embed.
@@ -32,39 +32,39 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
 
   const repo = `From: ${repoUrl}\nBranch: ${setColor("dimBlue", branchName)}`;
 
-  const lines = gitStdout.split("\n");
-  let files = "";
+  const outputLines = gitStdout.split("\n");
+  const formattedFileLines = [];
 
-  const renameMatch = gitStdout.match(renameRegex);
-  if (renameMatch) {
-    const [, pre, oldPart, newPart, post] = renameMatch;
-    const fromPath = `${pre}${oldPart}${post}`.trim();
-    const toPath = `${pre}${newPart}${post}`.trim();
-    const summary = gitStdout.match(/(\d+ files? changed)/);
+  for (const line of outputLines) {
+    const renameMatch = line.match(renameRegex);
+    const fileChangeMatch = line.match(fileChangeRegex);
 
-    files = [
-      `${setColor("dimYellow", "rn:")} ${fromPath}`,
-      `${setColor("dimYellow", "to:")} ${toPath} (100%)`,
-      summary ? summary[1] : "",
-    ].join("\n");
-  } else {
-    const fileLines = lines
-      .filter((line) => line.includes("|"))
-      .map((line) => line.trim().split("|")[0].trim());
-    const summaryMatch = gitStdout.match(summaryRegex);
-
-    if (summaryMatch) {
-      const insertions = summaryMatch[2]
-        ? summaryMatch[2].match(/\d+/)[0]
-        : "0";
-      const deletions = summaryMatch[3] ? summaryMatch[3].match(/\d+/)[0] : "0";
-
-      const coloredSummary = `${summaryMatch[0].split(",")[0]}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
-
-      files = [...fileLines, coloredSummary].join("\n");
-    } else {
-      files = "No file changes detected.";
+    if (renameMatch) {
+      const [, pre, oldPart, newPart, post] = renameMatch;
+      const fromPath = `${pre}${oldPart}${post}`.trim();
+      const toPath = `${pre}${newPart}${post}`.trim();
+      formattedFileLines.push(
+        `${setColor("dimYellow", "rn:")} ${fromPath}`,
+        `${setColor("dimYellow", "to:")} ${toPath} (100%)`,
+      );
+    } else if (fileChangeMatch) {
+      formattedFileLines.push(fileChangeMatch[1].trim());
     }
+  }
+
+  let files = "No file changes detected.";
+  const summaryMatch = gitStdout.match(summaryRegex);
+  if (summaryMatch) {
+    const insertions = summaryMatch[2] ? summaryMatch[2].match(/\d+/)[0] : "0";
+    const deletions = summaryMatch[3] ? summaryMatch[3].match(/\d+/)[0] : "0";
+
+    const summaryText = summaryMatch[1].split(",")[0];
+    const coloredSummary = `${summaryText}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
+
+    formattedFileLines.push(coloredSummary);
+    files = formattedFileLines.join("\n");
+  } else if (formattedFileLines.length > 0) {
+    files = formattedFileLines.join("\n");
   }
 
   return { changes, files, repo };
