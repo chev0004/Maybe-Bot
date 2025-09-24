@@ -9,7 +9,7 @@ import {
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
 const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
-
+0;
 const userSubmissionAttempts = new Map();
 
 const CORRECT_TEMPLATE_HEADERS = [

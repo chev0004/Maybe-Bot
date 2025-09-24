@@ -1,6 +1,6 @@
 import { MessageFlags } from "discord.js";
-import { paginationState } from "../../commands/management/listunverified/index.js";
-import { generatePage } from "../../utils/helpers/listUnverifiedHelper.js";
+import { paginationState } from "../../../commands/management/listunverified/index.js";
+import { generatePage } from "../../../utils/helpers/listUnverifiedHelper.js";
 
 const PAGE_SIZE = 10;
 const sortFunctions = {

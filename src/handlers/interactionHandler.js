@@ -6,6 +6,19 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const getFiles = (dir) => {
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+  let commandFiles = [];
+  for (const file of files) {
+    if (file.isDirectory()) {
+      commandFiles = [...commandFiles, ...getFiles(`${dir}/${file.name}`)];
+    } else if (file.name.endsWith(".js")) {
+      commandFiles.push(`${dir}/${file.name}`);
+    }
+  }
+  return commandFiles;
+};
+
 export default class InteractionHandler {
   constructor(client, options = {}) {
     this.client = client;
@@ -17,29 +30,19 @@ export default class InteractionHandler {
     const interactionsPath = path.join(__dirname, "..", "interactions");
     if (!fs.existsSync(interactionsPath)) return;
 
-    const interactionFolders = fs.readdirSync(interactionsPath);
+    const interactionFiles = getFiles(interactionsPath);
 
-    for (const folder of interactionFolders) {
-      const folderPath = path.join(interactionsPath, folder);
-      if (!fs.statSync(folderPath).isDirectory()) continue;
+    for (const file of interactionFiles) {
+      const interactionModule = await import(`file://${file}`);
+      const interaction = interactionModule.default;
 
-      const interactionFiles = fs
-        .readdirSync(folderPath)
-        .filter((file) => file.endsWith(".js"));
-
-      for (const file of interactionFiles) {
-        const filePath = path.join(folderPath, file);
-        const interactionModule = await import(`file://${filePath}`);
-        const interaction = interactionModule.default;
-
-        if (interaction.customId && interaction.execute) {
-          this.interactions.set(interaction.customId, interaction);
-          console.log(`Loaded interaction: ${folder}/${interaction.customId}`);
-        } else {
-          console.log(
-            `[WARNING] Interaction at ${filePath} is missing 'customId' or 'execute' property.`,
-          );
-        }
+      if (interaction.customId && interaction.execute) {
+        this.interactions.set(interaction.customId, interaction);
+        console.log(`Loaded interaction: ${interaction.customId}`);
+      } else {
+        console.log(
+          `[WARNING] Interaction at ${file} is missing 'customId' or 'execute' property.`,
+        );
       }
     }
   }
