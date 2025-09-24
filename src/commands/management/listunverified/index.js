@@ -112,7 +112,7 @@ export default createCommand(
     await interaction.editReply(initialPage);
   },
   {
-    ownerOnly: true,
+    adminOnly: true,
     requiredEnvVars: ["VERIFIED_ROLE_ID"],
     setup: (builder) =>
       builder

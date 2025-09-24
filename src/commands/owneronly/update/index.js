@@ -295,15 +295,13 @@ export default createCommand(
   {
     ownerOnly: true,
     setup: (builder) =>
-      builder
-        .addBooleanOption((option) =>
-          option
-            .setName("test")
-            .setDescription(
-              "テストモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
-            )
-            .setRequired(false),
-        )
-        .setDefaultMemberPermissions(0),
+      builder.addBooleanOption((option) =>
+        option
+          .setName("test")
+          .setDescription(
+            "テストモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
+          )
+          .setRequired(false),
+      ),
   },
 );

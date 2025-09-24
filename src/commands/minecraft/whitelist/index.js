@@ -137,7 +137,6 @@ export default createCommand(
               "統合版ユーザーの場合はtrueを選択。Set to true if the user is a Bedrock player.",
             )
             .setRequired(false),
-        )
-        .setDefaultMemberPermissions(0),
+        ),
   },
 );

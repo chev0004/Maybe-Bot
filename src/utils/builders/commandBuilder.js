@@ -1,5 +1,8 @@
-import { MessageFlags, SlashCommandBuilder } from "discord.js";
-
+import {
+  MessageFlags,
+  PermissionsBitField,
+  SlashCommandBuilder,
+} from "discord.js";
 /**
  * A custom command builder that simplifies creating chat input commands.
  * @param {string} name The name of the command.
@@ -7,6 +10,7 @@ import { MessageFlags, SlashCommandBuilder } from "discord.js";
  * @param {Function} execute The function to execute when the command is run.
  * @param {Object} options Additional options for the command.
  * @param {boolean} [options.ownerOnly=false] Whether the command should only be usable by the owner.
+ * @param {boolean} [options.adminOnly=false] Whether the command should only be usable by server administrators.
  * @param {string[]} [options.allowedChannels=[]] An array of channel IDs where the command can be used.
  * @param {string[]} [options.requiredEnvVars=[]] An array of environment variable names required for the command to run.
  * @param {function(SlashCommandBuilder): SlashCommandBuilder} [options.setup] An optional function to configure the SlashCommandBuilder.
@@ -18,14 +22,21 @@ export const createCommand = (
   execute,
   {
     ownerOnly = false,
+    adminOnly = false,
     setup = (builder) => builder,
     allowedChannels = [],
     requiredEnvVars = [],
   } = {},
 ) => {
-  const data = setup(
-    new SlashCommandBuilder().setName(name).setDescription(description),
-  );
+  const builder = new SlashCommandBuilder()
+    .setName(name)
+    .setDescription(description);
+
+  if (adminOnly || ownerOnly) {
+    builder.setDefaultMemberPermissions(0);
+  }
+
+  const data = setup(builder);
 
   return {
     data,
@@ -35,6 +46,20 @@ export const createCommand = (
         await interaction.reply({
           content:
             "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+
+      if (
+        adminOnly &&
+        !interaction.member.permissions.has(
+          PermissionsBitField.Flags.Administrator,
+        )
+      ) {
+        await interaction.reply({
+          content:
+            "このコマンドは管理者のみが使用できます。\nOnly administrators can use this command.",
           flags: MessageFlags.Ephemeral,
         });
         return;
