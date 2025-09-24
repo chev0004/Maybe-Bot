@@ -76,44 +76,34 @@ export default createCommand(
 
       await interaction.editReply({ embeds: [embed] });
 
-      const day = new Date().getDate();
+      const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
+      const fakeGitStdout = isForceMode
+        ? `HEAD is now at def5678 fix: Correctly handle API rate limits`
+        : `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
+      const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
 
-      if (day % 2 === 0) {
-        const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
-        const fakeGitStdout = isForceMode
-          ? `HEAD is now at def5678 fix: Correctly handle API rate limits`
-          : `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
-        const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
-
-        embed
-          .addFields(
-            {
-              name: "更新内容 / Changes (Simulated)",
-              value: `\`\`\`\n${fakeCommitLog}\n\`\`\``,
-            },
-            {
-              name: `Git Output (Simulated ${isForceMode ? "reset" : "pull"})`,
-              value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``,
-            },
-            {
-              name: "Git Output (Simulated stderr)",
-              value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``,
-            },
-            {
-              name: "NPM Install (Simulated)",
-              value:
-                "```\nDependencies in package.json changed. `npm install` would run here.\n```",
-            },
-          )
-          .setColor(Colors.green)
-          .setDescription("テスト用のGitプルシミュレーション完了。");
-      } else {
-        embed
-          .setColor(Colors.purple)
-          .setDescription(
-            `BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`,
-          );
-      }
+      embed
+        .addFields(
+          {
+            name: "更新内容 / Changes (Simulated)",
+            value: `\`\`\`\n${fakeCommitLog}\n\`\`\``,
+          },
+          {
+            name: `Git Output (Simulated ${isForceMode ? "reset" : "pull"})`,
+            value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``,
+          },
+          {
+            name: "Git Output (Simulated stderr)",
+            value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStderr, PULLED_BRANCH)}\n\`\`\``,
+          },
+          {
+            name: "NPM Install (Simulated)",
+            value:
+              "```\nDependencies in package.json changed. `npm install` would run here.\n```",
+          },
+        )
+        .setColor(Colors.green)
+        .setDescription("テスト用のGitプルシミュレーション完了。");
 
       await interaction.editReply({ embeds: [embed] });
       return;
@@ -206,7 +196,10 @@ export default createCommand(
           inline: false,
         });
       }
-      embed.addFields(...fields);
+
+      if (fields.length > 0) {
+        embed.addFields(...fields);
+      }
 
       if (needsNpmInstall) {
         embed.setDescription("更新を適用しました。依存関係をインストール中...");
