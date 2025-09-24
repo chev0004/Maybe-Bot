@@ -15,6 +15,8 @@ export default createCommand(
   async (interaction) => {
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const isForceMode = interaction.options.getBoolean("force") ?? false;
+    const testScenario = interaction.options.getString("test_scenario");
+
     if (isTestMode) {
       await interaction.deferReply({ Flags: MessageFlags.Ephemeral });
 
@@ -99,12 +101,10 @@ export default createCommand(
 
     try {
       const { stderr: fetchStderr } = await execPromise("git fetch origin");
-      console.log("--- Raw git fetch stderr ---\n", fetchStderr);
 
       const { stdout: commitLog } = await execPromise(
         `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
       );
-      console.log("--- Raw git log stdout ---\n", commitLog);
 
       const { stdout: packageJsonDiff } = await execPromise(
         `git diff HEAD..origin/${PULLED_BRANCH} -- package.json`,
@@ -125,7 +125,6 @@ export default createCommand(
         : `git pull origin ${PULLED_BRANCH}`;
 
       const { stdout: pullStdout } = await execPromise(pullCommand);
-      console.log("--- Raw git pull stdout ---\n", pullStdout);
 
       const { changes, files, repo } = parseGitUpdateOutput(
         commitLog,

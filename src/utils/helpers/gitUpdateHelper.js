@@ -1,17 +1,18 @@
 import { setColor } from "./ansiColorHelper.js";
 
 const summaryRegex =
-  /(\d+ files? changed(?:, (\d+ insertions?\(\+\))?(?:, (\d+ deletions?\(-\))?)))/;
+  /(\d+ files? changed)(?:, (\d+ insertions?\(\+\)))?(?:, (\d+ deletions?\(-\))?)?/;
 const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
 const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
 
+/**
+ * Parses the raw output from git commands to create formatted, colorized text for an embed.
+ * @param {string} commitLog - The raw output from `git log`.
+ * @param {string} gitStdout - The raw standard output from `git pull` or `git reset`.
+ * @param {string} gitStderr - The raw standard error from `git pull` or `git fetch`.
+ * @returns {{changes: string, files: string, repo: string}} - An object with formatted strings.
+ */
 export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
-  console.log("\n--- Inputs to parseGitUpdateOutput ---");
-  console.log("commitLog:\n", commitLog);
-  console.log("gitStdout:\n", gitStdout);
-  console.log("gitStderr:\n", gitStderr);
-  console.log("-------------------------------------\n");
-
   const changes = commitLog
     .split("\n")
     .map((line) => {
@@ -57,10 +58,10 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
 
   const summaryMatch = gitStdout.match(summaryRegex);
   if (summaryMatch) {
-    const insertions = summaryMatch[2] ? summaryMatch[2].match(/\d+/)[0] : "0";
-    const deletions = summaryMatch[3] ? summaryMatch[3].match(/\d+/)[0] : "0";
+    const summaryText = summaryMatch[1];
+    const insertions = summaryMatch[2] || "0";
+    const deletions = summaryMatch[3] || "0";
 
-    const summaryText = summaryMatch[1].split(",")[0];
     const coloredSummary = `${summaryText}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
 
     formattedFileLines.push(coloredSummary);
