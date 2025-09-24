@@ -61,15 +61,15 @@ export default createCommand(
   "GitHubから最新のコミットを取得し、BOTを再起動する。Pulls the latest changes from GitHub and restarts the bot.",
   async (interaction) => {
     const isTestMode = interaction.options.getBoolean("test") ?? false;
+    const isForceMode = interaction.options.getBoolean("force") ?? false;
 
     if (isTestMode) {
       await interaction.deferReply();
 
       const embed = new EmbedBuilder()
-        .setTitle("BOTの更新 (テストモード)")
+        .setTitle(`BOTの更新 (${isForceMode ? "FORCE" : "TEST"})`)
         .setColor(Colors.yellow)
-        .setDescription("テスト用のGitプルシミュレーション中...")
-        .setTimestamp()
+        .setDescription(`テスト用のGitプルシミュレーション中...`)
         .setFooter({
           text: "これはテスト実行です。BOTは実際の更新や再起動を行いません。",
         });
@@ -80,7 +80,9 @@ export default createCommand(
 
       if (day % 2 === 0) {
         const fakeCommitLog = `a1b2c3d - feat: Add commit messages to update command\ne4f5g6h - fix: Correctly handle API rate limits\n7h8i9j0 - docs: Update README with new commands`;
-        const fakeGitStdout = `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
+        const fakeGitStdout = isForceMode
+          ? `HEAD is now at def5678 fix: Correctly handle API rate limits`
+          : `Updating abc1234..def5678\nFast-forward\n src/commands/update/index.js | 88 +++--\n package.json                 | 2 +-\n 2 files changed, 69 insertions(+), 21 deletions(-)`;
         const fakeGitStderr = `From https://github.com/chev0004/Maybe-Bot\n * branch ${PULLED_BRANCH} -> FETCH_HEAD`;
 
         embed
@@ -90,7 +92,7 @@ export default createCommand(
               value: `\`\`\`\n${fakeCommitLog}\n\`\`\``,
             },
             {
-              name: "Git Output (Simulated stdout)",
+              name: `Git Output (Simulated ${isForceMode ? "reset" : "pull"})`,
               value: `\`\`\`ansi\n${colorizeGitOutput(fakeGitStdout, PULLED_BRANCH)}\n\`\`\``,
             },
             {
@@ -109,7 +111,7 @@ export default createCommand(
         embed
           .setColor(Colors.purple)
           .setDescription(
-            `BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。(シミュレーション)`,
+            `BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`,
           );
       }
 
@@ -120,10 +122,9 @@ export default createCommand(
     await interaction.deferReply();
 
     const embed = new EmbedBuilder()
-      .setTitle("BOTの更新")
+      .setTitle(`BOTの更新${isForceMode ? " (FORCE)" : ""}`)
       .setColor(Colors.yellow)
-      .setDescription(`最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`)
-      .setTimestamp();
+      .setDescription(`最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`);
 
     await interaction.editReply({ embeds: [embed] });
 
@@ -139,7 +140,7 @@ export default createCommand(
         `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
       );
 
-      if (!commitLog && !needsNpmInstall) {
+      if (!commitLog && !needsNpmInstall && !isForceMode) {
         embed
           .setColor(Colors.purple)
           .setDescription(
@@ -179,12 +180,16 @@ export default createCommand(
         });
       }
 
-      embed.setDescription(`更新を適用中... (${PULLED_BRANCH} ブランチ)`);
+      embed.setDescription(
+        `更新を適用中... (${PULLED_BRANCH} ブランチ)${isForceMode ? "\n**強制モードが有効です。ローカルの変更は上書きされます。**" : ""}`,
+      );
       await interaction.editReply({ embeds: [embed] });
 
-      const { stdout: gitStdout, stderr: gitStderr } = await execPromise(
-        `git pull origin ${PULLED_BRANCH}`,
-      );
+      const pullCommand = isForceMode
+        ? `git reset --hard origin/${PULLED_BRANCH}`
+        : `git pull origin ${PULLED_BRANCH}`;
+      const { stdout: gitStdout, stderr: gitStderr } =
+        await execPromise(pullCommand);
 
       const fields = [];
       if (gitStdout) {
@@ -249,7 +254,7 @@ export default createCommand(
 
       embed
         .setColor(Colors.green)
-        .setDescription(`通常に更新されました。`)
+        .setDescription(`正常に更新されました。`)
         .setFooter({ text: "BOTが再起動中..." });
       await interaction.editReply({ embeds: [embed] });
 
@@ -295,13 +300,22 @@ export default createCommand(
   {
     ownerOnly: true,
     setup: (builder) =>
-      builder.addBooleanOption((option) =>
-        option
-          .setName("test")
-          .setDescription(
-            "テストモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
-          )
-          .setRequired(false),
-      ),
+      builder
+        .addBooleanOption((option) =>
+          option
+            .setName("test")
+            .setDescription(
+              "TESTモードで実行し、実際の更新や再起動は行いません。Run in test mode without actual update/restart.",
+            )
+            .setRequired(false),
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("force")
+            .setDescription(
+              "ローカルの変更をブランチの最新の状態で強制的に上書きします。Force overwrite local changes with the latest from the branch.",
+            )
+            .setRequired(false),
+        ),
   },
 );
