@@ -1,7 +1,8 @@
 import { setColor } from "./ansiColorHelper.js";
 
 const summaryRegex =
-  /(\d+ files? changed)(?:, (\d+ insertions?\(\+\)))?(?:, (\d+ deletions?\(-\)))?/;
+  /(\d+ files? changed(?:, (\d+ insertions?\(\+\))?(?:, (\d+ deletions?\(-\))?)))/;
+
 const renameRegex = /rename (.+)\{(.+) => (.+)\}(.+) \((\d+%)\)/;
 
 /**
@@ -20,13 +21,13 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     })
     .join("\n");
 
-  let repoUrl = "N/A";
-  let branchName = "N/A";
+  let repoUrl = "https://github.com/chev0004/Maybe-Bot";
+  let branchName = "develop";
 
   const fromMatch = gitStderr.match(/From (.+)/);
   if (fromMatch) repoUrl = fromMatch[1];
 
-  const branchMatch = gitStderr.match(/\* branch\s+(\S+)\s+->/);
+  const branchMatch = gitStderr.match(/(?:\* branch|\s+)(\S+)\s+->/);
   if (branchMatch) branchName = branchMatch[1];
 
   const repo = `From: ${repoUrl}\nBranch: ${setColor("dimBlue", branchName)}`;
@@ -67,17 +68,4 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
   }
 
   return { changes, files, repo };
-};
-
-/**
- * Parses the verbose output from `npm install` to get a clean summary line.
- * @param {string} npmStdout - The raw standard output from the npm install command.
- * @returns {string} A clean summary of the npm install process.
- */
-export const parseNpmInstallOutput = (npmStdout) => {
-  const summaryMatch = npmStdout.match(/added \d+ packages.*? in \d+s/);
-  if (summaryMatch) {
-    return summaryMatch[0];
-  }
-  return "Dependencies installed successfully.";
 };
