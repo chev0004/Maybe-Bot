@@ -97,9 +97,9 @@ discordClient.once("ready", async () => {
 
 discordClient.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
-    commandHandler.handleInteraction(interaction);
+    await commandHandler.handleInteraction(interaction);
   } else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
-    interactionHandler.handleInteraction(interaction);
+    await interactionHandler.handleInteraction(interaction);
   }
 });
 

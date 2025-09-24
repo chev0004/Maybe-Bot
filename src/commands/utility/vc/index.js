@@ -146,6 +146,7 @@ export default createCommand(
               if (currentVC && currentVC.members.size === 0) {
                 await currentVC.delete().catch(console.error);
                 await sendVoiceChannelDeletionLog(interaction, client, channel);
+                client.removeListener("voiceStateUpdate", voiceStateListener);
               }
             },
             1000 * 60 * 4,
