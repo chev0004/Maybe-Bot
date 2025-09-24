@@ -294,7 +294,7 @@ export default createCommand(
       }
       embed.setFields(errorFields);
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] }).catch(console.error);
     }
   },
   {
