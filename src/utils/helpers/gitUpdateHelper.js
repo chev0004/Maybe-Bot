@@ -20,7 +20,6 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     })
     .join("\n");
 
-  // Hard coded just in case
   let repoUrl = "https://github.com/chev0004/Maybe-Bot";
   let branchName = "develop";
 
