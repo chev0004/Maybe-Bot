@@ -34,9 +34,9 @@ export default createListener(
 
     const embed = message.embeds[0];
 
-    const isDisboardBump =
-      isTextInEmbed(embed, "表示順をアップしたよ") ||
-      isTextInEmbed(embed, "bump done");
+    console.log(embed);
+
+    const isDisboardBump = isTextInEmbed(embed, "をアップしたよ");
 
     if (!isDisboardBump) return;
 

@@ -34,16 +34,14 @@ export default createListener(
 
     const embed = newMessage.embeds[0];
 
-    const isDisboardBump =
-      isTextInEmbed(embed, "表示順をアップしたよ") ||
-      isTextInEmbed(embed, "👍");
+    console.log(embed);
 
-    const isDissokuBump =
-      isTextInEmbed(embed, "をアップしたよ") || isTextInEmbed(embed, "up!");
+    const isDissokuBump = isTextInEmbed(embed, "をアップしたよ");
 
-    if (!isDisboardBump && !isDissokuBump) return;
+    if (!isDissokuBump) return;
 
-    const bumpSource = isDisboardBump ? "Disboard" : "Dissoku";
+    console.log("Disboard bump detected!");
+    const bumpSource = "Dissoku";
 
     const interval = 2 * 60 * 60 * 1000;
     const triggerAt = Date.now() + interval;
@@ -61,6 +59,6 @@ export default createListener(
     ignoreBots: false,
     requiredEnvVars: ["BUMP_CHANNEL_ID", "BUMP_ROLE_ID"],
     channels: [process.env.BUMP_CHANNEL_ID],
-    users: ["302050872383242240", "761562078095867916"],
+    users: ["761562078095867916"],
   },
 );
