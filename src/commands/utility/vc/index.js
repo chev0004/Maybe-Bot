@@ -81,6 +81,15 @@ const sendVoiceChannelDeletionLog = async (_, client, channel) => {
   await logChannel.send({ embeds: [embed] });
 };
 
+const toTitleCase = (str) => {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export default createCommand(
   "vc",
   "一時的なボイスチャンネルを作成する。Create a temporary voice channel.",
@@ -93,6 +102,8 @@ export default createCommand(
       const enName = interaction.options.getString("enname");
       const limit = interaction.options.getInteger("limit");
 
+      const formattedEnName = toTitleCase(enName);
+
       if (!isEmoji(emoji)) {
         return await interaction.editReply({
           content: [
@@ -104,7 +115,7 @@ export default createCommand(
       }
 
       const channel = await interaction.guild.channels.create({
-        name: `${emoji}${jpName} | ${enName}`,
+        name: `${emoji}${jpName} | ${formattedEnName}`,
         type: 2,
         userLimit: limit,
         parent: process.env.VOICE_CATEGORY_ID,
@@ -116,7 +127,7 @@ export default createCommand(
         channel,
         emoji,
         jpName,
-        enName,
+        formattedEnName,
         limit,
       );
 
