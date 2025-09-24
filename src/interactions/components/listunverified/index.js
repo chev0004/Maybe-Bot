@@ -1,64 +1,79 @@
 import { MessageFlags } from "discord.js";
-import { paginationState } from "../../../commands/management/listunverified/index.js";
+import { generateFakeMembers } from "../../../commands/management/listunverified/index.js";
 import { generatePage } from "../../../utils/helpers/listUnverifiedHelper.js";
 
-const PAGE_SIZE = 10;
 const sortFunctions = {
   username: (a, b) => a.user.username.localeCompare(b.user.username),
   joinedAt: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
   createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
 };
 
+const getUnverifiedMembers = async (guild) => {
+  const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
+  if (!verifiedRoleId) return [];
+  const role = guild.roles.cache.get(verifiedRoleId);
+  if (!role) return [];
+  await guild.members.fetch();
+  return Array.from(
+    guild.members.cache
+      .filter((member) => !member.user.bot && !member.roles.cache.has(role.id))
+      .values(),
+  );
+};
+
 export default {
   customId: "listunverified",
   async execute(interaction) {
-    const state = paginationState.get(interaction.message.interaction.id);
-
-    if (
-      !state ||
-      interaction.user.id !== interaction.message.interaction.user.id
-    ) {
+    if (interaction.user.id !== interaction.message.interaction.user.id) {
       return await interaction.reply({
         content:
-          "このインタラクションのデータが見つからないか、あなたはコマンドを実行したユーザーではありません。\nThis interaction data could not be found or you did not run the original command.",
+          "あなたはこのインタラクションの元の使用者ではありません。\nYou are not the original user of this interaction.",
         flags: MessageFlags.Ephemeral,
       });
     }
 
     await interaction.deferUpdate();
 
+    let currentPage, sortCriteria, sortOrder, action, isTestMode, testModeFlag;
+    let memberArray;
+
     if (interaction.isButton()) {
-      const action = interaction.customId.split("_")[1];
-      if (action === "prev") {
-        if (state.page > 0) state.page--;
-      } else if (action === "next") {
-        const totalPages = Math.ceil(state.data.length / PAGE_SIZE);
-        if (state.page < totalPages - 1) state.page++;
-      } else if (action === "sort") {
-        state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
-        state.data.sort((a, b) => {
-          const comparison = sortFunctions[state.sortCriteria](a, b);
-          return state.sortOrder === "asc" ? comparison : -comparison;
-        });
-        state.page = 0;
-      }
+      [, action, currentPage, sortCriteria, sortOrder, testModeFlag] =
+        interaction.customId.split("_");
+      currentPage = parseInt(currentPage, 10);
+      isTestMode = testModeFlag === "1";
+
+      if (action === "prev" && currentPage > 0) currentPage--;
+      else if (action === "next") currentPage++;
+      else if (action === "sort")
+        sortOrder = sortOrder === "asc" ? "desc" : "asc";
     } else if (interaction.isStringSelectMenu()) {
-      state.sortCriteria = interaction.values[0];
-      state.data.sort((a, b) => {
-        const comparison = sortFunctions[state.sortCriteria](a, b);
-        return state.sortOrder === "asc" ? comparison : -comparison;
-      });
-      state.page = 0;
+      [, action, currentPage, sortOrder, testModeFlag] =
+        interaction.customId.split("_");
+      currentPage = 0;
+      sortCriteria = interaction.values[0];
+      isTestMode = testModeFlag === "1";
     }
 
-    const totalPages = Math.ceil(state.data.length / PAGE_SIZE);
+    if (isTestMode) {
+      memberArray = generateFakeMembers();
+    } else {
+      memberArray = await getUnverifiedMembers(interaction.guild);
+    }
+
+    memberArray.sort((a, b) => {
+      const comparison = sortFunctions[sortCriteria](a, b);
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
     const updatedPage = generatePage(
-      state.data,
-      state.sortCriteria,
-      state.sortOrder,
-      state.page,
-      totalPages,
+      memberArray,
+      sortCriteria,
+      sortOrder,
+      currentPage,
+      isTestMode,
     );
+
     await interaction.editReply(updatedPage);
   },
 };

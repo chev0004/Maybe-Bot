@@ -3,13 +3,44 @@ import { Colors } from "../../../constants/Colors.js";
 import { createCommand } from "../../../utils/builders/commandBuilder.js";
 import { generatePage } from "../../../utils/helpers/listUnverifiedHelper.js";
 
-export const paginationState = new Map();
-const PAGE_SIZE = 10;
-
 const sortFunctions = {
   username: (a, b) => a.user.username.localeCompare(b.user.username),
   joinedAt: (a, b) => a.joinedTimestamp - b.joinedTimestamp,
   createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
+};
+
+export const generateFakeMembers = () => {
+  const fakeMembers = [];
+  const totalFakes = 151;
+  for (let i = 0; i < totalFakes; i++) {
+    const fakeId = (
+      BigInt(Date.now()) -
+      BigInt(i * 100000) +
+      BigInt(Math.floor(Math.random() * 10000))
+    ).toString();
+    const threeYearsInMillis = 3 * 365 * 24 * 60 * 60 * 1000;
+    const createdAt =
+      Date.now() - Math.floor(Math.random() * threeYearsInMillis);
+    const joinedAt =
+      createdAt + Math.floor(Math.random() * (Date.now() - createdAt));
+
+    fakeMembers.push({
+      id: fakeId,
+      joinedTimestamp: joinedAt,
+      user: {
+        id: fakeId,
+        bot: false,
+        username: `FakeUser${String(i + 1).padStart(3, "0")}`,
+        createdTimestamp: createdAt,
+      },
+      roles: {
+        cache: {
+          has: () => false,
+        },
+      },
+    });
+  }
+  return fakeMembers;
 };
 
 export default createCommand(
@@ -23,37 +54,7 @@ export default createCommand(
     let memberArray;
 
     if (isTestMode) {
-      const fakeMembers = [];
-      const totalFakes = 151;
-      for (let i = 0; i < totalFakes; i++) {
-        const fakeId = (
-          BigInt(Date.now()) -
-          BigInt(i * 100000) +
-          BigInt(Math.floor(Math.random() * 10000))
-        ).toString();
-        const threeYearsInMillis = 3 * 365 * 24 * 60 * 60 * 1000;
-        const createdAt =
-          Date.now() - Math.floor(Math.random() * threeYearsInMillis);
-        const joinedAt =
-          createdAt + Math.floor(Math.random() * (Date.now() - createdAt));
-
-        fakeMembers.push({
-          id: fakeId,
-          joinedTimestamp: joinedAt,
-          user: {
-            id: fakeId,
-            bot: false,
-            username: `FakeUser${String(i + 1).padStart(3, "0")}`,
-            createdTimestamp: createdAt,
-          },
-          roles: {
-            cache: {
-              has: () => false,
-            },
-          },
-        });
-      }
-      memberArray = fakeMembers;
+      memberArray = generateFakeMembers();
     } else {
       const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
       const role = guild.roles.cache.get(verifiedRoleId);
@@ -90,23 +91,12 @@ export default createCommand(
 
     memberArray.sort(sortFunctions[initialSortCriteria]);
 
-    paginationState.set(interaction.id, {
-      data: memberArray,
-      page: 0,
-      sortOrder: initialSortOrder,
-      sortCriteria: initialSortCriteria,
-      roleName: guild.roles.cache.get(process.env.VERIFIED_ROLE_ID)?.name,
-      guildId: guild.id,
-    });
-
-    const totalPages = Math.ceil(memberArray.length / PAGE_SIZE);
     const initialPage = generatePage(
       memberArray,
       initialSortCriteria,
       initialSortOrder,
       0,
-      totalPages,
-      guild.roles.cache.get(process.env.VERIFIED_ROLE_ID)?.name,
+      isTestMode,
     );
 
     await interaction.editReply(initialPage);

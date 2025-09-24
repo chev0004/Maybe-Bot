@@ -14,6 +14,7 @@ export const generatePage = (
   sortCriteria,
   sortOrder,
   currentPage,
+  isTestMode = false,
 ) => {
   const totalPages = Math.ceil(memberArray.length / PAGE_SIZE);
   const start = currentPage * PAGE_SIZE;
@@ -27,7 +28,7 @@ export const generatePage = (
       )
       .join("\n") || "このページにメンバーはいません。";
 
-  const title = `未認証メンバー (${memberArray.length}人)`;
+  const title = `未認証メンバー (${memberArray.length}人)${isTestMode ? " [TEST MODE]" : ""}`;
   const sortLabel = sortOrder === "asc" ? "昇順 ▲" : "降順 ▼";
   const criteriaLabel =
     {
@@ -45,18 +46,26 @@ export const generatePage = (
     .addFields({ name: "メンバーリスト", value: listContent })
     .setFooter({ text: `ページ ${currentPage + 1} / ${totalPages}` });
 
+  const testModeFlag = isTestMode ? "1" : "0";
+
   const buttonRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("listunverified_prev")
+      .setCustomId(
+        `listunverified_prev_${currentPage}_${sortCriteria}_${sortOrder}_${testModeFlag}`,
+      )
       .setLabel("◀")
       .setStyle(ButtonStyle.Primary)
       .setDisabled(currentPage === 0),
     new ButtonBuilder()
-      .setCustomId("listunverified_sort")
+      .setCustomId(
+        `listunverified_sort_${currentPage}_${sortCriteria}_${sortOrder}_${testModeFlag}`,
+      )
       .setLabel(sortOrder === "asc" ? "昇順 ▲" : "降順 ▼")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId("listunverified_next")
+      .setCustomId(
+        `listunverified_next_${currentPage}_${sortCriteria}_${sortOrder}_${testModeFlag}`,
+      )
       .setLabel("▶")
       .setStyle(ButtonStyle.Primary)
       .setDisabled(currentPage >= totalPages - 1),
@@ -64,7 +73,9 @@ export const generatePage = (
 
   const selectMenuRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
-      .setCustomId("listunverified_select_sort")
+      .setCustomId(
+        `listunverified_select_${currentPage}_${sortOrder}_${testModeFlag}`,
+      )
       .setPlaceholder("並べ替えの基準を選択")
       .addOptions(
         {
