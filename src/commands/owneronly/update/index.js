@@ -175,21 +175,45 @@ export default createCommand(
       );
       await interaction.editReply({ embeds: [embed] });
 
+      const fields = [];
+
+      if (isForceMode) {
+        try {
+          const { stderr: dryRunStderr } = await execPromise(
+            `git pull --dry-run origin ${PULLED_BRANCH}`,
+          );
+          if (dryRunStderr) {
+            fields.push({
+              name: "Git Summary (from dry-run)",
+              value: `\`\`\`ansi\n${colorizeGitOutput(dryRunStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
+              inline: false,
+            });
+          }
+        } catch (dryRunError) {
+          if (dryRunError.stderr) {
+            fields.push({
+              name: "Git Summary (from dry-run)",
+              value: `\`\`\`ansi\n${colorizeGitOutput(dryRunError.stderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
+              inline: false,
+            });
+          }
+        }
+      }
+
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
       const { stdout: gitStdout, stderr: gitStderr } =
         await execPromise(pullCommand);
 
-      const fields = [];
       if (gitStdout) {
         fields.push({
-          name: "Git Output (stdout)",
+          name: `Git Output (${isForceMode ? "reset" : "pull"} stdout)`,
           value: `\`\`\`ansi\n${colorizeGitOutput(gitStdout.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
           inline: false,
         });
       }
-      if (gitStderr) {
+      if (gitStderr && !isForceMode) {
         fields.push({
           name: "Git Output (stderr)",
           value: `\`\`\`ansi\n${colorizeGitOutput(gitStderr.substring(0, RAW_OUTPUT_MAX_LEN), PULLED_BRANCH)}\n\`\`\``,
