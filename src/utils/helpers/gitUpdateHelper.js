@@ -5,14 +5,13 @@ const summaryRegex =
 const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
 const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
 
-/**
- * Parses the raw output from git commands to create formatted, colorized text for an embed.
- * @param {string} commitLog - The raw output from `git log`.
- * @param {string} gitStdout - The raw standard output from `git pull` or `git reset`.
- * @param {string} gitStderr - The raw standard error from `git pull` or `git fetch`.
- * @returns {{changes: string, files: string, repo: string}} - An object with formatted strings.
- */
 export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
+  console.log("\n--- Inputs to parseGitUpdateOutput ---");
+  console.log("commitLog:\n", commitLog);
+  console.log("gitStdout:\n", gitStdout);
+  console.log("gitStderr:\n", gitStderr);
+  console.log("-------------------------------------\n");
+
   const changes = commitLog
     .split("\n")
     .map((line) => {
