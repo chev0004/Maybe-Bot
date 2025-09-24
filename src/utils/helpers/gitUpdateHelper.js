@@ -2,8 +2,8 @@ import { setColor } from "./ansiColorHelper.js";
 
 const summaryRegex =
   /(\d+ files? changed(?:, (\d+ insertions?\(\+\))?(?:, (\d+ deletions?\(-\))?)))/;
-const renameRegex = /rename (.+)\{(.+) => (.+)\}(.+) \((\d+%)\)/;
-const fileChangeRegex = /(.+?)\s+\|\s+\d+\s+[+-]+/;
+const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
+const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
 
 /**
  * Parses the raw output from git commands to create formatted, colorized text for an embed.
@@ -36,19 +36,23 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
   const formattedFileLines = [];
 
   for (const line of outputLines) {
-    const renameMatch = line.match(renameRegex);
     const fileChangeMatch = line.match(fileChangeRegex);
 
-    if (renameMatch) {
-      const [, pre, oldPart, newPart, post] = renameMatch;
-      const fromPath = `${pre}${oldPart}${post}`.trim();
-      const toPath = `${pre}${newPart}${post}`.trim();
-      formattedFileLines.push(
-        `${setColor("dimYellow", "rn:")} ${fromPath}`,
-        `${setColor("dimYellow", "to:")} ${toPath} (100%)`,
-      );
-    } else if (fileChangeMatch) {
-      formattedFileLines.push(fileChangeMatch[1].trim());
+    if (fileChangeMatch) {
+      const filePath = fileChangeMatch[1].trim();
+      const renameMatch = filePath.match(renameDetectionRegex);
+
+      if (renameMatch) {
+        const [, pre, oldPart, newPart, post] = renameMatch;
+        const fromPath = `${pre}${oldPart}${post}`.trim();
+        const toPath = `${pre}${newPart}${post}`.trim();
+        formattedFileLines.push(
+          `${setColor("dimYellow", "rn:")} ${fromPath}`,
+          `${setColor("dimYellow", "to:")} ${toPath}`,
+        );
+      } else {
+        formattedFileLines.push(filePath);
+      }
     }
   }
 
@@ -61,8 +65,11 @@ export const parseGitUpdateOutput = (commitLog, gitStdout, gitStderr) => {
     const summaryText = summaryMatch[1].split(",")[0];
     const coloredSummary = `${summaryText}, ${setColor("dimCyan", `+${insertions}`)}, ${setColor("dimRed", `-${deletions}`)}`;
 
-    formattedFileLines.push(coloredSummary);
-    files = formattedFileLines.join("\n");
+    if (formattedFileLines.length > 0) {
+      files = `${formattedFileLines.join("\n")}\n${coloredSummary}`;
+    } else {
+      files = coloredSummary;
+    }
   } else if (formattedFileLines.length > 0) {
     files = formattedFileLines.join("\n");
   }
