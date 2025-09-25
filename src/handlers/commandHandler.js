@@ -46,7 +46,11 @@ export default class CommandHandler {
           if (command.data && command.execute) {
             this.commands.set(command.data.name, command);
             this.commandsArray.push(command.data.toJSON());
-            console.log(`Loaded command: ${command.data.name}`);
+            if (file.includes("menu-commands")) {
+              console.log(`Loaded menu command: ${command.data.name}`);
+            } else {
+              console.log(`Loaded command: ${command.data.name}`);
+            }
           } else {
             console.log(
               `[WARNING] Command at ${file} is missing required properties.`,
