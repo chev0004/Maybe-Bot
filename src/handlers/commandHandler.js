@@ -1,10 +1,23 @@
-import { MessageFlags, REST, Routes } from "discord.js";
+import { REST, Routes } from "discord.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const getFiles = (dir) => {
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+  let commandFiles = [];
+  for (const file of files) {
+    if (file.isDirectory()) {
+      commandFiles = [...commandFiles, ...getFiles(`${dir}/${file.name}`)];
+    } else if (file.name.endsWith(".js")) {
+      commandFiles.push(`${dir}/${file.name}`);
+    }
+  }
+  return commandFiles;
+};
 
 export default class CommandHandler {
   constructor(client, options = {}) {
@@ -16,34 +29,28 @@ export default class CommandHandler {
 
   async loadCommands() {
     try {
-      const commandsPath = path.join(__dirname, "..", "commands");
-      const categoryFolders = fs.readdirSync(commandsPath);
+      const commandPaths = [
+        path.join(__dirname, "..", "commands"),
+        path.join(__dirname, "..", "menu-commands"),
+      ];
 
-      for (const category of categoryFolders) {
-        const categoryPath = path.join(commandsPath, category);
-        if (!fs.statSync(categoryPath).isDirectory()) continue;
+      for (const commandsPath of commandPaths) {
+        if (!fs.existsSync(commandsPath)) continue;
 
-        const commandFolders = fs.readdirSync(categoryPath);
+        const commandFiles = getFiles(commandsPath);
 
-        for (const folder of commandFolders) {
-          const commandPath = path.join(categoryPath, folder);
-          if (!fs.statSync(commandPath).isDirectory()) continue;
+        for (const file of commandFiles) {
+          const commandModule = await import(`file://${file}`);
+          const command = commandModule.default;
 
-          const commandFile = path.join(commandPath, "index.js");
-
-          if (fs.existsSync(commandFile)) {
-            const commandModule = await import(`file://${commandFile}`);
-            const command = commandModule.default;
-
-            if (command.data && command.execute) {
-              this.commands.set(command.data.name, command);
-              this.commandsArray.push(command.data.toJSON());
-              console.log(`Loaded command: ${category}/${command.data.name}`);
-            } else {
-              console.log(
-                `[WARNING] Command at ${commandFile} is missing required properties.`,
-              );
-            }
+          if (command.data && command.execute) {
+            this.commands.set(command.data.name, command);
+            this.commandsArray.push(command.data.toJSON());
+            console.log(`Loaded command: ${command.data.name}`);
+          } else {
+            console.log(
+              `[WARNING] Command at ${file} is missing required properties.`,
+            );
           }
         }
       }
@@ -70,7 +77,7 @@ export default class CommandHandler {
   }
 
   handleInteraction(interaction) {
-    if (!interaction.isCommand()) return;
+    if (!interaction.isCommand() && !interaction.isContextMenuCommand()) return;
 
     const command = this.commands.get(interaction.commandName);
     if (!command) return;
@@ -85,7 +92,7 @@ export default class CommandHandler {
       interaction
         .reply({
           content:
-            "エラーが発生しました。An error occurred while executing this command.",
+            "コマンドの実行中にエラーが発生しました。\nAn error occurred while executing this command.",
           flags: MessageFlags.Ephemeral,
         })
         .catch(console.error);

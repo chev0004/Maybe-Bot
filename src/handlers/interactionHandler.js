@@ -27,56 +27,65 @@ export default class InteractionHandler {
   }
 
   async loadInteractions() {
-    const interactionsPath = path.join(__dirname, "..", "interactions");
-    if (!fs.existsSync(interactionsPath)) return;
+    const interactionPaths = [
+      path.join(__dirname, "..", "interactions"),
+      path.join(__dirname, "..", "menu-commands"),
+    ];
 
-    const interactionFiles = getFiles(interactionsPath);
+    for (const interactionsPath of interactionPaths) {
+      if (!fs.existsSync(interactionsPath)) continue;
 
-    for (const file of interactionFiles) {
-      const interactionModule = await import(`file://${file}`);
-      const interaction = interactionModule.default;
+      const interactionFiles = getFiles(interactionsPath);
 
-      if (interaction.customId && interaction.execute) {
-        this.interactions.set(interaction.customId, interaction);
-        console.log(`Loaded interaction: ${interaction.customId}`);
-      } else {
-        console.log(
-          `[WARNING] Interaction at ${file} is missing 'customId' or 'execute' property.`,
-        );
+      for (const file of interactionFiles) {
+        const interactionModule = await import(`file://${file}`);
+        const interaction = interactionModule.default;
+
+        const key = interaction.customId || interaction.data?.name;
+        if (key && interaction.execute) {
+          this.interactions.set(key, interaction);
+          console.log(`Loaded interaction: ${key}`);
+        } else {
+          console.log(
+            `[WARNING] Interaction at ${file} is missing a key ('customId' or 'data.name') or 'execute' property.`,
+          );
+        }
       }
     }
   }
 
   async handleInteraction(interaction) {
-    if (!interaction.isMessageComponent() && !interaction.isModalSubmit())
-      return;
+    const key = interaction.isCommand()
+      ? interaction.commandName
+      : interaction.isMessageComponent() || interaction.isModalSubmit()
+        ? Array.from(this.interactions.keys()).find((k) =>
+            interaction.customId.startsWith(k),
+          )
+        : null;
 
-    const handler = Array.from(this.interactions.keys()).find((key) =>
-      interaction.customId.startsWith(key),
-    );
-
-    if (!handler) {
-      console.warn(`No handler found for customId: ${interaction.customId}`);
+    if (!key) {
+      console.warn(
+        `No handler found for interaction: ${interaction.id} with customId: ${interaction.customId}`,
+      );
       return;
     }
 
-    const interactionExecutor = this.interactions.get(handler);
+    const interactionExecutor = this.interactions.get(key);
 
     try {
       await interactionExecutor.execute(interaction, this.client, this.options);
     } catch (error) {
-      console.error(
-        `Error executing interaction for ${interaction.customId}:`,
-        error,
-      );
+      console.error(`Error executing interaction for ${key}:`, error);
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({
-          content: "There was an error while executing this interaction!",
+          content:
+            "このインタラクションの実行中にエラーが発生しました。\nThere was an error while executing this interaction!",
           flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.reply({
-          content: "There was an error while executing this interaction!",
+          content:
+            "このインタラクションの実行中にエラーが発生しました。\nThere was an error while executing this interaction!",
           flags: MessageFlags.Ephemeral,
         });
       }
