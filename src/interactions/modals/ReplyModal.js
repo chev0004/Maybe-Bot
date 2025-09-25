@@ -82,7 +82,7 @@ export default {
 
       await logConfession(newReplyId, sentMessage.id);
       console.log(
-        `Logged reply #${newReplyId} with message ID ${sentMessage.id}`,
+        `Logged reply #${newReplyId} with message ID ${sentMessage.id} by user ${interaction.user.tag}`,
       );
       await interaction.deferUpdate();
     } catch (error) {
