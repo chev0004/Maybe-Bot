@@ -79,11 +79,28 @@ const createTimeout = (reminder, client) => {
 };
 
 /**
- * Schedules a new reminder and saves it.
+ * Schedules a new reminder, replacing any existing reminder for the same source.
  * @param {object} reminderDetails Details for the new reminder.
  * @param {Client} client The Discord client instance.
  */
 export const scheduleReminder = async (reminderDetails, client) => {
+  // Find and remove any existing reminder for the same source
+  const reminders = await getReminders();
+  const existingReminder = reminders.find(
+    (r) => r.source === reminderDetails.source,
+  );
+
+  if (existingReminder) {
+    console.log(
+      `[ReminderManager] Replacing existing reminder for ${reminderDetails.source}.`,
+    );
+    if (activeTimers.has(existingReminder.id)) {
+      clearTimeout(activeTimers.get(existingReminder.id));
+      activeTimers.delete(existingReminder.id);
+    }
+    await removeReminderById(existingReminder.id);
+  }
+
   const newReminder = {
     id: Date.now().toString(),
     ...reminderDetails,
@@ -92,7 +109,9 @@ export const scheduleReminder = async (reminderDetails, client) => {
   await addReminder(newReminder);
   createTimeout(newReminder, client);
   console.log(
-    `Scheduled new reminder ${newReminder.id} for ${new Date(newReminder.triggerAt).toLocaleTimeString()}`,
+    `Scheduled new reminder ${newReminder.id} for ${new Date(
+      newReminder.triggerAt,
+    ).toLocaleTimeString()}`,
   );
 };
 
