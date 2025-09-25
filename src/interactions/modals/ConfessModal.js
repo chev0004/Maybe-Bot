@@ -17,9 +17,7 @@ import {
 export default {
   customId: "confess_modal",
   async execute(interaction) {
-    if (interaction.deferred || interaction.replied) {
-      return;
-    }
+    await interaction.deferUpdate();
 
     const confessionMessage =
       interaction.fields.getTextInputValue("confession_input");
@@ -51,12 +49,6 @@ export default {
       console.log(
         `Logged confession #${confessionId} with message ID ${sentMessage.id}`,
       );
-
-      await interaction.editReply({
-        content:
-          "あなたの匿名メッセージが投稿されました。\nYour anonymous message has been posted.",
-        ephemeral: true,
-      });
     } catch (error) {
       console.error("Error posting confession message:", error);
       await interaction.editReply({
