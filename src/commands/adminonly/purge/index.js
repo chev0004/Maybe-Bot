@@ -88,7 +88,7 @@ export default createCommand(
         messagesToDelete = messagesToFilter.filter(
           (msg) => Date.now() - msg.createdTimestamp < FOURTEEN_DAYS_IN_MS,
         );
-        tooOldCount = messagesToFilter.size - messagesToDelete.length;
+        tooOldCount = messagesToFilter.size - messagesToDelete.size;
       } catch (error) {
         console.error("Error fetching messages for purge by amount:", error);
         return interaction.editReply({
@@ -98,7 +98,9 @@ export default createCommand(
       }
     }
 
-    if (!messagesToDelete || messagesToDelete.length === 0) {
+    const deleteCount = messagesToDelete.length ?? messagesToDelete.size;
+
+    if (!messagesToDelete || deleteCount === 0) {
       let reply =
         "削除対象のメッセージが見つかりませんでした。\nNo messages were found to delete.";
       if (tooOldCount > 0) {
@@ -110,7 +112,7 @@ export default createCommand(
     try {
       await interaction.channel.bulkDelete(messagesToDelete, true);
 
-      let reply = `✅ ${messagesToDelete.length}件のメッセージを削除しました。\nSuccessfully deleted ${messagesToDelete.length} messages.`;
+      let reply = `✅ ${deleteCount}件のメッセージを削除しました。\nSuccessfully deleted ${deleteCount} messages.`;
       if (user) {
         reply += `\n\n👤 **対象ユーザー:** ${user.tag}\n**Filtered by user:** ${user.tag}`;
       }
