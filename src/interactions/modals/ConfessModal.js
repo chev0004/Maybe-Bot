@@ -43,24 +43,27 @@ export default {
       });
 
     try {
-      await interaction.deferUpdate();
       const sentMessage = await interaction.channel.send({
         embeds: [confessionEmbed],
         components: [row],
       });
       await logConfession(confessionId, sentMessage.id);
       console.log(
-        `Logged confession #${confessionId} with message ID ${sentMessage.id} by user ${interaction.user.tag}`,
+        `Logged confession #${confessionId} with message ID ${sentMessage.id}`,
       );
+
+      await interaction.editReply({
+        content:
+          "あなたの匿名メッセージが投稿されました。\nYour anonymous message has been posted.",
+        ephemeral: true,
+      });
     } catch (error) {
       console.error("Error posting confession message:", error);
-      if (!interaction.replied) {
-        await interaction.reply({
-          content:
-            "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
-          flags: MessageFlags.Ephemeral,
-        });
-      }
+      await interaction.editReply({
+        content:
+          "メッセージの投稿中にエラーが発生しました。\nAn error occurred while posting your message.",
+        flags: MessageFlags.Ephemeral,
+      });
     }
   },
 };

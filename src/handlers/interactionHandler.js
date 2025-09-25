@@ -55,27 +55,26 @@ export default class InteractionHandler {
   }
 
   async handleInteraction(interaction) {
-    const key = interaction.isCommand()
-      ? interaction.commandName
-      : interaction.isMessageComponent() || interaction.isModalSubmit()
-        ? Array.from(this.interactions.keys()).find((k) =>
-            interaction.customId.startsWith(k),
-          )
-        : null;
+    if (!interaction.isMessageComponent() && !interaction.isModalSubmit())
+      return;
 
-    if (!key) {
-      console.warn(
-        `No handler found for interaction: ${interaction.id} with customId: ${interaction.customId}`,
-      );
+    const handler = Array.from(this.interactions.keys()).find((key) =>
+      interaction.customId.startsWith(key),
+    );
+
+    if (!handler) {
       return;
     }
 
-    const interactionExecutor = this.interactions.get(key);
+    const interactionExecutor = this.interactions.get(handler);
 
     try {
       await interactionExecutor.execute(interaction, this.client, this.options);
     } catch (error) {
-      console.error(`Error executing interaction for ${key}:`, error);
+      console.error(
+        `Error executing interaction for ${interaction.customId}:`,
+        error,
+      );
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({
           content:
