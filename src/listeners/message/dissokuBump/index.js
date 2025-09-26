@@ -1,5 +1,5 @@
-import { createListener } from "../../utils/builders/listenerBuilder.js";
-import { handleBump } from "../../utils/helpers/bumpHelper.js";
+import { createListener } from "../../../utils/builders/listenerBuilder.js";
+import { handleBump } from "../../../utils/helpers/bumpHelper.js";
 
 export default createListener(
   "dissokuBumpHandler",

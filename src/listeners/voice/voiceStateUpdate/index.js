@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
-import { Colors } from "../../constants/Colors.js";
-import { createListener } from "../../utils/builders/listenerBuilder.js";
+import { Colors } from "../../../constants/Colors.js";
+import { createListener } from "../../../utils/builders/listenerBuilder.js";
 
 const userJoinTimes = new Map();
 
