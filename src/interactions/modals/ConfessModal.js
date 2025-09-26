@@ -47,7 +47,7 @@ export default {
       });
       await logConfession(confessionId, sentMessage.id);
       console.log(
-        `Logged confession #${confessionId} with message ID ${sentMessage.id}`,
+        `Logged confession #${confessionId} with message ID ${sentMessage.id} by user ${interaction.user.tag}`,
       );
     } catch (error) {
       console.error("Error posting confession message:", error);
