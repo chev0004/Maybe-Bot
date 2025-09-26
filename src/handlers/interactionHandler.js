@@ -27,27 +27,22 @@ export default class InteractionHandler {
   }
 
   async loadInteractions() {
-    const interactionPaths = [
-      path.join(__dirname, "..", "interactions"),
-      path.join(__dirname, "..", "menu-commands"),
-    ];
+    const interactionsPath = path.join(__dirname, "..", "interactions");
 
-    for (const interactionsPath of interactionPaths) {
-      if (!fs.existsSync(interactionsPath)) continue;
-
+    if (fs.existsSync(interactionsPath)) {
       const interactionFiles = getFiles(interactionsPath);
 
       for (const file of interactionFiles) {
         const interactionModule = await import(`file://${file}`);
         const interaction = interactionModule.default;
 
-        const key = interaction.customId || interaction.data?.name;
+        const key = interaction.customId;
         if (key && interaction.execute) {
           this.interactions.set(key, interaction);
           console.log(`Loaded interaction: ${key}`);
         } else {
           console.log(
-            `[WARNING] Interaction at ${file} is missing a key ('customId' or 'data.name') or 'execute' property.`,
+            `[WARNING] Interaction at ${file} is missing a 'customId' or 'execute' property.`,
           );
         }
       }

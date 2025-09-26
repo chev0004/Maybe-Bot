@@ -29,32 +29,30 @@ export default class CommandHandler {
 
   async loadCommands() {
     try {
-      const commandPaths = [
-        path.join(__dirname, "..", "commands"),
-        path.join(__dirname, "..", "menu-commands"),
-      ];
+      const commandsPath = path.join(__dirname, "..", "commands");
+      const commandTypes = fs.readdirSync(commandsPath);
 
-      for (const commandsPath of commandPaths) {
-        if (!fs.existsSync(commandsPath)) continue;
+      for (const type of commandTypes) {
+        const typePath = path.join(commandsPath, type);
+        if (fs.statSync(typePath).isDirectory()) {
+          const commandFiles = getFiles(typePath);
 
-        const commandFiles = getFiles(commandsPath);
+          for (const file of commandFiles) {
+            const commandModule = await import(`file://${file}`);
+            const command = commandModule.default;
 
-        for (const file of commandFiles) {
-          const commandModule = await import(`file://${file}`);
-          const command = commandModule.default;
-
-          if (command.data && command.execute) {
-            this.commands.set(command.data.name, command);
-            this.commandsArray.push(command.data.toJSON());
-            if (file.includes("menu-commands")) {
-              console.log(`Loaded menu command: ${command.data.name}`);
+            if (command.data && command.execute) {
+              this.commands.set(command.data.name, command);
+              this.commandsArray.push(command.data.toJSON());
+              const commandType = type.charAt(0).toUpperCase() + type.slice(1);
+              console.log(
+                `Loaded [${commandType}] command: ${command.data.name}`,
+              );
             } else {
-              console.log(`Loaded command: ${command.data.name}`);
+              console.log(
+                `[WARNING] Command at ${file} is missing required properties.`,
+              );
             }
-          } else {
-            console.log(
-              `[WARNING] Command at ${file} is missing required properties.`,
-            );
           }
         }
       }
@@ -67,14 +65,14 @@ export default class CommandHandler {
     try {
       const { CLIENT_ID, GUILD_ID, TOKEN } = process.env;
 
-      console.log("Refreshing application (/) commands.");
+      console.log("Refreshing application commands.");
       const rest = new REST({ version: "10" }).setToken(TOKEN);
 
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
         body: this.commandsArray,
       });
 
-      console.log("Successfully reloaded application (/) commands.");
+      console.log("Successfully reloaded application commands.");
     } catch (error) {
       console.error("Error registering commands:", error);
     }

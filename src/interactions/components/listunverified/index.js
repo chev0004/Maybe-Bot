@@ -1,5 +1,5 @@
 import { MessageFlags } from "discord.js";
-import { generateFakeMembers } from "../../../commands/management/listunverified/index.js";
+import { generateFakeMembers } from "../../../commands/slash/management/listunverified/index.js";
 import { generatePage } from "../../../utils/helpers/listUnverifiedHelper.js";
 
 const sortFunctions = {
