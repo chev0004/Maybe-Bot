@@ -20,7 +20,11 @@ const FOURTEEN_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 14;
 export default createMenuCommand(
   "Purge to here",
   ApplicationCommandType.Message,
-  async (interaction: ContextMenuCommandInteraction, _client, _options) => {
+  async (
+    interaction: ContextMenuCommandInteraction,
+    _client,
+    _options,
+  ): Promise<void> => {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     if (

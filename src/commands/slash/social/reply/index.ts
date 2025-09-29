@@ -9,7 +9,7 @@ import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 export default createCommand(
   "reply",
   "特定の投稿に匿名で返信する。Reply anonymously to a specific confession.",
-  async (interaction) => {
+  async (interaction): Promise<void> => {
     const targetId = interaction.options.getInteger("id");
 
     const modal = new ModalBuilder()

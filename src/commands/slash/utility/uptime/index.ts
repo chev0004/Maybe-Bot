@@ -34,7 +34,7 @@ const formatUptime = (milliseconds: number): string => {
 export default createCommand(
   "uptime",
   "BOTの稼働時間を表示します。Displays the bot's uptime.",
-  async (interaction, client) => {
+  async (interaction, client): Promise<void> => {
     if (!client.readyAt) {
       await interaction.reply({
         content: "Bot is not ready yet. Please try again in a moment.",
