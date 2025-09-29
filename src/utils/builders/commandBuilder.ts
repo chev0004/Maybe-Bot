@@ -7,6 +7,7 @@ import {
   PermissionsBitField,
   SlashCommandBuilder,
 } from "discord.js";
+import { type ChannelKey, channels } from "../../config/channels.js";
 import type { HandlerOptions } from "../../handlers/commandHandler.js";
 
 export type GuildCommandInteraction = ChatInputCommandInteraction<"cached"> & {
@@ -54,8 +55,8 @@ export function createCommand(
     ownerOnly?: boolean;
     adminOnly?: boolean;
     guildOnly?: true;
+    allowedChannels?: ChannelKey[];
     setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
-    allowedChannels?: string[];
   },
 ): CommandDefinition<GuildCommandInteraction>;
 
@@ -73,7 +74,7 @@ export function createCommand(
     adminOnly?: boolean;
     guildOnly: false;
     setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
-    allowedChannels?: string[];
+    allowedChannels?: ChannelKey[];
   },
 ): CommandDefinition<ChatInputCommandInteraction<CacheType>>;
 
@@ -93,13 +94,13 @@ export function createCommand<
     adminOnly = false,
     guildOnly = true,
     setup = (builder: SlashCommandBuilder) => builder,
-    allowedChannels = [] as string[],
+    allowedChannels = [] as ChannelKey[],
   }: {
     ownerOnly?: boolean;
     adminOnly?: boolean;
     guildOnly?: boolean;
     setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
-    allowedChannels?: string[];
+    allowedChannels?: ChannelKey[];
   } = {},
 ): CommandDefinition<I> {
   const builder = new SlashCommandBuilder()
@@ -161,18 +162,18 @@ export function createCommand<
         return;
       }
 
-      if (
-        allowedChannels.length > 0 &&
-        !allowedChannels.includes(interaction.channelId)
-      ) {
-        const allowedChannelsMentions = allowedChannels
-          .map((id) => `<#${id}>`)
-          .join("、");
-        await interaction.reply({
-          content: `このコマンドはこのチャンネルでは使用できません。${allowedChannelsMentions} で使用してください。`,
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
+      if (allowedChannels.length > 0) {
+        const requiredChannelIds = allowedChannels.map((key) => channels[key]);
+        if (!requiredChannelIds.includes(interaction.channelId)) {
+          const allowedChannelsMentions = requiredChannelIds
+            .map((id) => `<#${id}>`)
+            .join("、");
+          await interaction.reply({
+            content: `このコマンドはこのチャンネルでは使用できません。${allowedChannelsMentions} で使用してください。`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
       }
 
       await execute(interaction as I, client, options);

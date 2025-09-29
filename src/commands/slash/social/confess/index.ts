@@ -30,8 +30,6 @@ export default createCommand(
     await interaction.showModal(modal);
   },
   {
-    allowedChannels: [process.env.CONFESSIONS_CHANNEL_ID].filter(
-      (id): id is string => typeof id === "string",
-    ),
+    allowedChannels: ["confessions"],
   },
 );

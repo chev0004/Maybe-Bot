@@ -14,9 +14,7 @@ export default createListener(
   },
   {
     ignoreBots: false,
-    channels: process.env.BUMP_CHANNEL_ID
-      ? [process.env.BUMP_CHANNEL_ID]
-      : undefined,
+    channels: ["bump"],
     users: ["761562078095867916"],
   },
 );

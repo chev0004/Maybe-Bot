@@ -427,8 +427,6 @@ export default createListener(
   },
   {
     ignoreBots: false,
-    channels: process.env.WELCOME_CHANNEL_ID
-      ? [process.env.WELCOME_CHANNEL_ID]
-      : undefined,
+    channels: ["welcome"],
   },
 );
