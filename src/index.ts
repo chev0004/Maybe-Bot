@@ -18,6 +18,7 @@ import {
   getRestartInfo,
 } from "./utils/managers/dataManager.js";
 import { loadAndProcessReminders } from "./utils/managers/reminderManager.js";
+import { updateLeaderboards } from "./utils/services/leaderboardUpdater.js";
 
 const DISCORD_TOKEN: string = config.tokens.discord;
 const EXAROTON_API_TOKEN: string = config.tokens.exaroton;
@@ -61,6 +62,10 @@ const interactionHandler = new InteractionHandler(discordClient, sharedOptions);
 discordClient.once("ready", async (client: Client<true>) => {
   console.log(`Logged in as ${client.user.tag}! Bot is ready.`);
   await loadAndProcessReminders(client);
+
+  console.log("[Leaderboard] Starting pre-computation service...");
+  await updateLeaderboards();
+  setInterval(updateLeaderboards, 5 * 60 * 1000);
 
   const restartInfo = getRestartInfo();
 
