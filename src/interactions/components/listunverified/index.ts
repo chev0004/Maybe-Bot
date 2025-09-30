@@ -6,6 +6,7 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import { generateFakeMembers } from "../../../commands/slash/management/listunverified/index.js";
+import { config } from "../../../config/env.js";
 import type { InteractionModule } from "../../../handlers/interactionHandler.js";
 import {
   generatePage,
@@ -25,7 +26,7 @@ const sortFunctions: Record<
 };
 
 const getUnverifiedMembers = async (guild: Guild): Promise<GuildMember[]> => {
-  const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
+  const verifiedRoleId = config.roles.verified;
   if (!verifiedRoleId) return [];
   const role = guild.roles.cache.get(verifiedRoleId);
   if (!role) return [];

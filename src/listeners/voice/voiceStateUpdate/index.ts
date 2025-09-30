@@ -1,5 +1,6 @@
 import type { GuildTextBasedChannel } from "discord.js";
 import { EmbedBuilder } from "discord.js";
+import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
 
@@ -23,7 +24,7 @@ export default createListener(
   "voiceChannelLogger",
   "voiceStateUpdate",
   async (oldState, newState) => {
-    const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
+    const logChannelId = config.channels.voiceLog;
     if (!logChannelId) return;
     const fetched = await newState.client.channels
       .fetch(logChannelId)

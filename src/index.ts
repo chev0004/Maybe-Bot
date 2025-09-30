@@ -5,8 +5,8 @@ import {
   GatewayIntentBits,
   type Interaction,
 } from "discord.js";
-import dotenv from "dotenv";
 import { Client as ExarotonClient } from "exaroton";
+import { config } from "./config/env.js";
 import { Colors } from "./constants/Colors.js";
 import CommandHandler from "./handlers/commandHandler.js";
 import InteractionHandler from "./handlers/interactionHandler.js";
@@ -16,32 +16,10 @@ import {
   getRestartInfo,
 } from "./utils/managers/dataManager.js";
 import { loadAndProcessReminders } from "./utils/managers/reminderManager.js";
-import { validateEnvVars } from "./utils/validators/envValidator.js";
 
-dotenv.config();
-
-validateEnvVars([
-  "TOKEN",
-  "API_TOKEN",
-  "SERVER_ID",
-  "CLIENT_ID",
-  "GUILD_ID",
-  "OWNER_ID",
-  "BUMP_CHANNEL_ID",
-  "BUMP_ROLE_ID",
-  "CONFESSIONS_CHANNEL_ID",
-  "VOICE_LOG_CHANNEL_ID",
-  "VOICE_CATEGORY_ID",
-  "WELCOME_CHANNEL_ID",
-  "VERIFIED_ROLE_ID",
-]);
-
-if (!process.env.TOKEN || !process.env.API_TOKEN || !process.env.SERVER_ID) {
-  throw new Error("FATAL: Core environment variables are not defined!");
-}
-const DISCORD_TOKEN: string = process.env.TOKEN;
-const EXAROTON_API_TOKEN: string = process.env.API_TOKEN;
-const SERVER_ID: string = process.env.SERVER_ID;
+const DISCORD_TOKEN: string = config.tokens.discord;
+const EXAROTON_API_TOKEN: string = config.tokens.exaroton;
+const SERVER_ID: string = config.ids.server;
 
 const discordClient = new Client({
   intents: [

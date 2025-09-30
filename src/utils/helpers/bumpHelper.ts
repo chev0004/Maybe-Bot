@@ -1,4 +1,5 @@
 import type { Client, Embed, Message } from "discord.js";
+import { config } from "../../config/env.js";
 import { scheduleReminder } from "../managers/reminderManager.js";
 
 /**
@@ -46,8 +47,8 @@ export const handleBump = async (
   const interval = 2 * 60 * 60 * 1000;
   const triggerAt = Date.now() + interval;
   const reminderDetails = {
-    channelId: process.env.BUMP_CHANNEL_ID as string,
-    roleId: process.env.BUMP_ROLE_ID as string,
+    channelId: config.channels.bump,
+    roleId: config.roles.bump,
     triggerAt: triggerAt,
     source: bumpSource,
   };

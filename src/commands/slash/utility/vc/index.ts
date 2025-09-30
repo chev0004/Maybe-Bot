@@ -8,6 +8,7 @@ import {
   type VoiceChannel,
   type VoiceState,
 } from "discord.js";
+import { config } from "../../../../config/env.js";
 import { Colors } from "../../../../constants/Colors.js";
 import type { HandlerOptions } from "../../../../handlers/commandHandler.js";
 import {
@@ -32,8 +33,7 @@ const sendVoiceChannelCreationLog = async (
   enName: string | null,
   limit: number | null,
 ) => {
-  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
-  if (!logChannelId) return;
+  const logChannelId = config.channels.voiceLog;
 
   const logChannel = (await client.channels
     .fetch(logChannelId)
@@ -79,8 +79,7 @@ const sendVoiceChannelDeletionLog = async (
   client: Client<boolean>,
   channel: VoiceChannel,
 ) => {
-  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
-  if (!logChannelId) return;
+  const logChannelId = config.channels.voiceLog;
 
   const logChannel = (await client.channels
     .fetch(logChannelId)
@@ -143,7 +142,7 @@ export default createCommand(
         name: `${emoji}${jpName} | ${formattedEnName}`,
         type: 2,
         userLimit: limit ?? undefined,
-        parent: process.env.VOICE_CATEGORY_ID ?? undefined,
+        parent: config.channels.voiceCategory,
       });
 
       await sendVoiceChannelCreationLog(
