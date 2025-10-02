@@ -1,8 +1,9 @@
+// src/utils/helpers/bumpHelper.ts
 import type { Client, Embed, Message, PartialMessage } from "discord.js";
 import { sql } from "drizzle-orm";
 import { config } from "../../config/env.js";
 import { db } from "../../db/index.js";
-import { userStats, users } from "../../db/schema.js";
+import { dailyUserStats, users } from "../../db/schema.js";
 import { scheduleReminder } from "../managers/reminderManager.js";
 
 /**
@@ -13,7 +14,6 @@ import { scheduleReminder } from "../managers/reminderManager.js";
  */
 const isTextInEmbed = (embed: Embed, text: string): boolean => {
   if (!embed) return false;
-
   const searchText = text.toLowerCase();
   if (embed.title?.toLowerCase().includes(searchText)) return true;
   if (embed.description?.toLowerCase().includes(searchText)) return true;
@@ -35,20 +35,22 @@ const isTextInEmbed = (embed: Embed, text: string): boolean => {
  * @returns {Promise<void>}
  */
 const logBump = async (userId: string, username: string): Promise<void> => {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
   try {
+    // Upsert user to ensure they exist with the latest username
     await db
       .insert(users)
       .values({ id: userId, username })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({ target: users.id, set: { username } });
 
+    // Increment daily user stats for bumps
     await db
-      .insert(userStats)
-      .values({ userId, bumps: 1 })
+      .insert(dailyUserStats)
+      .values({ userId, date: today, bumps: 1 })
       .onConflictDoUpdate({
-        target: userStats.userId,
+        target: [dailyUserStats.userId, dailyUserStats.date],
         set: {
-          bumps: sql`${userStats.bumps} + 1`,
-          lastUpdated: new Date(),
+          bumps: sql`${dailyUserStats.bumps} + 1`,
         },
       });
   } catch (error) {
@@ -74,9 +76,7 @@ export const handleBump = async (
 
   if (!isTextInEmbed(embed, bumpIdentifierText)) return;
 
-  const interactionUser =
-    message.interactionMetadata?.user ?? message.interactionMetadata?.user;
-
+  const interactionUser = message.interaction?.user;
   if (!interactionUser) {
     console.warn(`Could not identify bumper for a ${bumpSource} bump.`);
     return;
