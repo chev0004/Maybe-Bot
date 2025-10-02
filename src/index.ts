@@ -18,7 +18,7 @@ import {
   getRestartInfo,
 } from "./utils/managers/dataManager.js";
 import { loadAndProcessReminders } from "./utils/managers/reminderManager.js";
-import { updateLeaderboards } from "./utils/services/leaderboardUpdater.js";
+import { populateInitialStats } from "./utils/services/statsPopulationService.js";
 
 const DISCORD_TOKEN: string = config.tokens.discord;
 const EXAROTON_API_TOKEN: string = config.tokens.exaroton;
@@ -63,9 +63,20 @@ discordClient.once("ready", async (client: Client<true>) => {
   console.log(`Logged in as ${client.user.tag}! Bot is ready.`);
   await loadAndProcessReminders(client);
 
-  console.log("[Leaderboard] Starting pre-computation service...");
-  await updateLeaderboards();
-  setInterval(updateLeaderboards, 5 * 60 * 1000);
+  try {
+    const guild = await client.guilds.fetch(config.ids.guild);
+    if (guild) {
+      await populateInitialStats(guild);
+    } else {
+      console.error(
+        "[Startup] Could not find the specified guild to populate stats.",
+      );
+    }
+  } catch (error) {
+    console.error("[Startup] Failed to populate initial stats:", error);
+  }
+
+  await loadAndProcessReminders(client);
 
   const restartInfo = getRestartInfo();
 

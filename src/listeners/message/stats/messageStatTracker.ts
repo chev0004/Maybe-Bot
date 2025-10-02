@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../../db/index.js";
 import {
-  channelStats,
   channels,
-  userStats,
+  dailyChannelStats,
+  dailyUserStats,
   users,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -12,36 +12,45 @@ export default createListener(
   "messageStatTracker",
   "messageCreate",
   async (message) => {
+    if (!message.inGuild()) return;
+
     const userId = message.author.id;
     const username = message.author.username;
     const channelId = message.channel.id;
+    const channelName = message.channel.name;
+    const today = new Date().toISOString().slice(0, 10);
 
     try {
       await db
         .insert(users)
         .values({ id: userId, username })
-        .onConflictDoNothing();
-      await db.insert(channels).values({ id: channelId }).onConflictDoNothing();
+        .onConflictDoUpdate({ target: users.id, set: { username } });
 
       await db
-        .insert(userStats)
-        .values({ userId, messages: 1 })
+        .insert(channels)
+        .values({ id: channelId, name: channelName, type: "text" }) // Added type property
         .onConflictDoUpdate({
-          target: userStats.userId,
+          target: channels.id,
+          set: { name: channelName, type: "text" }, // Added type property
+        });
+
+      await db
+        .insert(dailyUserStats)
+        .values({ userId, date: today, messages: 1 })
+        .onConflictDoUpdate({
+          target: [dailyUserStats.userId, dailyUserStats.date],
           set: {
-            messages: sql`${userStats.messages} + 1`,
-            lastUpdated: new Date(),
+            messages: sql`${dailyUserStats.messages} + 1`,
           },
         });
 
       await db
-        .insert(channelStats)
-        .values({ channelId, messages: 1 })
+        .insert(dailyChannelStats)
+        .values({ channelId, date: today, messages: 1 })
         .onConflictDoUpdate({
-          target: channelStats.channelId,
+          target: [dailyChannelStats.channelId, dailyChannelStats.date],
           set: {
-            messages: sql`${channelStats.messages} + 1`,
-            lastUpdated: new Date(),
+            messages: sql`${dailyChannelStats.messages} + 1`,
           },
         });
     } catch (error) {
