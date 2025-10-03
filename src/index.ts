@@ -59,7 +59,7 @@ const interactionHandler = new InteractionHandler(discordClient, sharedOptions);
   await interactionHandler.loadInteractions();
 })();
 
-discordClient.once("ready", async (client: Client<true>) => {
+discordClient.once("clientReady", async (client: Client<true>) => {
   console.log(`Logged in as ${client.user.tag}! Bot is ready.`);
   await loadAndProcessReminders(client);
 
