@@ -7,7 +7,7 @@ import {
   type InteractionReplyOptions,
   StringSelectMenuBuilder,
 } from "discord.js";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   channels,
@@ -90,6 +90,12 @@ async function getTopData(
       .where(dateCondition)
       .groupBy(dailyChannelStats.channelId)
       .as("statsSubquery");
+
+    const conditions = [];
+    if (category === "vcHours") {
+      conditions.push(eq(channels.type, "voice"));
+    }
+
     const results = await db
       .select({
         name: channels.name,
@@ -99,8 +105,10 @@ async function getTopData(
       })
       .from(channels)
       .leftJoin(statsSubquery, eq(channels.id, statsSubquery.channelId))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(sql`coalesce(${statsSubquery.totalValue}, 0)`))
       .limit(limit);
+
     return results.map((r) => ({
       name: r.name || "Unknown",
       value: r.totalValue,
