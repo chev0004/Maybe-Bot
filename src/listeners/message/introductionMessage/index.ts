@@ -1,5 +1,6 @@
 import type { GuildTextBasedChannel } from "discord.js";
 import { EmbedBuilder, PermissionsBitField } from "discord.js";
+import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
 import {
@@ -192,7 +193,7 @@ export default createListener(
     const validationResult = validateWelcomeMessage(message.content);
 
     if (validationResult.isValid) {
-      const welcomeRoleId = process.env.VERIFIED_ROLE_ID;
+      const welcomeRoleId = config.roles.verified;
       if (welcomeRoleId) {
         const roleToAssign = guild.roles.cache.get(welcomeRoleId);
         if (!roleToAssign) {

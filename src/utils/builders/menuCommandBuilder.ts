@@ -8,6 +8,7 @@ import {
   type PermissionResolvable,
   PermissionsBitField,
 } from "discord.js";
+import { config } from "../../config/env.js";
 import type { HandlerOptions } from "../../handlers/commandHandler.js";
 
 /**
@@ -81,7 +82,7 @@ export const createMenuCommand = (
         });
       }
 
-      if (ownerOnly && interaction.user.id !== process.env.OWNER_ID) {
+      if (ownerOnly && interaction.user.id !== config.ids.owner) {
         return interaction.reply({
           content:
             "あなたはこのコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
