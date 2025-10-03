@@ -253,7 +253,7 @@ export const generateTopReply = async ({
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`top_timeframe_back_${category}_${timeframe}`)
-        .setLabel("◀ 戻る")
+        .setEmoji({ id: "1423520590261780541" })
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`top_select_${category}_1`)
@@ -285,11 +285,11 @@ export const generateTopReply = async ({
     const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`top_timeframe_show_${category}_${timeframe}`)
-        .setLabel("Timeframe")
+        .setEmoji({ id: "1423521666159611914" })
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`top_refresh_${category}_${timeframe}`)
-        .setLabel("🔄")
+        .setEmoji({ id: "1423520588638453850" })
         .setStyle(ButtonStyle.Secondary),
     );
     components.push(actionButtons);
