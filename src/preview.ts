@@ -16,8 +16,7 @@ const app = express();
 const PORT = 3000;
 
 const serverName = "Maybe Server";
-const serverIconUrl =
-  "https://cdn.discordapp.com/icons/981729628118982686/f3a5fa3fe7e34adc41cc5c94e1d8afc7.webp?size=1024";
+const serverIconUrl = "src/assets/images/Maybe-Icon.png";
 const timeframe = "過去7日";
 
 const htmlShell = `
