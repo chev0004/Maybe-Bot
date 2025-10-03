@@ -1,10 +1,11 @@
-// src/preview.ts
 import express from "express";
 import {
   dummyChannelMessages,
   dummyChannelVC,
   dummyOverviewData,
+  dummyUserBumps,
   dummyUserMessages,
+  dummyUserStreamHours,
   dummyUserVC,
 } from "./utils/services/dummyData.js";
 import {
@@ -78,6 +79,8 @@ const htmlShell = `
         <button id="btn-overview" class="active">Overview</button>
         <button id="btn-msg-users">Top Message Users</button>
         <button id="btn-vc-users">Top Voice Users</button>
+        <button id="btn-stream-users">Top Streamers</button>
+        <button id="btn-bump-users">Top Bumpers</button>
         <button id="btn-msg-channels">Top Message Channels</button>
         <button id="btn-vc-channels">Top Voice Channels</button>
     </div>
@@ -91,6 +94,8 @@ const htmlShell = `
             'btn-overview': '/overview',
             'btn-msg-users': '/leaderboard/msg-users',
             'btn-vc-users': '/leaderboard/vc-users',
+            'btn-stream-users': '/leaderboard/stream-users',
+            'btn-bump-users': '/leaderboard/bump-users',
             'btn-msg-channels': '/leaderboard/msg-channels',
             'btn-vc-channels': '/leaderboard/vc-channels'
         };
@@ -168,6 +173,48 @@ app.get(
       res.send(imageBuffer);
     } catch (error) {
       console.error("Error generating voice users leaderboard:", error);
+      res.status(500).send("Error generating image");
+    }
+  },
+);
+
+app.get(
+  "/leaderboard/stream-users",
+  async (_req: express.Request, res: express.Response) => {
+    console.log("Generating /leaderboard/stream-users image...");
+    try {
+      const imageBuffer = await generateLeaderboardImage(
+        "🏆 配信時間・Stream Hours",
+        dummyUserStreamHours,
+        serverIconUrl,
+        serverName,
+        timeframe,
+      );
+      res.setHeader("Content-Type", "image/png");
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error("Error generating stream users leaderboard:", error);
+      res.status(500).send("Error generating image");
+    }
+  },
+);
+
+app.get(
+  "/leaderboard/bump-users",
+  async (_req: express.Request, res: express.Response) => {
+    console.log("Generating /leaderboard/bump-users image...");
+    try {
+      const imageBuffer = await generateLeaderboardImage(
+        "🏆 バンプ数・Bumps",
+        dummyUserBumps,
+        serverIconUrl,
+        serverName,
+        timeframe,
+      );
+      res.setHeader("Content-Type", "image/png");
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error("Error generating bump users leaderboard:", error);
       res.status(500).send("Error generating image");
     }
   },
