@@ -1,5 +1,6 @@
 import type { ClientEvents, Message } from "discord.js";
-import { config } from "../../config/env.js";
+import type { ChannelKey } from "../../config/channels.js";
+import { channels as channelConfig } from "../../config/channels.js";
 
 interface ListenerOptions {
   channels?: ChannelKey[];
@@ -11,8 +12,6 @@ interface ListenerOptions {
   roles?: string[];
   ignoreRoles?: string[];
 }
-
-type ChannelKey = keyof typeof config.channels;
 
 /**
  * A custom listener builder with advanced filtering options.
@@ -79,9 +78,7 @@ export const createListener = <K extends keyof ClientEvents>(
       }
 
       if (channelKeys?.length) {
-        const requiredChannelIds = channelKeys.map(
-          (key) => config.channels[key],
-        );
+        const requiredChannelIds = channelKeys.map((key) => channelConfig[key]);
         if (!requiredChannelIds.includes(message.channelId)) {
           return false;
         }

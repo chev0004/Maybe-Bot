@@ -1,4 +1,5 @@
 import {
+  type BitFieldResolvable,
   type Client,
   Collection,
   EmbedBuilder,
@@ -7,7 +8,6 @@ import {
   type VoiceChannel,
   type VoiceState,
 } from "discord.js";
-import { config } from "../../../../config/env.js";
 import { Colors } from "../../../../constants/Colors.js";
 import type { HandlerOptions } from "../../../../handlers/commandHandler.js";
 import {
@@ -32,7 +32,8 @@ const sendVoiceChannelCreationLog = async (
   enName: string | null,
   limit: number | null,
 ) => {
-  const logChannelId = config.channels.voiceLog;
+  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
+  if (!logChannelId) return;
 
   const logChannel = (await client.channels
     .fetch(logChannelId)
@@ -78,7 +79,8 @@ const sendVoiceChannelDeletionLog = async (
   client: Client<boolean>,
   channel: VoiceChannel,
 ) => {
-  const logChannelId = config.channels.voiceLog;
+  const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
+  if (!logChannelId) return;
 
   const logChannel = (await client.channels
     .fetch(logChannelId)
@@ -114,6 +116,8 @@ export default createCommand(
     _options: HandlerOptions,
   ): Promise<void> => {
     try {
+      await interaction.deferReply();
+
       const emoji = interaction.options.getString("emoji");
       const jpName = interaction.options.getString("jpname");
       const enName = interaction.options.getString("enname");
@@ -122,23 +126,24 @@ export default createCommand(
       const formattedEnName = toTitleCase(enName);
 
       if (!emoji || !isEmoji(emoji)) {
-        await interaction.reply({
+        await interaction.editReply({
           content: [
             "有効な絵文字を入力してください。カスタム絵文字や一部の新しい絵文字は対応されていません。",
             "Please provide a valid emoji. Custom and some new emojis are not supported.",
           ].join("\n"),
-          flags: MessageFlags.Ephemeral,
+          flags: MessageFlags.Ephemeral as BitFieldResolvable<
+            "SuppressEmbeds",
+            MessageFlags.SuppressEmbeds
+          >,
         });
         return;
       }
-
-      await interaction.deferReply();
 
       const channel = await interaction.guild.channels.create({
         name: `${emoji}${jpName} | ${formattedEnName}`,
         type: 2,
         userLimit: limit ?? undefined,
-        parent: config.channels.voiceCategory,
+        parent: process.env.VOICE_CATEGORY_ID ?? undefined,
       });
 
       await sendVoiceChannelCreationLog(
@@ -229,19 +234,16 @@ export default createCommand(
       });
     } catch (error) {
       console.error(error);
-      const errorMessage = [
-        "ボイスチャンネルの作成中にエラーが発生しました。",
-        "There was an error while creating the voice channel.",
-      ].join("\n");
-
-      if (interaction.replied || interaction.deferred) {
-        await interaction.editReply({ content: errorMessage });
-      } else {
-        await interaction.reply({
-          content: errorMessage,
-          flags: MessageFlags.Ephemeral,
-        });
-      }
+      await interaction.editReply({
+        content: [
+          "ボイスチャンネルの作成中にエラーが発生しました。",
+          "There was an error while creating the voice channel.",
+        ].join("\n"),
+        flags: MessageFlags.Ephemeral as BitFieldResolvable<
+          "SuppressEmbeds",
+          MessageFlags.SuppressEmbeds
+        >,
+      });
     }
   },
   {
