@@ -244,7 +244,7 @@ export const generateTopReply = async ({
   if (showTimeframeButtons) {
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`top_timeframe_back_${category}`)
+        .setCustomId(`top_timeframe_back_${category}_${timeframe}`)
         .setLabel("◀ Back")
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
