@@ -15,12 +15,106 @@ import {
 const app = express();
 const PORT = 3000;
 
-// --- Mock server details for the image header ---
-const serverName = "Kessoku Bando";
-const serverIconUrl = "https://i.imgur.com/E15A75G.png"; // You can use a direct URL to an image
-const timeframe = "Past 7 Days";
+const serverName = "Maybe Server";
+const serverIconUrl =
+  "https://cdn.discordapp.com/icons/981729628118982686/f3a5fa3fe7e34adc41cc5c94e1d8afc7.webp?size=1024";
+const timeframe = "過去7日";
 
-// --- Endpoint for the Overview Image ---
+const htmlShell = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maybe-Bot UI Preview</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #2B2D31;
+            color: #FFFFFF;
+            text-align: center;
+            margin: 0;
+            padding: 2rem;
+        }
+        h1 {
+            color: #FFFFFF;
+        }
+        .button-group {
+            margin: 1.5rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        button {
+            background-color: #383A40;
+            color: #B8B9BF;
+            border: 1px solid #4A4D54;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        button:hover {
+            background-color: #4A4D54;
+        }
+        button.active {
+            background-color: #5865F2;
+            color: #FFFFFF;
+            border-color: #5865F2;
+        }
+        #image-frame {
+            margin-top: 1rem;
+            border: 2px solid #383A40;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Maybe-Bot UI Preview</h1>
+    <div class="button-group">
+        <button id="btn-overview" class="active">Overview</button>
+        <button id="btn-msg-users">Top Message Users</button>
+        <button id="btn-vc-users">Top Voice Users</button>
+        <button id="btn-msg-channels">Top Message Channels</button>
+        <button id="btn-vc-channels">Top Voice Channels</button>
+    </div>
+    <img id="image-frame" src="/overview" alt="UI Preview">
+
+    <script>
+        const frame = document.getElementById('image-frame');
+        const buttons = document.querySelectorAll('.button-group button');
+
+        const routes = {
+            'btn-overview': '/overview',
+            'btn-msg-users': '/leaderboard/msg-users',
+            'btn-vc-users': '/leaderboard/vc-users',
+            'btn-msg-channels': '/leaderboard/msg-channels',
+            'btn-vc-channels': '/leaderboard/vc-channels'
+        };
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const route = routes[button.id];
+                if (route) {
+                    frame.src = route;
+                }
+                buttons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
+`;
+
+app.get("/", (_req, res) => {
+  res.send(htmlShell);
+});
+
 app.get("/overview", async (_req: express.Request, res: express.Response) => {
   console.log("Generating /overview image...");
   try {
@@ -38,14 +132,13 @@ app.get("/overview", async (_req: express.Request, res: express.Response) => {
   }
 });
 
-// --- Endpoints for the Leaderboard Images ---
 app.get(
   "/leaderboard/msg-users",
   async (_req: express.Request, res: express.Response) => {
     console.log("Generating /leaderboard/msg-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 Top Users by Messages Sent",
+        "🏆 メッセージ・Top Messages",
         dummyUserMessages,
         serverIconUrl,
         serverName,
@@ -66,7 +159,7 @@ app.get(
     console.log("Generating /leaderboard/vc-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 Top Users by Voice Chat Hours",
+        "🏆 ボイス時間・Top VC Hours",
         dummyUserVC,
         serverIconUrl,
         serverName,
@@ -87,7 +180,7 @@ app.get(
     console.log("Generating /leaderboard/msg-channels image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 Top Channels by Messages Sent",
+        "🏆 送信メッセージ・Top Message Channels",
         dummyChannelMessages,
         serverIconUrl,
         serverName,
@@ -108,7 +201,7 @@ app.get(
     console.log("Generating /leaderboard/vc-channels image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 Top Channels by Voice Chat Hours",
+        "🏆 ボイス時間・Top Voice Channels",
         dummyChannelVC,
         serverIconUrl,
         serverName,
@@ -123,20 +216,7 @@ app.get(
   },
 );
 
-// --- Start the server ---
 app.listen(PORT, () => {
   console.log(`🎨 UI Preview Server is running!`);
-  console.log(`- Overview: http://localhost:${PORT}/overview`);
-  console.log(
-    `- Top Message Users: http://localhost:${PORT}/leaderboard/msg-users`,
-  );
-  console.log(
-    `- Top Voice Users: http://localhost:${PORT}/leaderboard/vc-users`,
-  );
-  console.log(
-    `- Top Message Channels: http://localhost:${PORT}/leaderboard/msg-channels`,
-  );
-  console.log(
-    `- Top Voice Channels: http://localhost:${PORT}/leaderboard/vc-channels`,
-  );
+  console.log(`- Open this link in your browser: http://localhost:${PORT}/`);
 });

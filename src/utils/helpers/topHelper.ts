@@ -30,10 +30,10 @@ export type TopCategory =
 export type TopTimeframe = "1" | "7" | "30" | "all";
 
 const timeframeLabels: Record<TopTimeframe, string> = {
-  "1": "Past 24 Hours",
-  "7": "Past 7 Days",
-  "30": "Past 30 Days",
-  all: "All Time",
+  "1": "過去20時間",
+  "7": "過去7日間",
+  "30": "過去30日間",
+  all: "全期間",
 };
 
 const getDateCondition = (timeframe: TopTimeframe) => {
@@ -81,7 +81,6 @@ async function getTopData(
       value: r.totalValue,
     }));
   } else {
-    // type === 'channels'
     if (category !== "messages" && category !== "vcHours") return [];
 
     const statsSubquery = db
@@ -162,20 +161,19 @@ export const generateTopReply = async ({
       dbCategory: "messages" | "vcHours",
       type: "users" | "channels";
     if (category === "msg_users") {
-      title = "🏆 Top Users by Messages Sent";
+      title = "🏆 メッセージ・Top Messages";
       dbCategory = "messages";
       type = "users";
     } else if (category === "vc_users") {
-      title = "🏆 Top Users by Voice Chat Hours";
+      title = "🏆 ボイス時間・Top VC Hours";
       dbCategory = "vcHours";
       type = "users";
     } else if (category === "msg_channels") {
-      title = "🏆 Top Channels by Messages Sent";
+      title = "🏆 送信メッセージ・Top Message Channels";
       dbCategory = "messages";
       type = "channels";
     } else {
-      // vc_channels
-      title = "🏆 Top Channels by Voice Chat Hours";
+      title = "🏆 ボイス時間・Top Voice Channels";
       dbCategory = "vcHours";
       type = "channels";
     }
