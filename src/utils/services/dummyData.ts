@@ -12,7 +12,6 @@ export const dummyUserMessages: LeaderboardItem[] = [
   { name: "MovieBuff", value: 21 },
   { name: "RandomUser", value: 10 },
 ];
-
 export const dummyChannelMessages: LeaderboardItem[] = [
   { name: "general", value: 5678, type: "text" },
   { name: "memes-😂", value: 4321, type: "text" },
@@ -25,7 +24,6 @@ export const dummyChannelMessages: LeaderboardItem[] = [
   { name: "support", value: 100, type: "text" },
   { name: "introductions", value: 50, type: "text" },
 ];
-
 export const dummyUserVC: LeaderboardItem[] = [
   { name: "VocalCordMaster", value: 88.5 },
   { name: "ChattyCathy", value: 72.3 },
@@ -38,7 +36,6 @@ export const dummyUserVC: LeaderboardItem[] = [
   { name: "EarlyBird", value: 2.1 },
   { name: "RandomUser", value: 1.0 },
 ];
-
 export const dummyChannelVC: LeaderboardItem[] = [
   { name: "Chill Zone 🎵", value: 250.7, type: "voice" },
   { name: "Gaming Lobby", value: 180.2, type: "voice" },
@@ -52,13 +49,43 @@ export const dummyChannelVC: LeaderboardItem[] = [
   { name: "Quiet Room", value: 1.2, type: "voice" },
 ];
 
+export const dummyUserBumps: LeaderboardItem[] = [
+  { name: "ServerBooster", value: 55 },
+  { name: "BumpKing", value: 48 },
+  { name: "ActiveBumper", value: 31 },
+  { name: "JustHelping", value: 22 },
+  { name: "AnotherUser", value: 15 },
+  { name: "UserOne", value: 12 },
+  { name: "TestSubject", value: 9 },
+  { name: "GamerGal", value: 5 },
+  { name: "Coder123", value: 3 },
+  { name: "RandomUser", value: 1 },
+];
+
+export const dummyUserStreamHours: LeaderboardItem[] = [
+  { name: "StreamerSupreme", value: 40.2 },
+  { name: "GamerGuy", value: 35.5 },
+  { name: "VarietyCaster", value: 22.1 },
+  { name: "ArtStreamer", value: 18.9 },
+  { name: "JustChatting", value: 12.0 },
+  { name: "VocalCordMaster", value: 8.5 },
+  { name: "SilentWatcher", value: 4.1 },
+  { name: "MusicLover", value: 2.2 },
+  { name: "StudyBuddy", value: 1.5 },
+  { name: "RandomUser", value: 0.5 },
+];
+
 export const dummyOverviewData = {
   messages: {
     users: dummyUserMessages.slice(0, 3),
-    channels: dummyChannelMessages.slice(0, 3),
+  },
+  bumps: {
+    users: dummyUserBumps.slice(0, 3),
   },
   voice: {
     users: dummyUserVC.slice(0, 3),
-    channels: dummyChannelVC.slice(0, 3),
+  },
+  stream: {
+    users: dummyUserStreamHours.slice(0, 3),
   },
 };

@@ -25,17 +25,18 @@ export type TopCategory =
   | "overview"
   | "msg_users"
   | "vc_users"
+  | "stream_users"
+  | "bump_users"
   | "msg_channels"
   | "vc_channels";
 export type TopTimeframe = "1" | "7" | "30" | "all";
 
 const timeframeLabels: Record<TopTimeframe, string> = {
-  "1": "過去20時間",
+  "1": "過去24時間",
   "7": "過去7日間",
   "30": "過去30日間",
   all: "全期間",
 };
-
 const getDateCondition = (timeframe: TopTimeframe) => {
   if (timeframe === "all") return undefined;
   const days = parseInt(timeframe, 10);
@@ -43,7 +44,6 @@ const getDateCondition = (timeframe: TopTimeframe) => {
   date.setDate(date.getDate() - days);
   return sql`"date" >= ${date.toISOString().slice(0, 10)}`;
 };
-
 async function getTopData(
   category: "messages" | "vcHours" | "streamHours" | "bumps",
   type: "users" | "channels",
@@ -51,7 +51,6 @@ async function getTopData(
   limit: number,
 ): Promise<LeaderboardItem[]> {
   const dateCondition = getDateCondition(timeframe);
-
   if (type === "users") {
     const statsSubquery = db
       .select({
@@ -64,7 +63,6 @@ async function getTopData(
       .where(dateCondition)
       .groupBy(dailyUserStats.userId)
       .as("statsSubquery");
-
     const results = await db
       .select({
         name: users.username,
@@ -75,14 +73,12 @@ async function getTopData(
       .leftJoin(statsSubquery, eq(users.id, statsSubquery.userId))
       .orderBy(desc(sql`coalesce(${statsSubquery.totalValue}, 0)`))
       .limit(limit);
-
     return results.map((r) => ({
       name: r.name || "Unknown",
       value: r.totalValue,
     }));
   } else {
     if (category !== "messages" && category !== "vcHours") return [];
-
     const statsSubquery = db
       .select({
         channelId: dailyChannelStats.channelId,
@@ -94,7 +90,6 @@ async function getTopData(
       .where(dateCondition)
       .groupBy(dailyChannelStats.channelId)
       .as("statsSubquery");
-
     const results = await db
       .select({
         name: channels.name,
@@ -106,7 +101,6 @@ async function getTopData(
       .leftJoin(statsSubquery, eq(channels.id, statsSubquery.channelId))
       .orderBy(desc(sql`coalesce(${statsSubquery.totalValue}, 0)`))
       .limit(limit);
-
     return results.map((r) => ({
       name: r.name || "Unknown",
       value: r.totalValue,
@@ -143,11 +137,15 @@ export const generateTopReply = async ({
     const data = {
       messages: {
         users: await getTopData("messages", "users", timeframe, 3),
-        channels: await getTopData("messages", "channels", timeframe, 3),
+      },
+      bumps: {
+        users: await getTopData("bumps", "users", timeframe, 3),
       },
       voice: {
         users: await getTopData("vcHours", "users", timeframe, 3),
-        channels: await getTopData("vcHours", "channels", timeframe, 3),
+      },
+      stream: {
+        users: await getTopData("streamHours", "users", timeframe, 3),
       },
     };
     imageBuffer = await generateOverviewImage(
@@ -158,7 +156,7 @@ export const generateTopReply = async ({
     );
   } else {
     let title: string,
-      dbCategory: "messages" | "vcHours",
+      dbCategory: "messages" | "vcHours" | "streamHours" | "bumps",
       type: "users" | "channels";
     if (category === "msg_users") {
       title = "🏆 メッセージ・Top Messages";
@@ -167,6 +165,14 @@ export const generateTopReply = async ({
     } else if (category === "vc_users") {
       title = "🏆 ボイス時間・Top VC Hours";
       dbCategory = "vcHours";
+      type = "users";
+    } else if (category === "stream_users") {
+      title = "🏆 配信時間・Stream Hours";
+      dbCategory = "streamHours";
+      type = "users";
+    } else if (category === "bump_users") {
+      title = "🏆 バンプ数・Bumps";
+      dbCategory = "bumps";
       type = "users";
     } else if (category === "msg_channels") {
       title = "🏆 送信メッセージ・Top Message Channels";
@@ -190,7 +196,6 @@ export const generateTopReply = async ({
   const attachment = new AttachmentBuilder(imageBuffer, {
     name: "leaderboard.png",
   });
-
   const dropdown = new StringSelectMenuBuilder()
     .setCustomId(`top_category_${timeframe}`)
     .setPlaceholder("Select a category...")
@@ -211,6 +216,16 @@ export const generateTopReply = async ({
         default: category === "vc_users",
       },
       {
+        label: "Top Streamers",
+        value: "stream_users",
+        default: category === "stream_users",
+      },
+      {
+        label: "Top Bumpers",
+        value: "bump_users",
+        default: category === "bump_users",
+      },
+      {
         label: "Top Message Channels",
         value: "msg_channels",
         default: category === "msg_channels",
@@ -221,13 +236,11 @@ export const generateTopReply = async ({
         default: category === "vc_channels",
       },
     ]);
-
   const components: ActionRowBuilder<
     ButtonBuilder | StringSelectMenuBuilder
   >[] = [
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(dropdown),
   ];
-
   if (showTimeframeButtons) {
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
