@@ -463,7 +463,7 @@ export const generateOverviewImage = async (
     ctx.font = "bold 22px 'Noto Sans JP', 'Sans'";
     ctx.textAlign = "left";
     ctx.fillText("💬 メッセージ・Top Messages", 35, currentY);
-    ctx.fillText("🆙 バンプ数・Bumps", 445, currentY);
+    ctx.fillText("🆙 バンプ数・Top Bumpers", 445, currentY);
 
     await drawLeaderboardList(ctx, data.messages.users, {
       startX: 30,
@@ -481,7 +481,7 @@ export const generateOverviewImage = async (
     ctx.font = "bold 22px 'Noto Sans JP', 'Sans'";
     ctx.textAlign = "left";
     ctx.fillText("🔊 ボイス時間・Top VC Hours", 35, currentY);
-    ctx.fillText("🔴 配信時間・Stream Hours", 445, currentY);
+    ctx.fillText("🔴 配信時間・Top Stream Hours", 445, currentY);
 
     await drawLeaderboardList(ctx, data.voice.users, {
       startX: 30,

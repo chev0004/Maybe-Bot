@@ -167,11 +167,11 @@ export const generateTopReply = async ({
       dbCategory = "vcHours";
       type = "users";
     } else if (category === "stream_users") {
-      title = "🏆 配信時間・Stream Hours";
+      title = "🏆 配信時間・Top Stream Hours";
       dbCategory = "streamHours";
       type = "users";
     } else if (category === "bump_users") {
-      title = "🏆 バンプ数・Bumps";
+      title = "🏆 バンプ数・Top Bumpers";
       dbCategory = "bumps";
       type = "users";
     } else if (category === "msg_channels") {

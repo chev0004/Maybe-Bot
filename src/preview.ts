@@ -184,7 +184,7 @@ app.get(
     console.log("Generating /leaderboard/stream-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 配信時間・Stream Hours",
+        "🏆 配信時間・Top Stream Hours",
         dummyUserStreamHours,
         serverIconUrl,
         serverName,
@@ -205,7 +205,7 @@ app.get(
     console.log("Generating /leaderboard/bump-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 バンプ数・Bumps",
+        "🏆 バンプ数・Top Bumpers",
         dummyUserBumps,
         serverIconUrl,
         serverName,
