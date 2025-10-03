@@ -216,14 +216,14 @@ export const generateTopReply = async ({
         default: category === "vc_users",
       },
       {
-        label: "Top Streamers",
-        value: "stream_users",
-        default: category === "stream_users",
-      },
-      {
         label: "Top Bumpers",
         value: "bump_users",
         default: category === "bump_users",
+      },
+      {
+        label: "Top Streamers",
+        value: "stream_users",
+        default: category === "stream_users",
       },
       {
         label: "Top Message Channels",
@@ -245,29 +245,29 @@ export const generateTopReply = async ({
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`top_timeframe_back_${category}_${timeframe}`)
-        .setLabel("◀ Back")
+        .setLabel("◀ 戻る")
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`top_select_${category}_1`)
-        .setLabel("1d")
+        .setLabel("1日")
         .setStyle(
           timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
         .setCustomId(`top_select_${category}_7`)
-        .setLabel("7d")
+        .setLabel("7日")
         .setStyle(
           timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
         .setCustomId(`top_select_${category}_30`)
-        .setLabel("30d")
+        .setLabel("30日")
         .setStyle(
           timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
         .setCustomId(`top_select_${category}_all`)
-        .setLabel("Total")
+        .setLabel("全期間")
         .setStyle(
           timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
