@@ -7,11 +7,10 @@ import { sql } from "drizzle-orm";
 import { Colors } from "../../../constants/Colors.js";
 import { db } from "../../../db/index.js";
 import {
-  channelStats,
   channels,
-  userStats,
+  dailyChannelStats,
+  dailyUserStats,
   users,
-  userVcChannelHours,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
 
@@ -24,14 +23,9 @@ const formatDuration = (milliseconds: number): string => {
   const seconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    return `${hours}時間${minutes % 60}分${seconds % 60}秒`;
-  } else if (minutes > 0) {
-    return `${minutes}分${seconds % 60}秒`;
-  } else {
-    return `${seconds}秒`;
-  }
+  if (hours > 0) return `${hours}時間${minutes % 60}分${seconds % 60}秒`;
+  if (minutes > 0) return `${minutes}分${seconds % 60}秒`;
+  return `${seconds}秒`;
 };
 
 /**
@@ -43,42 +37,44 @@ const formatDuration = (milliseconds: number): string => {
  */
 const logVcSession = async (
   userId: string,
+  username: string,
   channelId: string,
+  channelName: string,
+  channelType: "text" | "voice",
   durationMs: number,
 ): Promise<void> => {
   if (durationMs <= 0) return;
   const durationHours = durationMs / (1000 * 60 * 60);
+  const today = new Date().toISOString().slice(0, 10);
+
   try {
-    await db.insert(users).values({ id: userId }).onConflictDoNothing();
-    await db.insert(channels).values({ id: channelId }).onConflictDoNothing();
     await db
-      .insert(userStats)
-      .values({ userId, vcHours: durationHours })
+      .insert(users)
+      .values({ id: userId, username })
+      .onConflictDoUpdate({ target: users.id, set: { username } });
+
+    await db
+      .insert(channels)
+      .values({ id: channelId, name: channelName, type: channelType })
       .onConflictDoUpdate({
-        target: userStats.userId,
-        set: {
-          vcHours: sql`${userStats.vcHours} + ${durationHours}`,
-          lastUpdated: new Date(),
-        },
+        target: channels.id,
+        set: { name: channelName, type: channelType },
       });
+
     await db
-      .insert(channelStats)
-      .values({ channelId, vcHours: durationHours })
+      .insert(dailyUserStats)
+      .values({ userId, date: today, vcHours: durationHours })
       .onConflictDoUpdate({
-        target: channelStats.channelId,
-        set: {
-          vcHours: sql`${channelStats.vcHours} + ${durationHours}`,
-          lastUpdated: new Date(),
-        },
+        target: [dailyUserStats.userId, dailyUserStats.date],
+        set: { vcHours: sql`${dailyUserStats.vcHours} + ${durationHours}` },
       });
+
     await db
-      .insert(userVcChannelHours)
-      .values({ userId, channelId, hours: durationHours })
+      .insert(dailyChannelStats)
+      .values({ channelId, date: today, vcHours: durationHours })
       .onConflictDoUpdate({
-        target: [userVcChannelHours.userId, userVcChannelHours.channelId],
-        set: {
-          hours: sql`${userVcChannelHours.hours} + ${durationHours}`,
-        },
+        target: [dailyChannelStats.channelId, dailyChannelStats.date],
+        set: { vcHours: sql`${dailyChannelStats.vcHours} + ${durationHours}` },
       });
   } catch (error) {
     console.error("Error logging VC session:", error);
@@ -93,20 +89,26 @@ const logVcSession = async (
  */
 const logStreamSession = async (
   userId: string,
+  username: string,
   durationMs: number,
 ): Promise<void> => {
   if (durationMs <= 0) return;
   const durationHours = durationMs / (1000 * 60 * 60);
+  const today = new Date().toISOString().slice(0, 10);
+
   try {
-    await db.insert(users).values({ id: userId }).onConflictDoNothing();
     await db
-      .insert(userStats)
-      .values({ userId, streamHours: durationHours })
+      .insert(users)
+      .values({ id: userId, username })
+      .onConflictDoUpdate({ target: users.id, set: { username } });
+
+    await db
+      .insert(dailyUserStats)
+      .values({ userId, date: today, streamHours: durationHours })
       .onConflictDoUpdate({
-        target: userStats.userId,
+        target: [dailyUserStats.userId, dailyUserStats.date],
         set: {
-          streamHours: sql`${userStats.streamHours} + ${durationHours}`,
-          lastUpdated: new Date(),
+          streamHours: sql`${dailyUserStats.streamHours} + ${durationHours}`,
         },
       });
   } catch (error) {
@@ -137,6 +139,7 @@ export default createListener(
     const logChannel = fetched as GuildTextBasedChannel;
 
     const userId = member.id;
+    const username = member.user.username;
     const now = Date.now();
 
     const embed = new EmbedBuilder()
@@ -152,7 +155,6 @@ export default createListener(
         channelId: newState.channelId,
         joinTime: now,
       });
-
       embed
         .setTitle("ボイスチャンネル参加")
         .setDescription(
@@ -169,11 +171,20 @@ export default createListener(
         .setColor(Colors.red);
 
       const joinData = userJoinTimes.get(userId);
-      if (joinData && joinData.channelId === oldState.channelId) {
+      if (
+        joinData &&
+        joinData.channelId === oldState.channelId &&
+        oldState.channel
+      ) {
         const duration = now - joinData.joinTime;
-
-        await logVcSession(userId, oldState.channelId, duration);
-
+        await logVcSession(
+          userId,
+          username,
+          oldState.channelId,
+          oldState.channel.name,
+          "voice",
+          duration,
+        );
         embed.addFields({
           name: "通話時間",
           value: formatDuration(duration),
@@ -186,7 +197,7 @@ export default createListener(
         const startTime = userStreamTimes.get(userId);
         if (startTime) {
           const streamDuration = now - startTime;
-          await logStreamSession(userId, streamDuration);
+          await logStreamSession(userId, username, streamDuration);
           userStreamTimes.delete(userId);
           embed.addFields({
             name: "配信時間",
@@ -195,7 +206,6 @@ export default createListener(
           });
         }
       }
-
       await logChannel.send({ embeds: [embed] });
     } else if (
       oldState.channelId &&
@@ -210,9 +220,20 @@ export default createListener(
         .setColor(Colors.yellow);
 
       const joinData = userJoinTimes.get(userId);
-      if (joinData && joinData.channelId === oldState.channelId) {
+      if (
+        joinData &&
+        joinData.channelId === oldState.channelId &&
+        oldState.channel
+      ) {
         const duration = now - joinData.joinTime;
-        await logVcSession(userId, oldState.channelId, duration);
+        await logVcSession(
+          userId,
+          username,
+          oldState.channelId,
+          oldState.channel.name,
+          "voice",
+          duration,
+        );
         embed.addFields({
           name: "前のチャンネルでの通話時間",
           value: formatDuration(duration),
@@ -233,7 +254,7 @@ export default createListener(
         const startTime = userStreamTimes.get(userId);
         if (startTime) {
           const duration = now - startTime;
-          await logStreamSession(userId, duration);
+          await logStreamSession(userId, username, duration);
           userStreamTimes.delete(userId);
         }
       }
