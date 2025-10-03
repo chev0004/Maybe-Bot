@@ -5,7 +5,6 @@ import {
   PermissionsBitField,
   type Role,
 } from "discord.js";
-import { config } from "../../../../config/env.js";
 import { Colors } from "../../../../constants/Colors.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 import { generatePage } from "../../../../utils/helpers/listUnverifiedHelper.js";
@@ -71,7 +70,7 @@ export default createCommand(
     if (isTestMode) {
       memberArray = generateFakeMembers();
     } else {
-      const verifiedRoleId = config.roles.verified;
+      const verifiedRoleId = process.env.VERIFIED_ROLE_ID;
       if (!verifiedRoleId) {
         await interaction.editReply(
           "`VERIFIED_ROLE_ID` が設定されていません。\nThe VERIFIED_ROLE_ID environment variable is not set.",

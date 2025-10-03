@@ -7,7 +7,7 @@ import {
   PermissionsBitField,
   SlashCommandBuilder,
 } from "discord.js";
-import { config } from "../../config/env.js";
+import { type ChannelKey, channels } from "../../config/channels.js";
 import type { HandlerOptions } from "../../handlers/commandHandler.js";
 
 export type GuildCommandInteraction = ChatInputCommandInteraction<"cached"> & {
@@ -27,8 +27,6 @@ export interface CommandDefinition<
     options: HandlerOptions,
   ) => Promise<void>;
 }
-
-type ChannelKey = keyof typeof config.channels;
 
 /**
  * A custom command builder that simplifies creating chat input commands.
@@ -137,7 +135,7 @@ export function createCommand<
         return;
       }
 
-      if (ownerOnly && interaction.user.id !== config.ids.owner) {
+      if (ownerOnly && interaction.user.id !== process.env.OWNER_ID) {
         await interaction.reply({
           content:
             "このコマンドを使用する権限がありません。\nYou are not authorized to use this command.",
@@ -165,9 +163,7 @@ export function createCommand<
       }
 
       if (allowedChannels.length > 0) {
-        const requiredChannelIds = allowedChannels.map(
-          (key) => config.channels[key],
-        );
+        const requiredChannelIds = allowedChannels.map((key) => channels[key]);
         if (!requiredChannelIds.includes(interaction.channelId)) {
           const allowedChannelsMentions = requiredChannelIds
             .map((id) => `<#${id}>`)
