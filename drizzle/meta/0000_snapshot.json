@@ -49,12 +49,8 @@
           "name": "channel_stats_channel_id_channels_id_fk",
           "tableFrom": "channel_stats",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -119,12 +115,8 @@
           "name": "top_channels_channel_id_channels_id_fk",
           "tableFrom": "top_channels",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -132,10 +124,7 @@
       "compositePrimaryKeys": {
         "top_channels_category_rank_pk": {
           "name": "top_channels_category_rank_pk",
-          "columns": [
-            "category",
-            "rank"
-          ]
+          "columns": ["category", "rank"]
         }
       },
       "uniqueConstraints": {},
@@ -178,12 +167,8 @@
           "name": "top_users_user_id_users_id_fk",
           "tableFrom": "top_users",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -191,10 +176,7 @@
       "compositePrimaryKeys": {
         "top_users_category_rank_pk": {
           "name": "top_users_category_rank_pk",
-          "columns": [
-            "category",
-            "rank"
-          ]
+          "columns": ["category", "rank"]
         }
       },
       "uniqueConstraints": {},
@@ -254,12 +236,8 @@
           "name": "user_stats_user_id_users_id_fk",
           "tableFrom": "user_stats",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -300,12 +278,8 @@
           "name": "user_vc_channel_hours_user_id_users_id_fk",
           "tableFrom": "user_vc_channel_hours",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -313,12 +287,8 @@
           "name": "user_vc_channel_hours_channel_id_channels_id_fk",
           "tableFrom": "user_vc_channel_hours",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -326,10 +296,7 @@
       "compositePrimaryKeys": {
         "user_vc_channel_hours_user_id_channel_id_pk": {
           "name": "user_vc_channel_hours_user_id_channel_id_pk",
-          "columns": [
-            "user_id",
-            "channel_id"
-          ]
+          "columns": ["user_id", "channel_id"]
         }
       },
       "uniqueConstraints": {},
