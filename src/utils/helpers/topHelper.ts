@@ -113,7 +113,7 @@ export const generateInitialTopReply = async (guild: Guild) => {
   return generateTopReply({
     guild,
     category: "overview",
-    timeframe: "all",
+    timeframe: "7",
     showTimeframeButtons: false,
   });
 };
