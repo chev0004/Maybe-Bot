@@ -3,11 +3,12 @@ import {
   type GuildTextBasedChannel,
   type VoiceState,
 } from "discord.js";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { db } from "../../../db/index.js";
 import {
+  activeVcSessions,
   channels,
   dailyChannelStats,
   dailyUserStats,
@@ -21,6 +22,7 @@ import { createListener } from "../../../utils/builders/listenerBuilder.js";
  * @returns {string} A formatted duration string.
  */
 const formatDuration = (milliseconds: number): string => {
+  if (milliseconds < 0) milliseconds = 0;
   const seconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -32,7 +34,10 @@ const formatDuration = (milliseconds: number): string => {
 /**
  * Logs the duration of a voice channel session to the database.
  * @param {string} userId The ID of the user whose session is being logged.
+ * @param {string} username The username of the user.
  * @param {string} channelId The ID of the voice channel.
+ * @param {string} channelName The name of the voice channel.
+ * @param {"text" | "voice"} channelType The type of the channel.
  * @param {number} durationMs The duration of the session in milliseconds.
  * @returns {Promise<void>}
  */
@@ -85,6 +90,7 @@ const logVcSession = async (
 /**
  * Silently logs the duration of a streaming session to the database.
  * @param {string} userId The ID of the user whose session is being logged.
+ * @param {string} username The username of the user.
  * @param {number} durationMs The duration of the session in milliseconds.
  * @returns {Promise<void>}
  */
@@ -117,12 +123,6 @@ const logStreamSession = async (
   }
 };
 
-const userJoinTimes = new Map<
-  string,
-  { channelId: string; joinTime: number }
->();
-const userStreamTimes = new Map<string, number>();
-
 export default createListener(
   "voiceChannelLoggerAndStats",
   "voiceStateUpdate",
@@ -145,7 +145,7 @@ export default createListener(
 
     const userId = member.id;
     const username = member.user.username;
-    const now = Date.now();
+    const now = new Date();
 
     const embed = new EmbedBuilder()
       .setAuthor({
@@ -156,10 +156,14 @@ export default createListener(
       .setTimestamp();
 
     if (!oldState.channelId && newState.channelId) {
-      userJoinTimes.set(userId, {
-        channelId: newState.channelId,
-        joinTime: now,
-      });
+      await db
+        .insert(activeVcSessions)
+        .values({
+          userId,
+          channelId: newState.channelId,
+          joinTime: now,
+        })
+        .onConflictDoNothing();
       embed
         .setTitle("ボイスチャンネル参加")
         .setDescription(
@@ -175,13 +179,12 @@ export default createListener(
         )
         .setColor(Colors.red);
 
-      const joinData = userJoinTimes.get(userId);
-      if (
-        joinData &&
-        joinData.channelId === oldState.channelId &&
-        oldState.channel
-      ) {
-        const duration = now - joinData.joinTime;
+      const session = await db.query.activeVcSessions.findFirst({
+        where: eq(activeVcSessions.userId, userId),
+      });
+
+      if (session && oldState.channel) {
+        const duration = now.getTime() - session.joinTime.getTime();
         await logVcSession(
           userId,
           username,
@@ -195,21 +198,21 @@ export default createListener(
           value: formatDuration(duration),
           inline: true,
         });
-        userJoinTimes.delete(userId);
-      }
 
-      if (oldState.streaming) {
-        const startTime = userStreamTimes.get(userId);
-        if (startTime) {
-          const streamDuration = now - startTime;
+        if (session.isStreaming && session.streamStartTime) {
+          const streamDuration =
+            now.getTime() - session.streamStartTime.getTime();
           await logStreamSession(userId, username, streamDuration);
-          userStreamTimes.delete(userId);
           embed.addFields({
             name: "配信時間",
             value: formatDuration(streamDuration),
             inline: true,
           });
         }
+
+        await db
+          .delete(activeVcSessions)
+          .where(eq(activeVcSessions.userId, userId));
       }
       await logChannel.send({ embeds: [embed] });
     } else if (
@@ -224,13 +227,12 @@ export default createListener(
         )
         .setColor(Colors.yellow);
 
-      const joinData = userJoinTimes.get(userId);
-      if (
-        joinData &&
-        joinData.channelId === oldState.channelId &&
-        oldState.channel
-      ) {
-        const duration = now - joinData.joinTime;
+      const session = await db.query.activeVcSessions.findFirst({
+        where: eq(activeVcSessions.userId, userId),
+      });
+
+      if (session && oldState.channel) {
+        const duration = now.getTime() - session.joinTime.getTime();
         await logVcSession(
           userId,
           username,
@@ -245,22 +247,48 @@ export default createListener(
           inline: true,
         });
       }
-      userJoinTimes.set(userId, {
-        channelId: newState.channelId,
-        joinTime: now,
-      });
+
+      await db
+        .insert(activeVcSessions)
+        .values({
+          userId,
+          channelId: newState.channelId,
+          joinTime: now,
+          isStreaming: session?.isStreaming ?? false,
+          streamStartTime: session?.streamStartTime,
+        })
+        .onConflictDoUpdate({
+          target: activeVcSessions.userId,
+          set: { channelId: newState.channelId, joinTime: now },
+        });
+
       await logChannel.send({ embeds: [embed] });
     }
 
     if (oldState.streaming !== newState.streaming) {
       if (newState.streaming) {
-        userStreamTimes.set(userId, now);
-      } else if (oldState.streaming && newState.channelId) {
-        const startTime = userStreamTimes.get(userId);
-        if (startTime) {
-          const duration = now - startTime;
-          await logStreamSession(userId, username, duration);
-          userStreamTimes.delete(userId);
+        await db
+          .update(activeVcSessions)
+          .set({
+            isStreaming: true,
+            streamStartTime: now,
+          })
+          .where(eq(activeVcSessions.userId, userId));
+      } else {
+        const session = await db.query.activeVcSessions.findFirst({
+          where: eq(activeVcSessions.userId, userId),
+        });
+        if (session?.isStreaming && session.streamStartTime) {
+          const streamDuration =
+            now.getTime() - session.streamStartTime.getTime();
+          await logStreamSession(userId, username, streamDuration);
+          await db
+            .update(activeVcSessions)
+            .set({
+              isStreaming: false,
+              streamStartTime: null,
+            })
+            .where(eq(activeVcSessions.userId, userId));
         }
       }
     }

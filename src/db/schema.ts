@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   integer,
   pgEnum,
@@ -6,6 +7,7 @@ import {
   primaryKey,
   real,
   text,
+  timestamp,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -52,3 +54,21 @@ export const dailyChannelStats = pgTable(
     pk: primaryKey({ columns: [table.channelId, table.date] }),
   }),
 );
+
+export const activeVcSessions = pgTable("active_vc_sessions", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id),
+  channelId: text("channel_id")
+    .notNull()
+    .references(() => channels.id),
+  joinTime: timestamp("join_time", {
+    mode: "date",
+    withTimezone: true,
+  }).notNull(),
+  isStreaming: boolean("is_streaming").default(false).notNull(),
+  streamStartTime: timestamp("stream_start_time", {
+    mode: "date",
+    withTimezone: true,
+  }),
+});

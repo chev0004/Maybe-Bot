@@ -10,6 +10,8 @@ import {
 import { Client as ExarotonClient } from "exaroton";
 import { config } from "./config/env.js";
 import { Colors } from "./constants/Colors.js";
+import { db } from "./db/index.js";
+import { activeVcSessions } from "./db/schema.js";
 import CommandHandler from "./handlers/commandHandler.js";
 import InteractionHandler from "./handlers/interactionHandler.js";
 import ListenerHandler from "./handlers/listenerHandler.js";
@@ -74,6 +76,43 @@ discordClient.once("clientReady", async (client: Client<true>) => {
     }
   } catch (error) {
     console.error("[Startup] Failed to populate initial stats:", error);
+  }
+
+  try {
+    console.log("[VC Recovery] Reconciling active voice sessions...");
+    await db.delete(activeVcSessions);
+
+    const guild = await client.guilds.fetch(config.ids.guild);
+    const voiceStates = guild.voiceStates.cache;
+    const now = new Date();
+
+    if (voiceStates.size > 0) {
+      const activeSessions: (typeof activeVcSessions.$inferInsert)[] = [];
+      for (const vs of voiceStates.values()) {
+        if (vs.channelId) {
+          activeSessions.push({
+            userId: vs.id,
+            channelId: vs.channelId,
+            joinTime: now,
+            isStreaming: vs.streaming ?? false,
+            streamStartTime: vs.streaming ? now : null,
+          });
+        }
+      }
+
+      if (activeSessions.length > 0) {
+        await db.insert(activeVcSessions).values(activeSessions);
+        console.log(
+          `[VC Recovery] Re-established ${activeSessions.length} active voice sessions.`,
+        );
+      } else {
+        console.log("[VC Recovery] No active voice sessions found on startup.");
+      }
+    } else {
+      console.log("[VC Recovery] No active voice sessions found on startup.");
+    }
+  } catch (error) {
+    console.error("[VC Recovery] Failed to reconcile voice sessions:", error);
   }
 
   const restartInfo = getRestartInfo();
