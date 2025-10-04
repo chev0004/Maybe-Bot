@@ -1,82 +1,38 @@
-import fs from "fs/promises";
-import path from "path";
-
-const CONFESSIONS_FILE = path.join(process.cwd(), "confessions_log.json");
-
-interface ConfessionData {
-  lastId: number;
-  messageMap: { [key: string]: string };
-}
+import { eq, sql } from "drizzle-orm";
+import { db } from "../../db/index.js";
+import { confessions } from "../../db/schema.js";
 
 /**
- * Reads confession data from the JSON file.
- * Creates the file with default values if it doesn't exist.
- * Repairs the file if lastId is missing or invalid.
- * @returns {Promise<ConfessionData>}
- */
-export const getConfessionData = async (): Promise<ConfessionData> => {
-  try {
-    await fs.access(CONFESSIONS_FILE);
-    const data = await fs.readFile(CONFESSIONS_FILE, "utf8");
-    const parsedData = JSON.parse(data) as Partial<ConfessionData>;
-
-    if (
-      typeof parsedData.lastId !== "number" ||
-      !Number.isFinite(parsedData.lastId)
-    ) {
-      console.warn(
-        `[ConfessionManager] Malformed data detected: 'lastId' is not a valid number. Attempting to repair.`,
-      );
-      const confessionIds = Object.keys(parsedData.messageMap ?? {})
-        .map(Number)
-        .filter((id) => !Number.isNaN(id));
-      const maxId = confessionIds.length > 0 ? Math.max(...confessionIds) : 0;
-      parsedData.lastId = maxId;
-      console.log(
-        `[ConfessionManager] Repaired 'lastId' to ${maxId}. Saving corrected data.`,
-      );
-      await saveConfessionData(parsedData as ConfessionData);
-    }
-
-    return parsedData as ConfessionData;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      const initialData: ConfessionData = { lastId: 0, messageMap: {} };
-      await saveConfessionData(initialData);
-      return initialData;
-    }
-    console.error("Error reading or parsing confessions file:", error);
-    return { lastId: 0, messageMap: {} };
-  }
-};
-
-/**
- * Saves the confession data object to the JSON file.
- * @param {ConfessionData} data The data to save.
- */
-const saveConfessionData = async (data: ConfessionData): Promise<void> => {
-  try {
-    await fs.writeFile(CONFESSIONS_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error("Error saving confessions file:", error);
-  }
-};
-
-/**
- * Gets the next available ID for a new confession.
- * This function reads, increments, and saves the counter atomically.
+ * Gets the next available ID for a new confession by finding the max ID in the table.
  * @returns {Promise<number>} The next confession ID.
  */
 export const getNextConfessionId = async (): Promise<number> => {
-  const data = await getConfessionData();
-  const nextId = data.lastId + 1;
-  data.lastId = nextId;
-  await saveConfessionData(data);
-  return nextId;
+  const result = await db
+    .select({ maxId: sql<number>`max(${confessions.id})` })
+    .from(confessions);
+
+  const maxId = result[0]?.maxId ?? 0;
+  return maxId + 1;
 };
 
 /**
- * Logs a new confession by mapping its ID to its Discord message ID.
+ * Retrieves the message ID for a given confession ID from the database.
+ * @param {number} confessionId The confession's sequential ID.
+ * @returns {Promise<string | undefined>} The Discord message ID, or undefined if not found.
+ */
+export const getConfessionMessageId = async (
+  confessionId: number,
+): Promise<string | undefined> => {
+  const result = await db
+    .select({ messageId: confessions.messageId })
+    .from(confessions)
+    .where(eq(confessions.id, confessionId));
+
+  return result[0]?.messageId;
+};
+
+/**
+ * Logs a new confession by inserting its ID and Discord message ID into the database.
  * @param {number} confessionId The confession's sequential ID.
  * @param {string} messageId The Discord message ID.
  */
@@ -84,7 +40,9 @@ export const logConfession = async (
   confessionId: number,
   messageId: string,
 ): Promise<void> => {
-  const data = await getConfessionData();
-  data.messageMap[confessionId] = messageId;
-  await saveConfessionData(data);
+  try {
+    await db.insert(confessions).values({ id: confessionId, messageId });
+  } catch (error) {
+    console.error("Error logging confession to database:", error);
+  }
 };

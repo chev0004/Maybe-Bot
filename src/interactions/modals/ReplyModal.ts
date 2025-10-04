@@ -14,7 +14,7 @@ import {
   getRandomColor,
 } from "../../utils/helpers/confessionHelper.js";
 import {
-  getConfessionData,
+  getConfessionMessageId,
   getNextConfessionId,
   logConfession,
 } from "../../utils/managers/confessionManager.js";
@@ -26,8 +26,7 @@ export default {
     const targetId = parseInt(targetIdStr, 10);
     const replyMessage = interaction.fields.getTextInputValue("reply_input");
 
-    const confessionData = await getConfessionData();
-    const originalMessageId = confessionData.messageMap[targetId];
+    const originalMessageId = await getConfessionMessageId(targetId);
 
     if (!originalMessageId) {
       console.warn(`Confession #${targetId} not found in messageMap.`);
