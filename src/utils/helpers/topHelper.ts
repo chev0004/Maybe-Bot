@@ -1,3 +1,5 @@
+// src/utils/helpers/topHelper.ts
+
 import {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -51,6 +53,16 @@ const categoryOptions = [
 const getDateCondition = (timeframe: TopTimeframe) => {
   if (timeframe === "all") return undefined;
   const days = parseInt(timeframe, 10);
+
+  if (Number.isNaN(days)) {
+    console.error(
+      `[getDateCondition] Invalid timeframe value received: "${timeframe}". Defaulting to 7 days to prevent crash.`,
+    );
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return sql`"date" >= ${date.toISOString().slice(0, 10)}`;
+  }
+
   const date = new Date();
   date.setDate(date.getDate() - days);
   return sql`"date" >= ${date.toISOString().slice(0, 10)}`;
@@ -75,7 +87,6 @@ async function getTopData(
       .where(dateCondition)
       .groupBy(dailyUserStats.userId)
       .as("statsSubquery");
-
     const results = await db
       .select({
         name: users.username,
@@ -92,7 +103,6 @@ async function getTopData(
     }));
   } else {
     if (category !== "messages" && category !== "vcHours") return [];
-
     const statsSubquery = db
       .select({
         channelId: dailyChannelStats.channelId,
@@ -150,6 +160,7 @@ export function generateComponentsForTop({
         default: opt.value === category,
       })),
     );
+
   const components: ActionRowBuilder<
     StringSelectMenuBuilder | ButtonBuilder
   >[] = [
@@ -296,6 +307,5 @@ export const generateTopReply = async ({
     timeframe,
     showTimeframeButtons,
   });
-
   return { files: [attachment], components };
 };
