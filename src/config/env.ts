@@ -28,6 +28,7 @@ export const config = {
     server: process.env.SERVER_ID as string,
     client: process.env.CLIENT_ID as string,
     guild: process.env.GUILD_ID as string,
+    testGuild: process.env.TEST_GUILD_ID as string,
     owner: process.env.OWNER_ID as string,
   },
   channels: {

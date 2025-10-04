@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { config } from "../../../config/env.js";
 import { db } from "../../../db/index.js";
 import {
   channels,
@@ -14,6 +15,10 @@ export default createListener(
   async (message) => {
     if (!message.inGuild()) return;
 
+    if (message.guild.id === config.ids.testGuild) {
+      return;
+    }
+
     const userId = message.author.id;
     const username = message.author.username;
     const channelId = message.channel.id;
@@ -28,10 +33,10 @@ export default createListener(
 
       await db
         .insert(channels)
-        .values({ id: channelId, name: channelName, type: "text" }) // Added type property
+        .values({ id: channelId, name: channelName, type: "text" })
         .onConflictDoUpdate({
           target: channels.id,
-          set: { name: channelName, type: "text" }, // Added type property
+          set: { name: channelName, type: "text" },
         });
 
       await db

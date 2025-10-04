@@ -76,8 +76,6 @@ discordClient.once("clientReady", async (client: Client<true>) => {
     console.error("[Startup] Failed to populate initial stats:", error);
   }
 
-  await loadAndProcessReminders(client);
-
   const restartInfo = getRestartInfo();
 
   if (restartInfo?.triggeringUserId && restartInfo.channelId) {

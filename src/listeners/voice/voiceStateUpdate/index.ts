@@ -4,6 +4,7 @@ import {
   type VoiceState,
 } from "discord.js";
 import { sql } from "drizzle-orm";
+import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { db } from "../../../db/index.js";
 import {
@@ -126,6 +127,10 @@ export default createListener(
   "voiceChannelLoggerAndStats",
   "voiceStateUpdate",
   async (oldState: VoiceState, newState: VoiceState) => {
+    if (newState.guild.id === config.ids.testGuild) {
+      return;
+    }
+
     const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
     if (!logChannelId) return;
 

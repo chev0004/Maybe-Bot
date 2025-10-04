@@ -1,4 +1,3 @@
-// src/utils/helpers/bumpHelper.ts
 import type { Client, Embed, Message, PartialMessage } from "discord.js";
 import { sql } from "drizzle-orm";
 import { config } from "../../config/env.js";
@@ -35,15 +34,13 @@ const isTextInEmbed = (embed: Embed, text: string): boolean => {
  * @returns {Promise<void>}
  */
 const logBump = async (userId: string, username: string): Promise<void> => {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
   try {
-    // Upsert user to ensure they exist with the latest username
     await db
       .insert(users)
       .values({ id: userId, username })
       .onConflictDoUpdate({ target: users.id, set: { username } });
 
-    // Increment daily user stats for bumps
     await db
       .insert(dailyUserStats)
       .values({ userId, date: today, bumps: 1 })
@@ -71,6 +68,10 @@ export const handleBump = async (
   bumpSource: string,
   bumpIdentifierText: string,
 ): Promise<void> => {
+  if (message.guild?.id === config.ids.testGuild) {
+    return;
+  }
+
   if (!message.embeds || message.embeds.length === 0) return;
   const embed = message.embeds[0];
 

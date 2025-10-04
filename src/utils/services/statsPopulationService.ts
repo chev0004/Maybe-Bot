@@ -1,5 +1,6 @@
 import { ChannelType, type Guild } from "discord.js";
 import { sql } from "drizzle-orm";
+import { config } from "../../config/env.js";
 import { db } from "../../db/index.js";
 import {
   channels,
@@ -9,6 +10,10 @@ import {
 } from "../../db/schema.js";
 
 export const populateInitialStats = async (guild: Guild): Promise<void> => {
+  if (guild.id === config.ids.testGuild) {
+    return;
+  } // Skip population for test server
+
   console.log(
     "[Stats Population] Starting population of users and channels...",
   );
@@ -33,7 +38,6 @@ export const populateInitialStats = async (guild: Guild): Promise<void> => {
       ChannelType.GuildStageVoice,
     ];
 
-    // FIX: Add an explicit type annotation here
     const channelData: { id: string; name: string; type: "text" | "voice" }[] =
       allChannels
         .filter(
@@ -44,7 +48,7 @@ export const populateInitialStats = async (guild: Guild): Promise<void> => {
         )
         .filter((channel) => channel !== null)
         .map((channel) => ({
-          id: channel.id, // Using non-null assertion as we filtered out nulls
+          id: channel.id,
           name: channel.name,
           type: textChannelTypes.includes(channel.type) ? "text" : "voice",
         }));
@@ -69,7 +73,7 @@ export const populateInitialStats = async (guild: Guild): Promise<void> => {
     if (channelData.length > 0) {
       await db
         .insert(channels)
-        .values(channelData) // This will now work without error
+        .values(channelData)
         .onConflictDoUpdate({
           target: channels.id,
           set: {
