@@ -325,6 +325,7 @@ const drawHeaderAndFooter = async (
 /**
  * Generates a leaderboard image.
  * @param {string} title The title of the leaderboard.
+ * @param {string | null} iconPath The local path to the icon for the title.
  * @param {LeaderboardItem[]} data The leaderboard data to display.
  * @param {string | null} serverIconUrl The URL of the server icon (can be null).
  * @param {string} serverName The name of the server.
@@ -332,6 +333,7 @@ const drawHeaderAndFooter = async (
  */
 export const generateLeaderboardImage = async (
   title: string,
+  iconPath: string | null,
   data: LeaderboardItem[],
   serverIconUrl: string | null,
   serverName: string,
@@ -347,8 +349,8 @@ export const generateLeaderboardImage = async (
   const itemGap = 8; // Space between items
   const headerHeight = 110;
   const footerHeight = 40;
-  const titleTopMargin = 16; // Space above title
-  const listTopMargin = 12; // Space above list
+  const titleTopMargin = 28; // Adjusted for vertical centering
+  const listTopMargin = 24; // Space above list
 
   const rows = data.length > 0 ? Math.ceil(data.length / 2) : 0;
   const listHeight = rows > 0 ? rows * itemHeight + (rows - 1) * itemGap : 0;
@@ -368,11 +370,27 @@ export const generateLeaderboardImage = async (
     serverName,
     timeframe,
   );
+  
   const titleY = headerHeight + titleTopMargin;
+  const iconSize = 24;
+  let currentX = 35;
+
+  if (iconPath) {
+    try {
+        const icon = await loadImage(path.resolve(process.cwd(), iconPath));
+        ctx.drawImage(icon, currentX, titleY - iconSize / 2 - 2, iconSize, iconSize);
+        currentX += iconSize + 6;
+    } catch (e) {
+        console.error("Failed to load leaderboard icon:", e);
+    }
+  }
+
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "bold 22px 'Noto Sans JP', 'Sans'";
   ctx.textAlign = "left";
-  ctx.fillText(title, 35, titleY);
+  ctx.textBaseline = "middle";
+  ctx.fillText(title, currentX, titleY - 2);
+  ctx.textBaseline = "alphabetic";
 
   await drawLeaderboardList(ctx, data, {
     startX: 30,
@@ -413,9 +431,9 @@ export const generateOverviewImage = async (
   const itemHeight = 50;
   const itemGap = 8;
   const sectionGap = 24;
-  const listTopMargin = 12;
+  const listTopMargin = 24;
   const titleHeight = 22;
-  const titleMargin = 16;
+  const titleMargin = 28;
   const headerHeight = 110;
   const footerHeight = 2;
   const messageRows = Math.max(
@@ -457,14 +475,32 @@ export const generateOverviewImage = async (
     timeframe,
   );
   let currentY = headerHeight + titleMargin;
+  
+  const iconSize = 24;
+  const iconPadding = 10;
+  const iconBasePath = "src/assets/icons";
 
-  if (messagesHeight > 0) {
+  const drawSectionTitle = async (title: string, iconName: string, x: number, y: number) => {
+    let currentX = x;
+    try {
+      const icon = await loadImage(path.resolve(process.cwd(), `${iconBasePath}/${iconName}.png`));
+      ctx.drawImage(icon, currentX, y - iconSize / 2 - 2, iconSize, iconSize);
+      currentX += iconSize + iconPadding;
+    } catch (e) {
+      console.error(`Failed to load icon ${iconName}:`, e);
+    }
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "bold 22px 'Noto Sans JP', 'Sans'";
     ctx.textAlign = "left";
-    ctx.fillText("💬 メッセージ・Top Messages", 35, currentY);
-    ctx.fillText("🆙 バンプ数・Top Bumpers", 445, currentY);
+    ctx.textBaseline = "middle";
+    ctx.fillText(title, currentX - 4, y - 2);
+    ctx.textBaseline = "alphabetic";
+  };
 
+  if (messagesHeight > 0) {
+    await drawSectionTitle("メッセージ・Top Messages", "chat", 35, currentY);
+    await drawSectionTitle("バンプ数・Top Bumpers", "bump", 445, currentY);
+    
     await drawLeaderboardList(ctx, data.messages.users, {
       startX: 30,
       startY: currentY + listTopMargin,
@@ -477,11 +513,8 @@ export const generateOverviewImage = async (
   }
 
   if (voiceHeight > 0) {
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 22px 'Noto Sans JP', 'Sans'";
-    ctx.textAlign = "left";
-    ctx.fillText("🔊 ボイス時間・Top VC Hours", 35, currentY);
-    ctx.fillText("🔴 配信時間・Top Stream Hours", 445, currentY);
+    await drawSectionTitle("ボイス時間・Top VC Hours", "mic", 35, currentY);
+    await drawSectionTitle("配信時間・Top Stream Hours", "stream", 445, currentY);
 
     await drawLeaderboardList(ctx, data.voice.users, {
       startX: 30,

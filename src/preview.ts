@@ -142,7 +142,8 @@ app.get(
     console.log("Generating /leaderboard/msg-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 メッセージ・Top Messages",
+        "メッセージ・Top Messages",
+        "src/assets/icons/chat.png",
         dummyUserMessages,
         serverIconUrl,
         serverName,
@@ -163,7 +164,8 @@ app.get(
     console.log("Generating /leaderboard/vc-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 ボイス時間・Top VC Hours",
+        "ボイス時間・Top VC Hours",
+        "src/assets/icons/mic.png",
         dummyUserVC,
         serverIconUrl,
         serverName,
@@ -184,7 +186,8 @@ app.get(
     console.log("Generating /leaderboard/stream-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 配信時間・Top Stream Hours",
+        "配信時間・Top Stream Hours",
+        "src/assets/icons/stream.png",
         dummyUserStreamHours,
         serverIconUrl,
         serverName,
@@ -205,7 +208,8 @@ app.get(
     console.log("Generating /leaderboard/bump-users image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 バンプ数・Top Bumpers",
+        "バンプ数・Top Bumpers",
+        "src/assets/icons/bump.png",
         dummyUserBumps,
         serverIconUrl,
         serverName,
@@ -226,7 +230,8 @@ app.get(
     console.log("Generating /leaderboard/msg-channels image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 送信メッセージ・Top Message Channels",
+        "送信メッセージ・Top Message Channels",
+        "src/assets/icons/chat.png",
         dummyChannelMessages,
         serverIconUrl,
         serverName,
@@ -247,7 +252,8 @@ app.get(
     console.log("Generating /leaderboard/vc-channels image...");
     try {
       const imageBuffer = await generateLeaderboardImage(
-        "🏆 ボイス時間・Top Voice Channels",
+        "ボイス時間・Top Voice Channels",
+        "src/assets/icons/mic.png",
         dummyChannelVC,
         serverIconUrl,
         serverName,

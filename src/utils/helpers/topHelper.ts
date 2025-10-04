@@ -201,15 +201,15 @@ export const generateTopReply = async ({
     };
     imageBuffer = await generateOverviewImage(data, serverIconUrl, guild.name, timeframeLabel);
   } else {
-    let title: string, dbCategory: "messages" | "vcHours" | "streamHours" | "bumps", type: "users" | "channels";
-    if (category === "msg_users") { title = "🏆 メッセージ・Top Messages"; dbCategory = "messages"; type = "users"; }
-    else if (category === "vc_users") { title = "🏆 ボイス時間・Top VC Hours"; dbCategory = "vcHours"; type = "users"; }
-    else if (category === "stream_users") { title = "🏆 配信時間・Top Stream Hours"; dbCategory = "streamHours"; type = "users"; }
-    else if (category === "bump_users") { title = "🏆 バンプ数・Top Bumpers"; dbCategory = "bumps"; type = "users"; }
-    else if (category === "msg_channels") { title = "🏆 送信メッセージ・Top Message Channels"; dbCategory = "messages"; type = "channels"; }
-    else { title = "🏆 ボイス時間・Top Voice Channels"; dbCategory = "vcHours"; type = "channels"; }
+    let title: string, dbCategory: "messages" | "vcHours" | "streamHours" | "bumps", type: "users" | "channels", iconPath: string;
+    if (category === "msg_users") { title = "メッセージ・Top Messages"; dbCategory = "messages"; type = "users"; iconPath = "src/assets/icons/chat.png"; }
+    else if (category === "vc_users") { title = "ボイス時間・Top VC Hours"; dbCategory = "vcHours"; type = "users"; iconPath = "src/assets/icons/mic.png"; }
+    else if (category === "stream_users") { title = "配信時間・Top Stream Hours"; dbCategory = "streamHours"; type = "users"; iconPath = "src/assets/icons/stream.png"; }
+    else if (category === "bump_users") { title = "バンプ数・Top Bumpers"; dbCategory = "bumps"; type = "users"; iconPath = "src/assets/icons/bump.png"; }
+    else if (category === "msg_channels") { title = "送信メッセージ・Top Message Channels"; dbCategory = "messages"; type = "channels"; iconPath = "src/assets/icons/chat.png"; }
+    else { title = "ボイス時間・Top Voice Channels"; dbCategory = "vcHours"; type = "channels"; iconPath = "src/assets/icons/mic.png"; }
     const data = await getTopData(dbCategory, type, timeframe, 10);
-    imageBuffer = await generateLeaderboardImage(title, data, serverIconUrl, guild.name, timeframeLabel);
+    imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel);
   }
 
   const attachment = new AttachmentBuilder(imageBuffer, { name: "leaderboard.png" });
