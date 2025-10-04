@@ -39,13 +39,13 @@ const timeframeLabels: Record<TopTimeframe, string> = {
 };
 
 const categoryOptions = [
-    { label: "Overview", value: "overview" },
-    { label: "Top Message Users", value: "msg_users" },
-    { label: "Top Voice Users", value: "vc_users" },
-    { label: "Top Bumpers", value: "bump_users" },
-    { label: "Top Streamers", value: "stream_users" },
-    { label: "Top Message Channels", value: "msg_channels" },
-    { label: "Top Voice Channels", value: "vc_channels" },
+  { label: "Overview", value: "overview" },
+  { label: "Top Message Users", value: "msg_users" },
+  { label: "Top Voice Users", value: "vc_users" },
+  { label: "Top Bumpers", value: "bump_users" },
+  { label: "Top Streamers", value: "stream_users" },
+  { label: "Top Message Channels", value: "msg_channels" },
+  { label: "Top Voice Channels", value: "vc_channels" },
 ];
 
 const getDateCondition = (timeframe: TopTimeframe) => {
@@ -138,30 +138,66 @@ export function generateComponentsForTop({
   showTimeframeButtons: boolean;
 }) {
   const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
-  const currentCategoryLabel = categoryOptions.find(opt => opt.value === category)?.label || "Select a category...";
-  
+  const currentCategoryLabel =
+    categoryOptions.find((opt) => opt.value === category)?.label ||
+    "Select a category...";
   const dropdown = new StringSelectMenuBuilder()
     .setCustomId(`top-category-${timeframe}-${showTimeframeFlag}`)
     .setPlaceholder(currentCategoryLabel)
-    .addOptions(categoryOptions.map(opt => ({ ...opt, default: opt.value === category })));
-
-  const components: ActionRowBuilder<any>[] = [
-    new ActionRowBuilder().addComponents(dropdown),
+    .addOptions(
+      categoryOptions.map((opt) => ({
+        ...opt,
+        default: opt.value === category,
+      })),
+    );
+  const components: ActionRowBuilder<
+    StringSelectMenuBuilder | ButtonBuilder
+  >[] = [
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(dropdown),
   ];
 
   if (showTimeframeButtons) {
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`top-timeframe-back-${category}-${timeframe}`).setEmoji({ id: "1423520590261780541" }).setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`top-select-${category}-1`).setLabel("1日").setStyle(timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`top-select-${category}-7`).setLabel("7日").setStyle(timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`top-select-${category}-30`).setLabel("30日").setStyle(timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`top-select-${category}-all`).setLabel("全期間").setStyle(timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary)
+      new ButtonBuilder()
+        .setCustomId(`top-timeframe-back-${category}-${timeframe}`)
+        .setEmoji({ id: "1423520590261780541" })
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`top-select-${category}-1`)
+        .setLabel("1日")
+        .setStyle(
+          timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
+      new ButtonBuilder()
+        .setCustomId(`top-select-${category}-7`)
+        .setLabel("7日")
+        .setStyle(
+          timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
+      new ButtonBuilder()
+        .setCustomId(`top-select-${category}-30`)
+        .setLabel("30日")
+        .setStyle(
+          timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
+      new ButtonBuilder()
+        .setCustomId(`top-select-${category}-all`)
+        .setLabel("全期間")
+        .setStyle(
+          timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
     );
     components.push(timeButtons);
   } else {
     const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId(`top-timeframe-show-${category}-${timeframe}`).setEmoji({ id: "1423521666159611914" }).setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`top-refresh-${category}-${timeframe}`).setEmoji({ id: "1423520588638453850" }).setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder()
+        .setCustomId(`top-timeframe-show-${category}-${timeframe}`)
+        .setEmoji({ id: "1423521666159611914" })
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`top-refresh-${category}-${timeframe}`)
+        .setEmoji({ id: "1423520588638453850" })
+        .setStyle(ButtonStyle.Secondary),
     );
     components.push(actionButtons);
   }
@@ -199,21 +235,67 @@ export const generateTopReply = async ({
       voice: { users: await getTopData("vcHours", "users", timeframe, 3) },
       stream: { users: await getTopData("streamHours", "users", timeframe, 3) },
     };
-    imageBuffer = await generateOverviewImage(data, serverIconUrl, guild.name, timeframeLabel);
+    imageBuffer = await generateOverviewImage(
+      data,
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
+    );
   } else {
-    let title: string, dbCategory: "messages" | "vcHours" | "streamHours" | "bumps", type: "users" | "channels", iconPath: string;
-    if (category === "msg_users") { title = "メッセージ・Top Messages"; dbCategory = "messages"; type = "users"; iconPath = "src/assets/icons/chat.png"; }
-    else if (category === "vc_users") { title = "ボイス時間・Top VC Hours"; dbCategory = "vcHours"; type = "users"; iconPath = "src/assets/icons/mic.png"; }
-    else if (category === "stream_users") { title = "配信時間・Top Stream Hours"; dbCategory = "streamHours"; type = "users"; iconPath = "src/assets/icons/stream.png"; }
-    else if (category === "bump_users") { title = "バンプ数・Top Bumpers"; dbCategory = "bumps"; type = "users"; iconPath = "src/assets/icons/bump.png"; }
-    else if (category === "msg_channels") { title = "送信メッセージ・Top Message Channels"; dbCategory = "messages"; type = "channels"; iconPath = "src/assets/icons/chat.png"; }
-    else { title = "ボイス時間・Top Voice Channels"; dbCategory = "vcHours"; type = "channels"; iconPath = "src/assets/icons/mic.png"; }
+    let title: string,
+      dbCategory: "messages" | "vcHours" | "streamHours" | "bumps",
+      type: "users" | "channels",
+      iconPath: string;
+    if (category === "msg_users") {
+      title = "メッセージ・Top Messages";
+      dbCategory = "messages";
+      type = "users";
+      iconPath = "src/assets/icons/chat.png";
+    } else if (category === "vc_users") {
+      title = "ボイス時間・Top VC Hours";
+      dbCategory = "vcHours";
+      type = "users";
+      iconPath = "src/assets/icons/mic.png";
+    } else if (category === "stream_users") {
+      title = "配信時間・Top Stream Hours";
+      dbCategory = "streamHours";
+      type = "users";
+      iconPath = "src/assets/icons/stream.png";
+    } else if (category === "bump_users") {
+      title = "バンプ数・Top Bumpers";
+      dbCategory = "bumps";
+      type = "users";
+      iconPath = "src/assets/icons/bump.png";
+    } else if (category === "msg_channels") {
+      title = "送信メッセージ・Top Message Channels";
+      dbCategory = "messages";
+      type = "channels";
+      iconPath = "src/assets/icons/chat.png";
+    } else {
+      title = "ボイス時間・Top Voice Channels";
+      dbCategory = "vcHours";
+      type = "channels";
+      iconPath = "src/assets/icons/mic.png";
+    }
     const data = await getTopData(dbCategory, type, timeframe, 10);
-    imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel);
+    imageBuffer = await generateLeaderboardImage(
+      title,
+      iconPath,
+      data,
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
+    );
   }
 
-  const attachment = new AttachmentBuilder(imageBuffer, { name: "leaderboard.png" });
-  const components = generateComponentsForTop({ category, timeframe, showTimeframeButtons });
+  const attachment = new AttachmentBuilder(imageBuffer, {
+    name: "leaderboard.png",
+  });
+  const components = generateComponentsForTop({
+    category,
+    timeframe,
+    showTimeframeButtons,
+  });
 
   return { files: [attachment], components };
 };
