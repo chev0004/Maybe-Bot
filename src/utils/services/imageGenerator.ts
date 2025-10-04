@@ -370,18 +370,24 @@ export const generateLeaderboardImage = async (
     serverName,
     timeframe,
   );
-  
+
   const titleY = headerHeight + titleTopMargin;
   const iconSize = 24;
   let currentX = 35;
 
   if (iconPath) {
     try {
-        const icon = await loadImage(path.resolve(process.cwd(), iconPath));
-        ctx.drawImage(icon, currentX, titleY - iconSize / 2 - 2, iconSize, iconSize);
-        currentX += iconSize + 6;
+      const icon = await loadImage(path.resolve(process.cwd(), iconPath));
+      ctx.drawImage(
+        icon,
+        currentX,
+        titleY - iconSize / 2 - 2,
+        iconSize,
+        iconSize,
+      );
+      currentX += iconSize + 6;
     } catch (e) {
-        console.error("Failed to load leaderboard icon:", e);
+      console.error("Failed to load leaderboard icon:", e);
     }
   }
 
@@ -475,15 +481,22 @@ export const generateOverviewImage = async (
     timeframe,
   );
   let currentY = headerHeight + titleMargin;
-  
+
   const iconSize = 24;
   const iconPadding = 10;
   const iconBasePath = "src/assets/icons";
 
-  const drawSectionTitle = async (title: string, iconName: string, x: number, y: number) => {
+  const drawSectionTitle = async (
+    title: string,
+    iconName: string,
+    x: number,
+    y: number,
+  ) => {
     let currentX = x;
     try {
-      const icon = await loadImage(path.resolve(process.cwd(), `${iconBasePath}/${iconName}.png`));
+      const icon = await loadImage(
+        path.resolve(process.cwd(), `${iconBasePath}/${iconName}.png`),
+      );
       ctx.drawImage(icon, currentX, y - iconSize / 2 - 2, iconSize, iconSize);
       currentX += iconSize + iconPadding;
     } catch (e) {
@@ -500,7 +513,7 @@ export const generateOverviewImage = async (
   if (messagesHeight > 0) {
     await drawSectionTitle("メッセージ・Top Messages", "chat", 35, currentY);
     await drawSectionTitle("バンプ数・Top Bumpers", "bump", 445, currentY);
-    
+
     await drawLeaderboardList(ctx, data.messages.users, {
       startX: 30,
       startY: currentY + listTopMargin,
@@ -514,7 +527,12 @@ export const generateOverviewImage = async (
 
   if (voiceHeight > 0) {
     await drawSectionTitle("ボイス時間・Top VC Hours", "mic", 35, currentY);
-    await drawSectionTitle("配信時間・Top Stream Hours", "stream", 445, currentY);
+    await drawSectionTitle(
+      "配信時間・Top Stream Hours",
+      "stream",
+      445,
+      currentY,
+    );
 
     await drawLeaderboardList(ctx, data.voice.users, {
       startX: 30,

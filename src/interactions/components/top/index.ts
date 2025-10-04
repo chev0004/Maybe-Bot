@@ -1,4 +1,3 @@
-
 import type {
   ButtonInteraction,
   StringSelectMenuInteraction,
@@ -18,7 +17,9 @@ async function processTopInteraction(
 
   const parts = interaction.customId.split("-");
   const action = parts[1];
-  let category: TopCategory, timeframe: TopTimeframe, showTimeframeButtons: boolean;
+  let category: TopCategory,
+    timeframe: TopTimeframe,
+    showTimeframeButtons: boolean;
 
   if (action === "timeframe") {
     const subAction = parts[2] as "show" | "back";
