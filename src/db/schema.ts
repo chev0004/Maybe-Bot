@@ -72,3 +72,8 @@ export const activeVcSessions = pgTable("active_vc_sessions", {
     withTimezone: true,
   }),
 });
+
+export const confessions = pgTable("confessions", {
+  id: integer("id").primaryKey(),
+  messageId: text("message_id").notNull(),
+});
