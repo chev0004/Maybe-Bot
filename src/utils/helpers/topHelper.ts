@@ -68,12 +68,12 @@ const getDateCondition = (timeframe: TopTimeframe) => {
   return sql`"date" >= ${date.toISOString().slice(0, 10)}`;
 };
 
-async function getTopData(
+const getTopData = async (
   category: "messages" | "vcHours" | "streamHours" | "bumps",
   type: "users" | "channels",
   timeframe: TopTimeframe,
   limit: number,
-): Promise<LeaderboardItem[]> {
+): Promise<LeaderboardItem[]> => {
   const dateCondition = getDateCondition(timeframe);
   if (type === "users") {
     const statsSubquery = db
@@ -136,9 +136,9 @@ async function getTopData(
       type: r.type,
     }));
   }
-}
+};
 
-export function generateComponentsForTop({
+export const generateComponentsForTop = ({
   category,
   timeframe,
   showTimeframeButtons,
@@ -146,7 +146,7 @@ export function generateComponentsForTop({
   category: TopCategory;
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
-}) {
+}) => {
   const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
   const currentCategoryLabel =
     categoryOptions.find((opt) => opt.value === category)?.label ||
@@ -213,7 +213,7 @@ export function generateComponentsForTop({
     components.push(actionButtons);
   }
   return components;
-}
+};
 
 export const generateInitialTopReply = async (guild: Guild) => {
   return generateTopReply({

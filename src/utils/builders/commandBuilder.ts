@@ -15,7 +15,6 @@ export type GuildCommandInteraction = ChatInputCommandInteraction<"cached"> & {
   channel: GuildBasedChannel;
 };
 
-// Make CommandDefinition generic over interaction type
 export interface CommandDefinition<
   I extends ChatInputCommandInteraction = ChatInputCommandInteraction,
 > {
@@ -30,6 +29,44 @@ export interface CommandDefinition<
 
 type ChannelKey = keyof typeof config.channels;
 
+type CreateCommandType = {
+  // Overload: guildOnly = true (default)
+  (
+    name: string,
+    description: string,
+    execute: (
+      interaction: GuildCommandInteraction,
+      client: Client<boolean>,
+      options: HandlerOptions,
+    ) => Promise<void>,
+    options?: {
+      ownerOnly?: boolean;
+      adminOnly?: boolean;
+      guildOnly?: true;
+      allowedChannels?: ChannelKey[];
+      setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
+    },
+  ): CommandDefinition<GuildCommandInteraction>;
+
+  // Overload: guildOnly = false
+  (
+    name: string,
+    description: string,
+    execute: (
+      interaction: ChatInputCommandInteraction<CacheType>,
+      client: Client<boolean>,
+      options: HandlerOptions,
+    ) => Promise<void>,
+    options: {
+      ownerOnly?: boolean;
+      adminOnly?: boolean;
+      guildOnly: false;
+      setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
+      allowedChannels?: ChannelKey[];
+    },
+  ): CommandDefinition<ChatInputCommandInteraction<CacheType>>;
+};
+
 /**
  * A custom command builder that simplifies creating chat input commands.
  * @param {string} name The name of the command.
@@ -43,45 +80,7 @@ type ChannelKey = keyof typeof config.channels;
  * @param {function(SlashCommandBuilder): SlashCommandBuilder} [options.setup] An optional function to configure the SlashCommandBuilder.
  * @returns {Object} A command object compatible with the bot's command handler.
  */
-
-// Overload: guildOnly = true (default)
-export function createCommand(
-  name: string,
-  description: string,
-  execute: (
-    interaction: GuildCommandInteraction,
-    client: Client<boolean>,
-    options: HandlerOptions,
-  ) => Promise<void>,
-  options?: {
-    ownerOnly?: boolean;
-    adminOnly?: boolean;
-    guildOnly?: true;
-    allowedChannels?: ChannelKey[];
-    setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
-  },
-): CommandDefinition<GuildCommandInteraction>;
-
-// Overload: guildOnly = false
-export function createCommand(
-  name: string,
-  description: string,
-  execute: (
-    interaction: ChatInputCommandInteraction<CacheType>,
-    client: Client<boolean>,
-    options: HandlerOptions,
-  ) => Promise<void>,
-  options: {
-    ownerOnly?: boolean;
-    adminOnly?: boolean;
-    guildOnly: false;
-    setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
-    allowedChannels?: ChannelKey[];
-  },
-): CommandDefinition<ChatInputCommandInteraction<CacheType>>;
-
-// Implementation
-export function createCommand<
+export const createCommand: CreateCommandType = <
   I extends ChatInputCommandInteraction = ChatInputCommandInteraction,
 >(
   name: string,
@@ -104,7 +103,7 @@ export function createCommand<
     setup?: (builder: SlashCommandBuilder) => SlashCommandBuilder;
     allowedChannels?: ChannelKey[];
   } = {},
-): CommandDefinition<I> {
+): CommandDefinition<I> => {
   const builder = new SlashCommandBuilder()
     .setName(name)
     .setDescription(description);
@@ -183,4 +182,4 @@ export function createCommand<
       await execute(interaction as I, client, options);
     },
   };
-}
+};

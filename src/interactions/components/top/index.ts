@@ -10,9 +10,9 @@ import {
   type TopTimeframe,
 } from "../../../utils/helpers/topHelper.js";
 
-async function processTopInteraction(
+const processTopInteraction = async (
   interaction: ButtonInteraction | StringSelectMenuInteraction,
-) {
+) => {
   if (!interaction.inGuild() || !interaction.guild) return;
 
   const parts = interaction.customId.split("-");
@@ -55,7 +55,7 @@ async function processTopInteraction(
 
   const { flags: _, ...rest } = reply;
   await interaction.editReply(rest);
-}
+};
 
 export default {
   customId: "top-",
