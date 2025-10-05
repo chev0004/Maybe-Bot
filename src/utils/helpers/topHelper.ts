@@ -254,12 +254,25 @@ export const generateTopReply = async ({
       data.map(async (item) => {
         if (!item.id) return item;
         const member = await mainGuild.members.fetch(item.id).catch(() => null);
-        const displayName = member ? member.displayName : item.name;
+        if (!member) {
+          return item;
+        }
 
-        const finalName =
-          displayName.toLowerCase() !== item.name.toLowerCase()
-            ? `${displayName} (${item.name})`
-            : displayName;
+        const serverNickname = member.nickname;
+        const username = member.user.username;
+        const displayName = member.displayName;
+
+        let finalName: string;
+
+        if (serverNickname) {
+          if (serverNickname.toLowerCase() !== username.toLowerCase()) {
+            finalName = `${serverNickname} (${username})`;
+          } else {
+            finalName = serverNickname;
+          }
+        } else {
+          finalName = `${displayName} (${username})`;
+        }
 
         return { ...item, name: finalName };
       }),
