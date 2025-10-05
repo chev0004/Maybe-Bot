@@ -1,15 +1,15 @@
-// src/utils/helpers/topHelper.ts
-
 import {
   ActionRowBuilder,
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
+  type Client,
   type Guild,
   type InteractionReplyOptions,
   StringSelectMenuBuilder,
 } from "discord.js";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { config } from "../../config/env.js";
 import { db } from "../../db/index.js";
 import {
   channels,
@@ -73,7 +73,7 @@ const getTopData = async (
   type: "users" | "channels",
   timeframe: TopTimeframe,
   limit: number,
-): Promise<LeaderboardItem[]> => {
+): Promise<(LeaderboardItem & { id?: string })[]> => {
   const dateCondition = getDateCondition(timeframe);
   if (type === "users") {
     const statsSubquery = db
@@ -89,6 +89,7 @@ const getTopData = async (
       .as("statsSubquery");
     const results = await db
       .select({
+        id: users.id,
         name: users.username,
         totalValue:
           sql<number>`coalesce(${statsSubquery.totalValue}, 0)`.mapWith(Number),
@@ -98,6 +99,7 @@ const getTopData = async (
       .orderBy(desc(sql`coalesce(${statsSubquery.totalValue}, 0)`))
       .limit(limit);
     return results.map((r) => ({
+      id: r.id,
       name: r.name || "Unknown",
       value: r.totalValue,
     }));
@@ -215,9 +217,10 @@ export const generateComponentsForTop = ({
   return components;
 };
 
-export const generateInitialTopReply = async (guild: Guild) => {
+export const generateInitialTopReply = async (guild: Guild, client: Client) => {
   return generateTopReply({
     guild,
+    client,
     category: "overview",
     timeframe: "7",
     showTimeframeButtons: false,
@@ -226,11 +229,13 @@ export const generateInitialTopReply = async (guild: Guild) => {
 
 export const generateTopReply = async ({
   guild,
+  client,
   category,
   timeframe,
   showTimeframeButtons,
 }: {
   guild: Guild;
+  client: Client;
   category: TopCategory;
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
@@ -239,12 +244,51 @@ export const generateTopReply = async ({
   const timeframeLabel = timeframeLabels[timeframe];
   let imageBuffer: Buffer;
 
+  const mainGuild = await client.guilds.fetch(config.ids.guild);
+  const formatDataWithNicknames = async (
+    data: (LeaderboardItem & { id?: string })[],
+  ) => {
+    if (!data.length || !data[0]?.id) return data;
+
+    const formattedData = await Promise.all(
+      data.map(async (item) => {
+        if (!item.id) return item;
+        const member = await mainGuild.members.fetch(item.id).catch(() => null);
+        const displayName = member ? member.displayName : item.name;
+
+        const finalName =
+          displayName.toLowerCase() !== item.name.toLowerCase()
+            ? `${displayName} (${item.name})`
+            : displayName;
+
+        return { ...item, name: finalName };
+      }),
+    );
+    return formattedData;
+  };
+
   if (category === "overview") {
     const data = {
-      messages: { users: await getTopData("messages", "users", timeframe, 3) },
-      bumps: { users: await getTopData("bumps", "users", timeframe, 3) },
-      voice: { users: await getTopData("vcHours", "users", timeframe, 3) },
-      stream: { users: await getTopData("streamHours", "users", timeframe, 3) },
+      messages: {
+        users: await formatDataWithNicknames(
+          await getTopData("messages", "users", timeframe, 3),
+        ),
+      },
+      bumps: {
+        users: await formatDataWithNicknames(
+          await getTopData("bumps", "users", timeframe, 3),
+        ),
+      },
+      voice: {
+        users: await formatDataWithNicknames(
+          await getTopData("vcHours", "users", timeframe, 3),
+        ),
+      },
+      stream: {
+        users: await formatDataWithNicknames(
+          await getTopData("streamHours", "users", timeframe, 3),
+        ),
+      },
     };
     imageBuffer = await generateOverviewImage(
       data,
@@ -288,7 +332,9 @@ export const generateTopReply = async ({
       type = "channels";
       iconPath = "src/assets/icons/mic.png";
     }
-    const data = await getTopData(dbCategory, type, timeframe, 10);
+    const rawData = await getTopData(dbCategory, type, timeframe, 10);
+    const data =
+      type === "users" ? await formatDataWithNicknames(rawData) : rawData;
     imageBuffer = await generateLeaderboardImage(
       title,
       iconPath,

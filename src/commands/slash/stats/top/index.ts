@@ -8,7 +8,10 @@ export default createCommand(
   async (interaction) => {
     await interaction.deferReply();
 
-    const initialReply = await generateInitialTopReply(interaction.guild);
+    const initialReply = await generateInitialTopReply(
+      interaction.guild,
+      interaction.client,
+    );
 
     // FIX: Destructure the reply to remove the 'flags' property, making it compatible with editReply.
     const { flags: _, ...rest } = initialReply;

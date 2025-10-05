@@ -48,6 +48,7 @@ const processTopInteraction = async (
 
   const reply = await generateTopReply({
     guild: interaction.guild,
+    client: interaction.client,
     category,
     timeframe,
     showTimeframeButtons,
