@@ -12,7 +12,7 @@ import {
 export const populateInitialStats = async (guild: Guild): Promise<void> => {
   if (guild.id === config.ids.testGuild) {
     return;
-  } // Skip population for test server
+  }
 
   console.log(
     "[Stats Population] Starting population of users and channels...",
