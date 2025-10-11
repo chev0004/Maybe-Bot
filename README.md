@@ -256,6 +256,6 @@ npm run format
 
 ## 💡 Motivation
 
-Maybe-Bot began as a way to bring new, fun, and useful features to my Discord community. As I started building it, the project also became the perfect opportunity to apply the architectural patterns and modern tooling I used in my professional work. My interest in language learning also found its place, leading me to develop the bot to be fully bilingual, creating a unique tool that reflects my passions for coding, community, and language.
+Maybe-Bot began as a way to bring new, fun, and useful features to my Discord community. As I started building it, the project also became the perfect opportunity to apply the architectural patterns and modern tooling I used in my professional work.
 
 ---
