@@ -186,7 +186,7 @@ Create a temporary voice channel.
 
 1. リポジトリをクローン  
    Clone the repository  
-   `git clone https://github.com/chev0004/Maybe-Bot.git`
+   `git clone https://github.com/chev0004/maybe-bot.git`
 2. 依存関係をインストール  
    Install dependencies  
    `npm install`
