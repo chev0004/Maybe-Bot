@@ -41,7 +41,7 @@ Purge messages up to a specific message.
 
 ---
 
-### 🧭 マネジメント | Management
+### 🧭 管理 | Management
 
 #### `/listunverified`
 認証ロールを持たないメンバーをリスト表示。  
