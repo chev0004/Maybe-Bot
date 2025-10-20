@@ -13,6 +13,7 @@ import {
   PermissionsBitField,
 } from "discord.js";
 import { Colors } from "../../../../constants/Colors.js";
+import { Strings } from "../../../../constants/Strings.js";
 import { createMenuCommand } from "../../../../utils/builders/menuCommandBuilder.js";
 
 const FOURTEEN_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 14;
@@ -33,8 +34,7 @@ export default createMenuCommand(
       !interaction.channel.isTextBased()
     ) {
       await interaction.editReply({
-        content:
-          "このコマンドはサーバーのテキストチャンネルでのみ使用できます。\nThis command can only be used in a server text channel.",
+        content: Strings.Replies.GuildOnly,
       });
       return;
     }
@@ -46,8 +46,10 @@ export default createMenuCommand(
       )
     ) {
       await interaction.editReply({
-        content:
-          "ボットに「メッセージの管理」権限がありません。\nI don't have the 'Manage Messages' permission to perform this action.",
+        content: Strings.Permissions.BotMissing(
+          "メッセージの管理",
+          "Manage Messages",
+        ),
       });
       return;
     }
@@ -91,8 +93,7 @@ export default createMenuCommand(
     } catch (error) {
       console.error("Error during message fetching for purge:", error);
       await interaction.editReply({
-        content:
-          "メッセージの取得中にエラーが発生しました。\nAn error occurred while fetching messages.",
+        content: Strings.Errors.FetchMessages,
       });
       return;
     }
@@ -196,9 +197,7 @@ export default createMenuCommand(
       const timedOutEmbed = new EmbedBuilder()
         .setColor(Colors.yellow)
         .setTitle("タイムアウト / Timed Out")
-        .setDescription(
-          "15秒以内に確認が取れなかったため、キャンセルしました。\nConfirmation not received within 15 seconds, canceling.",
-        );
+        .setDescription(Strings.Replies.ConfirmationTimeout);
 
       const timedOutRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         confirmButton.setDisabled(true),
