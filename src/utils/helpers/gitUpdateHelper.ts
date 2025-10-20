@@ -3,6 +3,8 @@ import { setColor } from "./ansiColorHelper.js";
 const summaryLineRegex = /(\d+ files? changed.*)/;
 const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
 const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
+const mergeCommitRegex =
+  /^Merge (pull request|PR) #(\d+) from (\S+)|Merge branch '(\S+)'/;
 
 interface GitUpdateOutput {
   changes: string;
@@ -25,9 +27,28 @@ export const parseGitUpdateOutput = (
   const changes = commitLog
     .split("\n")
     .map((line) => {
+      if (!line.trim()) return "";
       const parts = line.split(" - ");
-      return `${setColor("dimYellow", parts[0])} - ${parts.slice(1).join(" - ")}`;
+      const hash = parts[0];
+      const message = parts.slice(1).join(" - ");
+
+      const mergeMatch = message.match(mergeCommitRegex);
+      if (mergeMatch) {
+        let shortMessage: string;
+        if (mergeMatch[2] && mergeMatch[3]) {
+          shortMessage = `Merged PR #${mergeMatch[2]} from ${mergeMatch[3]}`;
+        } else if (mergeMatch[4]) {
+          shortMessage = `Merged branch '${mergeMatch[4]}'`;
+        } else {
+          shortMessage =
+            message.length > 50 ? `${message.slice(0, 47)}...` : message;
+        }
+        return `${setColor("dimYellow", hash)} - ${setColor("dimCyan", shortMessage)}`;
+      }
+
+      return `${setColor("dimYellow", hash)} - ${message}`;
     })
+    .filter((line) => line)
     .join("\n");
   let repoUrl = "https://github.com/chev0004/Maybe-Bot";
   let branchName = "develop";
@@ -82,5 +103,8 @@ export const parseGitUpdateOutput = (
     files = formattedFileLines.join("\n");
   }
 
-  return { changes, files, repo };
+  const finalChanges =
+    changes.trim() ||
+    setColor("dimRed", "No new commits found or error parsing log.");
+  return { changes: finalChanges, files, repo };
 };
