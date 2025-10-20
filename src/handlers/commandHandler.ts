@@ -132,13 +132,6 @@ export default class CommandHandler {
           2,
         ),
       );
-      const topCommandData = this.commandsArray.find(
-        (cmd) => cmd.name === "top",
-      );
-      console.log(
-        "/top command data being sent:",
-        JSON.stringify(topCommandData, null, 2),
-      );
 
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
         body: this.commandsArray,
