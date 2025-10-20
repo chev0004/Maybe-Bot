@@ -5,6 +5,7 @@ import { Colors } from "../../../../constants/Colors.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 import { parseGitUpdateOutput } from "../../../../utils/helpers/gitUpdateHelper.js";
 import { setRestartInfo } from "../../../../utils/managers/dataManager.js";
+import { getMockUpdateData, parseMockGitUpdateOutput } from "./update.mock.js";
 
 const execPromise = util.promisify(exec);
 const PULLED_BRANCH = "develop";
@@ -20,45 +21,8 @@ export default createCommand(
     if (isTestMode) {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      let fakeCommitLog: string,
-        fakePullStdout: string,
-        fakeFetchStderr: string,
-        fakeNpmOutput: string = "";
-      let needsNpmInstall = false;
-      let npmFieldName = "NPM Install (Simulated)";
-
-      switch (testScenario) {
-        case "rename":
-          fakeCommitLog = "1ecc43f - refactor: rename folder";
-          fakePullStdout = `Updating 442cd19..1ecc43f\nFast-forward\n src/commands/{confessions => social}/confess/index.js | 0\n 2 files changed, 0 insertions(+), 0 deletions(-)\n rename src/commands/{confessions => social}/confess/index.js (100%)`;
-          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   442cd19..1ecc43f  develop    -> origin/develop`;
-          break;
-        case "npm":
-          fakeCommitLog = "a1b2c3d - feat: add new dependency";
-          fakePullStdout = `Updating 1ecc43f..a1b2c3d\nFast-forward\n package.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)`;
-          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   1ecc43f..a1b2c3d  develop    -> origin/develop`;
-          needsNpmInstall = true;
-          npmFieldName = "依存関係 / Dependencies (Simulated)";
-          fakeNpmOutput = [
-            "+ some-new-package@1.2.3",
-            "+ another-dependency@4.5.6",
-            "",
-            "Added 2 packages, audited 153 packages in 4.2s",
-            "Found 3 low severity vulnerabilities",
-          ].join("\n");
-          break;
-        default:
-          fakeCommitLog = "442cd19 - test: see git output";
-          fakePullStdout = `Updating 2c3c50f..442cd19\nFast-forward\n src/commands/owneronly/update/index.js | 1 +\n 1 file changed, 1 insertion(+)`;
-          fakeFetchStderr = `From https://github.com/chev0004/Maybe-Bot\n   2c3c50f..442cd19  develop    -> origin/develop`;
-          break;
-      }
-
-      const { changes, files, repo } = parseGitUpdateOutput(
-        fakeCommitLog,
-        fakePullStdout,
-        fakeFetchStderr,
-      );
+      const mockData = getMockUpdateData(testScenario);
+      const { changes, files, repo } = parseMockGitUpdateOutput(testScenario);
 
       const embed = new EmbedBuilder()
         .setTitle(`BOTの更新 (TEST${isForceMode ? " / FORCE" : ""})`)
@@ -83,11 +47,10 @@ export default createCommand(
         .setFooter({
           text: `BOTは再起動しません • ${new Date().toLocaleDateString("ja-JP")}`,
         });
-
-      if (needsNpmInstall) {
+      if (mockData.needsNpmInstall) {
         embed.addFields({
-          name: npmFieldName,
-          value: `\`\`\`\n${fakeNpmOutput}\n\`\`\``,
+          name: mockData.npmFieldName || "NPM Install (Simulated)",
+          value: `\`\`\`\n${mockData.npmOutput || "Simulated NPM install output."}\n\`\`\``,
         });
       }
 
@@ -96,7 +59,6 @@ export default createCommand(
     }
 
     await interaction.deferReply();
-
     const embed = new EmbedBuilder()
       .setTitle(`BOTの更新${isForceMode ? " (FORCE)" : ""}`)
       .setColor(Colors.yellow)
@@ -105,11 +67,9 @@ export default createCommand(
 
     try {
       const { stderr: fetchStderr } = await execPromise("git fetch origin");
-
       const { stdout: commitLog } = await execPromise(
         `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
       );
-
       const { stdout: packageJsonDiff } = await execPromise(
         `git diff HEAD..origin/${PULLED_BRANCH} -- package.json`,
       );
@@ -128,7 +88,6 @@ export default createCommand(
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
-
       const { stdout: pullStdout } = await execPromise(pullCommand);
 
       const { changes, files, repo } = parseGitUpdateOutput(
@@ -136,7 +95,6 @@ export default createCommand(
         pullStdout,
         fetchStderr,
       );
-
       embed
         .setColor(Colors.green)
         .setDescription("正常に更新されました。")
@@ -154,7 +112,6 @@ export default createCommand(
             value: `\`\`\`ansi\n${repo}\n\`\`\``,
           },
         );
-
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
@@ -164,21 +121,18 @@ export default createCommand(
 
         try {
           const { stdout: npmStdout } = await execPromise("npm install");
-
           const addedMatch = npmStdout.match(/added (\d+ packages?)/);
           const auditMatch = npmStdout.match(/audited (\d+ packages?)/);
           const timeMatch = npmStdout.match(/in (\d+s|\d+\.\d+s)/);
           const vulnerabilityMatch = npmStdout.match(
             /(\d+)\s+(low|moderate|high|critical)\s+severity vulnerabilities/,
           );
-
           const summaryLines = [];
           if (addedMatch) summaryLines.push(`- Added: ${addedMatch[1]}`);
           if (auditMatch) summaryLines.push(`- Audited: ${auditMatch[1]}`);
           if (timeMatch) summaryLines.push(`- Time: ${timeMatch[1]}`);
           if (vulnerabilityMatch)
             summaryLines.push(`- Vulnerabilities: ${vulnerabilityMatch[0]}`);
-
           embed.spliceFields(-1, 1, {
             name: "依存関係 / Dependencies",
             value: `\`\`\`\n${summaryLines.join("\n")}\n\`\`\``,
@@ -226,11 +180,11 @@ export default createCommand(
           name: "Error",
           value: `\`\`\`\n${err.stderr || err.message}\n\`\`\``,
         });
-
       await interaction.editReply({ embeds: [embed] }).catch(console.error);
     }
   },
   {
+    ownerOnly: true,
     setup: (builder) => {
       builder
         .addBooleanOption((option) =>

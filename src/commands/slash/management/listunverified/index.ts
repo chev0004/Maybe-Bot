@@ -1,14 +1,20 @@
 import {
   EmbedBuilder,
   type Guild,
-  type GuildMember,
+  type InteractionEditReplyOptions,
   PermissionsBitField,
   type Role,
 } from "discord.js";
 import { config } from "../../../../config/env.js";
+
 import { Colors } from "../../../../constants/Colors.js";
+
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
-import { generatePage } from "../../../../utils/helpers/listUnverifiedHelper.js";
+import {
+  generatePage,
+  type UnverifiedMember,
+} from "../../../../utils/helpers/listUnverifiedHelper.js";
+import { mockData as listUnverifiedMockData } from "./listunverified.mock.js";
 
 const sortFunctions = {
   username: (
@@ -23,38 +29,13 @@ const sortFunctions = {
   ) => a.user.createdTimestamp - b.user.createdTimestamp,
 };
 
-export const generateFakeMembers = () => {
-  const fakeMembers = [];
-  const totalFakes = 151;
-  for (let i = 0; i < totalFakes; i++) {
-    const fakeId = (
-      BigInt(Date.now()) -
-      BigInt(i * 100000) +
-      BigInt(Math.floor(Math.random() * 10000))
-    ).toString();
-    const threeYearsInMillis = 3 * 365 * 24 * 60 * 60 * 1000;
-    const createdAt =
-      Date.now() - Math.floor(Math.random() * threeYearsInMillis);
-    const joinedAt =
-      createdAt + Math.floor(Math.random() * (Date.now() - createdAt));
-
-    fakeMembers.push({
-      id: fakeId,
-      joinedTimestamp: joinedAt,
-      user: {
-        id: fakeId,
-        bot: false,
-        username: `FakeUser${String(i + 1).padStart(3, "0")}`,
-        createdTimestamp: createdAt,
-      },
-      roles: {
-        cache: {
-          has: () => false,
-        },
-      },
-    });
-  }
-  return fakeMembers;
+/**
+ * Generates fake members for testing purposes.
+ * Note: This function is only intended for use within the test mode of the command.
+ * @returns An array of fake member objects adhering to the UnverifiedMember structure.
+ */
+export const generateFakeMembers = (): UnverifiedMember[] => {
+  return listUnverifiedMockData.default();
 };
 
 export default createCommand(
@@ -65,11 +46,10 @@ export default createCommand(
 
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const guild = interaction.guild as Guild;
-    let memberArray: GuildMember[] | ReturnType<typeof generateFakeMembers> =
-      [];
+    let memberArray: UnverifiedMember[] = [];
 
     if (isTestMode) {
-      memberArray = generateFakeMembers();
+      memberArray = listUnverifiedMockData.default();
     } else {
       const verifiedRoleId = config.roles.verified;
       if (!verifiedRoleId) {
@@ -106,14 +86,14 @@ export default createCommand(
         await interaction.editReply({ embeds: [embed] });
         return;
       }
-      memberArray = Array.from(membersWithoutRole.values());
+      memberArray = Array.from(
+        membersWithoutRole.values(),
+      ) as UnverifiedMember[];
     }
 
     const initialSortCriteria = "username";
     const initialSortOrder = "asc";
-
     memberArray.sort(sortFunctions[initialSortCriteria]);
-
     const initialPage = generatePage(
       memberArray,
       initialSortCriteria,
@@ -121,8 +101,8 @@ export default createCommand(
       0,
       isTestMode,
     );
-
-    await interaction.editReply(initialPage as { embeds: EmbedBuilder[] });
+    const { flags: _, ...replyOptions } = initialPage;
+    await interaction.editReply(replyOptions as InteractionEditReplyOptions);
   },
   {
     adminOnly: true,
