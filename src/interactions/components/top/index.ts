@@ -19,31 +19,41 @@ const processTopInteraction = async (
   const action = parts[1];
   let category: TopCategory,
     timeframe: TopTimeframe,
-    showTimeframeButtons: boolean;
+    showTimeframeButtons: boolean,
+    isTestMode: boolean;
 
   if (action === "timeframe") {
     const subAction = parts[2] as "show" | "back";
     category = parts[3] as TopCategory;
     timeframe = parts[4] as TopTimeframe;
+    isTestMode = parts[5] === "1";
     showTimeframeButtons = subAction === "show";
 
     const newComponents = generateComponentsForTop({
       category,
       timeframe,
       showTimeframeButtons,
+      isTestMode,
     });
     await interaction.editReply({ components: newComponents });
     return;
   }
 
-  if (interaction.isStringSelectMenu()) {
+  if (action === "refresh") {
+    category = parts[2] as TopCategory;
+    timeframe = parts[3] as TopTimeframe;
+    isTestMode = parts[4] === "1";
+    showTimeframeButtons = false;
+  } else if (interaction.isStringSelectMenu()) {
     category = interaction.values[0] as TopCategory;
     timeframe = parts[2] as TopTimeframe;
     showTimeframeButtons = parts[3] === "1";
+    isTestMode = parts[4] === "1";
   } else {
     category = parts[2] as TopCategory;
     timeframe = parts[3] as TopTimeframe;
     showTimeframeButtons = action === "select";
+    isTestMode = parts[4] === "1";
   }
 
   const reply = await generateTopReply({
@@ -52,6 +62,7 @@ const processTopInteraction = async (
     category,
     timeframe,
     showTimeframeButtons,
+    isTestMode,
   });
 
   const { flags: _, ...rest } = reply;
