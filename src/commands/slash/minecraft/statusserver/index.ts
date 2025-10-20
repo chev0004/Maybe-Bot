@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../../constants/Colors.js";
+import { Strings } from "../../../../constants/Strings.js";
 import type { HandlerOptions } from "../../../../handlers/commandHandler.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 
@@ -70,7 +71,7 @@ export default createCommand(
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       console.error("Error fetching server status:", error);
-      await interaction.editReply("サーバー情報の取得に失敗しました。");
+      await interaction.editReply(Strings.Errors.FetchServerInfo);
     }
   },
 );
