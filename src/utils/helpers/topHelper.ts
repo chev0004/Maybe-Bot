@@ -1,3 +1,4 @@
+/// File: src/utils/helpers/topHelper.ts
 import {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -9,6 +10,7 @@ import {
   StringSelectMenuBuilder,
 } from "discord.js";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { getMockTopData } from "../../commands/slash/stats/top/top.mock.js";
 import { config } from "../../config/env.js";
 import { db } from "../../db/index.js";
 import {
@@ -21,6 +23,7 @@ import {
   generateLeaderboardImage,
   generateOverviewImage,
   type LeaderboardItem,
+  type OverviewData,
 } from "../services/imageGenerator.js";
 
 export type TopCategory =
@@ -32,14 +35,12 @@ export type TopCategory =
   | "msg_channels"
   | "vc_channels";
 export type TopTimeframe = "1" | "7" | "30" | "all";
-
-const timeframeLabels: Record<TopTimeframe, string> = {
+export const timeframeLabels: Record<TopTimeframe, string> = {
   "1": "過去24時間",
   "7": "過去7日間",
   "30": "過去30日間",
   all: "全期間",
 };
-
 const categoryOptions = [
   { label: "Overview", value: "overview" },
   { label: "Top Message Users", value: "msg_users" },
@@ -49,11 +50,9 @@ const categoryOptions = [
   { label: "Top Message Channels", value: "msg_channels" },
   { label: "Top Voice Channels", value: "vc_channels" },
 ];
-
 const getDateCondition = (timeframe: TopTimeframe) => {
   if (timeframe === "all") return undefined;
   const days = parseInt(timeframe, 10);
-
   if (Number.isNaN(days)) {
     console.error(
       `[getDateCondition] Invalid timeframe value received: "${timeframe}". Defaulting to 7 days to prevent crash.`,
@@ -104,10 +103,12 @@ const getTopData = async (
       value: r.totalValue,
     }));
   } else {
+    // Correctly handle channel types for category
     if (category !== "messages" && category !== "vcHours") return [];
     const statsSubquery = db
       .select({
         channelId: dailyChannelStats.channelId,
+        // Ensure category is correctly indexed here
         totalValue: sql<number>`sum(${dailyChannelStats[category]})`
           .mapWith(Number)
           .as("totalValue"),
@@ -116,10 +117,14 @@ const getTopData = async (
       .where(dateCondition)
       .groupBy(dailyChannelStats.channelId)
       .as("statsSubquery");
+
     const conditions = [];
     if (category === "vcHours") {
       conditions.push(eq(channels.type, "voice"));
+    } else if (category === "messages") {
+      conditions.push(eq(channels.type, "text"));
     }
+
     const results = await db
       .select({
         name: channels.name,
@@ -132,6 +137,7 @@ const getTopData = async (
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(sql`coalesce(${statsSubquery.totalValue}, 0)`))
       .limit(limit);
+
     return results.map((r) => ({
       name: r.name || "Unknown",
       value: r.totalValue,
@@ -144,17 +150,22 @@ export const generateComponentsForTop = ({
   category,
   timeframe,
   showTimeframeButtons,
+  isTestMode = false,
 }: {
   category: TopCategory;
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
+  isTestMode?: boolean;
 }) => {
   const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
+  const testModeFlag = isTestMode ? "1" : "0";
   const currentCategoryLabel =
     categoryOptions.find((opt) => opt.value === category)?.label ||
     "Select a category...";
   const dropdown = new StringSelectMenuBuilder()
-    .setCustomId(`top-category-${timeframe}-${showTimeframeFlag}`)
+    .setCustomId(
+      `top-category-${timeframe}-${showTimeframeFlag}-${testModeFlag}`,
+    )
     .setPlaceholder(currentCategoryLabel)
     .addOptions(
       categoryOptions.map((opt) => ({
@@ -162,39 +173,39 @@ export const generateComponentsForTop = ({
         default: opt.value === category,
       })),
     );
-
   const components: ActionRowBuilder<
     StringSelectMenuBuilder | ButtonBuilder
   >[] = [
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(dropdown),
   ];
-
   if (showTimeframeButtons) {
     const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`top-timeframe-back-${category}-${timeframe}`)
-        .setEmoji({ id: "1423520590261780541" })
+        .setCustomId(
+          `top-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
+        )
+        .setEmoji({ id: "1423520590261780541" }) // Ensure this ID is correct
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId(`top-select-${category}-1`)
+        .setCustomId(`top-select-${category}-1-${testModeFlag}`)
         .setLabel("1日")
         .setStyle(
           timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
-        .setCustomId(`top-select-${category}-7`)
+        .setCustomId(`top-select-${category}-7-${testModeFlag}`)
         .setLabel("7日")
         .setStyle(
           timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
-        .setCustomId(`top-select-${category}-30`)
+        .setCustomId(`top-select-${category}-30-${testModeFlag}`)
         .setLabel("30日")
         .setStyle(
           timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
-        .setCustomId(`top-select-${category}-all`)
+        .setCustomId(`top-select-${category}-all-${testModeFlag}`)
         .setLabel("全期間")
         .setStyle(
           timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary,
@@ -204,12 +215,14 @@ export const generateComponentsForTop = ({
   } else {
     const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`top-timeframe-show-${category}-${timeframe}`)
-        .setEmoji({ id: "1423521666159611914" })
+        .setCustomId(
+          `top-timeframe-show-${category}-${timeframe}-${testModeFlag}`,
+        )
+        .setEmoji({ id: "1423521666159611914" }) // Ensure this ID is correct
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId(`top-refresh-${category}-${timeframe}`)
-        .setEmoji({ id: "1423520588638453850" })
+        .setCustomId(`top-refresh-${category}-${timeframe}-${testModeFlag}`)
+        .setEmoji({ id: "1423520588638453850" }) // Ensure this ID is correct
         .setStyle(ButtonStyle.Secondary),
     );
     components.push(actionButtons);
@@ -224,18 +237,17 @@ export const generateInitialTopReply = async (guild: Guild, client: Client) => {
     category: "overview",
     timeframe: "7",
     showTimeframeButtons: false,
+    isTestMode: false,
   });
 };
 
-export const generateTopReply = async ({
+export const generateMockTopReply = async ({
   guild,
-  client,
   category,
   timeframe,
   showTimeframeButtons,
 }: {
   guild: Guild;
-  client: Client;
   category: TopCategory;
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
@@ -244,18 +256,99 @@ export const generateTopReply = async ({
   const timeframeLabel = timeframeLabels[timeframe];
   let imageBuffer: Buffer;
 
+  const data = getMockTopData(category, timeframe);
+  if (category === "overview") {
+    // Explicitly cast to OverviewData
+    imageBuffer = await generateOverviewImage(
+      data as OverviewData,
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
+    );
+  } else {
+    let title: string, iconPath: string;
+    if (category === "msg_users") {
+      title = "メッセージ・Top Messages";
+      iconPath = "src/assets/icons/chat.png";
+    } else if (category === "vc_users") {
+      title = "ボイス時間・Top VC Hours";
+      iconPath = "src/assets/icons/mic.png";
+    } else if (category === "stream_users") {
+      title = "配信時間・Top Stream Hours";
+      iconPath = "src/assets/icons/stream.png";
+    } else if (category === "bump_users") {
+      title = "バンプ数・Top Bumpers";
+      iconPath = "src/assets/icons/bump.png";
+    } else if (category === "msg_channels") {
+      title = "送信メッセージ・Top Message Channels";
+      iconPath = "src/assets/icons/chat.png";
+    } else {
+      // vc_channels
+      title = "ボイス時間・Top Voice Channels";
+      iconPath = "src/assets/icons/mic.png";
+    }
+
+    imageBuffer = await generateLeaderboardImage(
+      title,
+      iconPath,
+      data as LeaderboardItem[],
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
+    );
+  }
+
+  const attachment = new AttachmentBuilder(imageBuffer, {
+    name: "leaderboard.png",
+  });
+  const components = generateComponentsForTop({
+    category,
+    timeframe,
+    showTimeframeButtons,
+    isTestMode: true,
+  });
+  return { files: [attachment], components };
+};
+
+export const generateTopReply = async ({
+  guild,
+  client,
+  category,
+  timeframe,
+  showTimeframeButtons,
+  isTestMode,
+}: {
+  guild: Guild;
+  client: Client;
+  category: TopCategory;
+  timeframe: TopTimeframe;
+  showTimeframeButtons: boolean;
+  isTestMode: boolean;
+}): Promise<InteractionReplyOptions> => {
+  if (isTestMode) {
+    return generateMockTopReply({
+      guild,
+      category,
+      timeframe,
+      showTimeframeButtons,
+    });
+  }
+
+  const serverIconUrl = guild.iconURL({ extension: "png", size: 128 });
+  const timeframeLabel = timeframeLabels[timeframe];
+  let imageBuffer: Buffer;
   const mainGuild = await client.guilds.fetch(config.ids.guild);
   const formatDataWithNicknames = async (
     data: (LeaderboardItem & { id?: string })[],
   ) => {
     if (!data.length || !data[0]?.id) return data;
-
     const formattedData = await Promise.all(
       data.map(async (item) => {
         if (!item.id) return item;
         const member = await mainGuild.members.fetch(item.id).catch(() => null);
         if (!member) {
-          return item;
+          // Keep original name if member not found
+          return { ...item, name: item.name || `User (${item.id})` };
         }
 
         const serverNickname = member.nickname;
@@ -264,14 +357,20 @@ export const generateTopReply = async ({
 
         let finalName: string;
 
+        // Logic prioritizing nickname, then display name, ensuring username is included if different
         if (serverNickname) {
-          if (serverNickname.toLowerCase() !== username.toLowerCase()) {
+          if (
+            serverNickname.toLowerCase() !== username.toLowerCase() &&
+            serverNickname.toLowerCase() !== displayName.toLowerCase()
+          ) {
             finalName = `${serverNickname} (${username})`;
           } else {
             finalName = serverNickname;
           }
-        } else {
+        } else if (displayName.toLowerCase() !== username.toLowerCase()) {
           finalName = `${displayName} (${username})`;
+        } else {
+          finalName = username; // Use username if display name is the same
         }
 
         return { ...item, name: finalName };
@@ -281,7 +380,8 @@ export const generateTopReply = async ({
   };
 
   if (category === "overview") {
-    const data = {
+    // Prepare data structure matching OverviewData
+    const overviewData: OverviewData = {
       messages: {
         users: await formatDataWithNicknames(
           await getTopData("messages", "users", timeframe, 3),
@@ -304,7 +404,7 @@ export const generateTopReply = async ({
       },
     };
     imageBuffer = await generateOverviewImage(
-      data,
+      overviewData, // Pass the correctly typed object
       serverIconUrl,
       guild.name,
       timeframeLabel,
@@ -340,6 +440,7 @@ export const generateTopReply = async ({
       type = "channels";
       iconPath = "src/assets/icons/chat.png";
     } else {
+      // vc_channels
       title = "ボイス時間・Top Voice Channels";
       dbCategory = "vcHours";
       type = "channels";
@@ -365,6 +466,7 @@ export const generateTopReply = async ({
     category,
     timeframe,
     showTimeframeButtons,
+    isTestMode,
   });
   return { files: [attachment], components };
 };
