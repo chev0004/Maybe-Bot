@@ -14,6 +14,13 @@ export interface LeaderboardItem {
   type?: "text" | "voice";
 }
 
+export interface OverviewData {
+  messages: { users: LeaderboardItem[] };
+  bumps: { users: LeaderboardItem[] };
+  voice: { users: LeaderboardItem[] };
+  stream: { users: LeaderboardItem[] };
+}
+
 /**
  * Draws a rounded rectangle on the canvas.
  * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
@@ -408,22 +415,13 @@ export const generateLeaderboardImage = async (
 
 /**
  * Generates an overview image with multiple leaderboard sections.
- * @param {object} data The overview data containing multiple leaderboard sections.
- * @param {LeaderboardItem[]} data.messages.users Top message users.
- * @param {LeaderboardItem[]} data.bumps.users Top bump users.
- * @param {LeaderboardItem[]} data.voice.users Top voice channel users.
- * @param {LeaderboardItem[]} data.stream.users Top stream hours users.
+ * @param {OverviewData} data The overview data containing multiple leaderboard sections.
  * @param {string | null} serverIconUrl The URL of the server icon (can be null).
  * @param {string} serverName The name of the server.
  * @param {string} timeframe The timeframe for the overview.
  */
 export const generateOverviewImage = async (
-  data: {
-    messages: { users: LeaderboardItem[] };
-    bumps: { users: LeaderboardItem[] };
-    voice: { users: LeaderboardItem[] };
-    stream: { users: LeaderboardItem[] };
-  },
+  data: OverviewData,
   serverIconUrl: string | null,
   serverName: string,
   timeframe: string,
