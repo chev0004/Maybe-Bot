@@ -6,6 +6,7 @@ import {
   type SlashCommandBuilder,
   type Snowflake,
 } from "discord.js";
+import { Strings } from "../../../../constants/Strings.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 
 const FOURTEEN_DAYS_IN_MS = 1000 * 60 * 60 * 24 * 14;
@@ -22,8 +23,10 @@ export default createCommand(
       )
     ) {
       await interaction.editReply({
-        content:
-          "BOTに「メッセージの管理」権限がありません。\nI don't have the 'Manage Messages' permission to perform this action.",
+        content: Strings.Permissions.BotMissing(
+          "メッセージの管理",
+          "Manage Messages",
+        ),
       });
       return;
     }
@@ -81,8 +84,7 @@ export default createCommand(
       } catch (error) {
         console.error("Error fetching messages for purge by link:", error);
         await interaction.editReply({
-          content:
-            "メッセージの取得中にエラーが発生しました。\nAn error occurred while fetching messages.",
+          content: Strings.Errors.FetchMessages,
         });
         return;
       }
@@ -103,8 +105,7 @@ export default createCommand(
       } catch (error) {
         console.error("Error fetching messages for purge by amount:", error);
         await interaction.editReply({
-          content:
-            "メッセージの取得中にエラーが発生しました。\nAn error occurred while fetching messages.",
+          content: Strings.Errors.FetchMessages,
         });
         return;
       }
@@ -140,8 +141,7 @@ export default createCommand(
     } catch (error) {
       console.error("Error during bulk delete:", error);
       await interaction.editReply({
-        content:
-          "メッセージの削除中にエラーが発生しました。\nAn error occurred while deleting messages.",
+        content: Strings.Errors.DeleteMessages,
       });
     }
   },
