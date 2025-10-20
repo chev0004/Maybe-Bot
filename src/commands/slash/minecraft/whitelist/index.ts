@@ -1,5 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import { Colors } from "../../../../constants/Colors.js";
+import { Strings } from "../../../../constants/Strings.js";
 import type { HandlerOptions } from "../../../../handlers/commandHandler.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 
@@ -16,7 +17,7 @@ type ExarotonError = {
  */
 const parseExarotonError = (error: unknown) => {
   const err = error as ExarotonError;
-  let errorMessage = err.message || "An unknown error occurred.";
+  let errorMessage = err.message || Strings.Errors.Unknown;
 
   const parseBody = (body: string) => {
     try {

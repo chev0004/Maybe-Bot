@@ -4,6 +4,7 @@ import type {
   MessageReaction,
   User,
 } from "discord.js";
+import { Strings } from "../../constants/Strings.js";
 
 export const handleApprovalProcess = async (
   interaction: CommandInteraction,
@@ -48,13 +49,11 @@ export const handleApprovalProcess = async (
           await pollMessage.reply(failureMessage);
         }
       } else {
-        await pollMessage.reply(
-          "タイムアウトまたは承認不足のため、操作をキャンセルしました。",
-        );
+        await pollMessage.reply(Strings.Replies.ApprovalTimeout);
       }
     });
   } catch (error) {
     console.error(error);
-    await interaction.editReply("エラーが発生しました。");
+    await interaction.editReply(Strings.Errors.Generic);
   }
 };

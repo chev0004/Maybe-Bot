@@ -9,6 +9,7 @@ import { config } from "../../../../config/env.js";
 
 import { Colors } from "../../../../constants/Colors.js";
 
+import { Strings } from "../../../../constants/Strings.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 import {
   generatePage,
@@ -54,7 +55,7 @@ export default createCommand(
       const verifiedRoleId = config.roles.verified;
       if (!verifiedRoleId) {
         await interaction.editReply(
-          "`VERIFIED_ROLE_ID` が設定されていません。\nThe VERIFIED_ROLE_ID environment variable is not set.",
+          Strings.Errors.ConfigNotSet("VERIFIED_ROLE_ID"),
         );
         return;
       }
@@ -62,9 +63,7 @@ export default createCommand(
 
       const botMember = guild.members.me;
       if (!botMember?.permissions.has(PermissionsBitField.Flags.ViewChannel)) {
-        await interaction.editReply(
-          "BOTにチャンネルの閲覧権限がないため、メンバーをリストできません。\nThe bot does not have permission to view channels, thus cannot list members.",
-        );
+        await interaction.editReply(Strings.Permissions.BotViewChannel);
         return;
       }
       await guild.members.fetch();
