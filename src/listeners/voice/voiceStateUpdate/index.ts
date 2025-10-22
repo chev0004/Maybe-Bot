@@ -12,6 +12,7 @@ import {
   channels,
   dailyChannelStats,
   dailyUserStats,
+  hourlyActivity,
   users,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -38,7 +39,8 @@ const formatDuration = (milliseconds: number): string => {
  * @param {string} channelId The ID of the voice channel.
  * @param {string} channelName The name of the voice channel.
  * @param {"text" | "voice"} channelType The type of the channel.
- * @param {number} durationMs The duration of the session in milliseconds.
+ * @param {Date} startTime The start time of the session.
+ * @param {Date} endTime The end time of the session.
  * @returns {Promise<void>}
  */
 const logVcSession = async (
@@ -47,9 +49,12 @@ const logVcSession = async (
   channelId: string,
   channelName: string,
   channelType: "text" | "voice",
-  durationMs: number,
+  startTime: Date,
+  endTime: Date,
 ): Promise<void> => {
+  const durationMs = endTime.getTime() - startTime.getTime();
   if (durationMs <= 0) return;
+
   const durationHours = durationMs / (1000 * 60 * 60);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -82,6 +87,38 @@ const logVcSession = async (
         target: [dailyChannelStats.channelId, dailyChannelStats.date],
         set: { vcHours: sql`${dailyChannelStats.vcHours} + ${durationHours}` },
       });
+
+    let currentHourStart = new Date(startTime);
+    currentHourStart.setUTCMinutes(0, 0, 0);
+
+    while (currentHourStart < endTime) {
+      const nextHourStart = new Date(currentHourStart);
+      nextHourStart.setUTCHours(nextHourStart.getUTCHours() + 1);
+
+      const effectiveEnd = endTime < nextHourStart ? endTime : nextHourStart;
+      const effectiveStart =
+        startTime > currentHourStart ? startTime : currentHourStart;
+
+      const durationInHourMs =
+        effectiveEnd.getTime() - effectiveStart.getTime();
+
+      if (durationInHourMs > 0) {
+        const durationInHour = durationInHourMs / (1000 * 60 * 60);
+        const date = currentHourStart.toISOString().slice(0, 10);
+        const hour = currentHourStart.getUTCHours();
+
+        await db
+          .insert(hourlyActivity)
+          .values({ date, hour, vcHours: durationInHour })
+          .onConflictDoUpdate({
+            target: [hourlyActivity.date, hourlyActivity.hour],
+            set: {
+              vcHours: sql`${hourlyActivity.vcHours} + ${durationInHour}`,
+            },
+          });
+      }
+      currentHourStart = nextHourStart;
+    }
   } catch (error) {
     console.error("Error logging VC session:", error);
   }
@@ -191,7 +228,8 @@ export default createListener(
           oldState.channelId,
           oldState.channel.name,
           "voice",
-          duration,
+          session.joinTime,
+          now,
         );
         embed.addFields({
           name: "通話時間",
@@ -239,7 +277,8 @@ export default createListener(
           oldState.channelId,
           oldState.channel.name,
           "voice",
-          duration,
+          session.joinTime,
+          now,
         );
         embed.addFields({
           name: "前のチャンネルでの通話時間",

@@ -1,5 +1,14 @@
 import express from "express";
 import {
+  getMockActivityData,
+  type MessageActivityData,
+  type VoiceActivityData,
+} from "./commands/slash/stats/activity/activity.mock.js";
+import {
+  generateMessageActivityImage,
+  generateVoiceActivityImage,
+} from "./utils/services/activityImageGenerator.js";
+import {
   dummyChannelMessages,
   dummyChannelVC,
   dummyOverviewData,
@@ -18,7 +27,7 @@ const PORT = 3000;
 
 const serverName = "Maybe Server";
 const serverIconUrl = "src/assets/images/Maybe-Icon.png";
-const timeframe = "過去7日";
+const timeframe = "過去7日間";
 
 const htmlShell = `
 <!DOCTYPE html>
@@ -84,6 +93,13 @@ const htmlShell = `
         <button id="btn-msg-channels">Top Message Channels</button>
         <button id="btn-vc-channels">Top Voice Channels</button>
     </div>
+
+    <h2>Activity Stats</h2>
+    <div class="button-group">
+        <button id="btn-activity-message">Message Activity</button>
+        <button id="btn-activity-voice">Voice Activity</button>
+    </div>
+    
     <img id="image-frame" src="/overview" alt="UI Preview">
 
     <script>
@@ -97,7 +113,10 @@ const htmlShell = `
             'btn-stream-users': '/leaderboard/stream-users',
             'btn-bump-users': '/leaderboard/bump-users',
             'btn-msg-channels': '/leaderboard/msg-channels',
-            'btn-vc-channels': '/leaderboard/vc-channels'
+            'btn-vc-channels': '/leaderboard/vc-channels',
+            // --- New Routes ---
+            'btn-activity-message': '/activity/message',
+            'btn-activity-voice': '/activity/voice'
         };
 
         buttons.forEach(button => {
@@ -263,6 +282,48 @@ app.get(
       res.send(imageBuffer);
     } catch (error) {
       console.error("Error generating voice channels leaderboard:", error);
+      res.status(500).send("Error generating image");
+    }
+  },
+);
+
+app.get(
+  "/activity/message",
+  async (_req: express.Request, res: express.Response) => {
+    console.log("Generating /activity/message image...");
+    try {
+      const mockData = getMockActivityData("message", "7");
+      const imageBuffer = await generateMessageActivityImage(
+        mockData as MessageActivityData,
+        serverIconUrl,
+        serverName,
+        timeframe,
+      );
+      res.setHeader("Content-Type", "image/png");
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error("Error generating message activity image:", error);
+      res.status(500).send("Error generating image");
+    }
+  },
+);
+
+app.get(
+  "/activity/voice",
+  async (_req: express.Request, res: express.Response) => {
+    console.log("Generating /activity/voice image...");
+    try {
+      const mockData = getMockActivityData("voice", "7");
+      const imageBuffer = await generateVoiceActivityImage(
+        mockData as VoiceActivityData,
+        serverIconUrl,
+        serverName,
+        timeframe,
+      );
+      res.setHeader("Content-Type", "image/png");
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error("Error generating voice activity image:", error);
       res.status(500).send("Error generating image");
     }
   },
