@@ -217,21 +217,18 @@ export const generateVoiceActivityImage = async (
   );
   drawBars(ctx, data.hourlyActivity);
 
-  const peakHour = data.peakHour;
-  const avgContributors = data.averageParticipants;
-
   const stats = [
     {
       label: "ピーク時間 / Peak Hour",
-      value: `${peakHour.toString().padStart(2, "0")}:00`,
+      value: `${data.peakHour.toString().padStart(2, "0")}:00`,
     },
     {
-      label: "平均通話時間 (分) / Avg. (min)",
-      value: `${data.averageDurationMinutes.toFixed(0)}`,
+      label: "合計時間 / Total Hours",
+      value: `${data.totalDurationHours.toFixed(1)}h`,
     },
     {
       label: "平均参加者 / Avg. Participants",
-      value: avgContributors.toFixed(1),
+      value: data.averageParticipants.toFixed(1),
     },
   ];
   drawLegendBox(ctx, stats);

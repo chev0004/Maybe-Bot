@@ -7,11 +7,14 @@ import {
   type InteractionReplyOptions,
   StringSelectMenuBuilder,
 } from "discord.js";
+import { and, countDistinct, gte, sql, sum } from "drizzle-orm";
 import {
   getMockActivityData,
   type MessageActivityData,
   type VoiceActivityData,
 } from "../../commands/slash/stats/activity/activity.mock.js";
+import { db } from "../../db/index.js";
+import { dailyUserStats, hourlyActivity } from "../../db/schema.js";
 import {
   generateMessageActivityImage,
   generateVoiceActivityImage,
@@ -24,6 +27,88 @@ const categoryOptions = [
   { label: "Message Activity", value: "message" },
   { label: "Voice Activity", value: "voice" },
 ];
+
+const fetchActivityData = async (
+  category: ActivityCategory,
+  timeframe: TopTimeframe,
+): Promise<MessageActivityData | VoiceActivityData> => {
+  const days = timeframe === "all" ? 9999 : parseInt(timeframe, 10);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  const dateCondition =
+    timeframe === "all"
+      ? undefined
+      : gte(hourlyActivity.date, startDate.toISOString().slice(0, 10));
+
+  const hourlyResults = await db
+    .select({
+      hour: hourlyActivity.hour,
+      total:
+        category === "message"
+          ? sql<number>`sum(${hourlyActivity.messages})`.mapWith(Number)
+          : sql<number>`sum(${hourlyActivity.vcHours})`.mapWith(Number),
+    })
+    .from(hourlyActivity)
+    .where(dateCondition)
+    .groupBy(hourlyActivity.hour);
+
+  // Convert UTC hours from DB to JST hours for the chart
+  const jstHourlyData = Array(24).fill(0);
+  for (const result of hourlyResults) {
+    const utcHour = result.hour;
+    const jstHour = (utcHour + 9) % 24;
+    jstHourlyData[jstHour] = result.total;
+  }
+
+  const participantResults = await db
+    .select({
+      count: countDistinct(dailyUserStats.userId),
+    })
+    .from(dailyUserStats)
+    .where(
+      and(
+        timeframe === "all"
+          ? undefined
+          : gte(dailyUserStats.date, startDate.toISOString().slice(0, 10)),
+        category === "message"
+          ? gte(dailyUserStats.messages, 1)
+          : gte(dailyUserStats.vcHours, 0.001),
+      ),
+    );
+
+  const totalParticipants = participantResults[0]?.count ?? 0;
+  const averageParticipants =
+    totalParticipants / (timeframe === "all" ? days : Math.min(days, 365));
+
+  const totalSumResult = await db
+    .select({
+      total:
+        category === "message"
+          ? sum(hourlyActivity.messages)
+          : sum(hourlyActivity.vcHours),
+    })
+    .from(hourlyActivity)
+    .where(dateCondition);
+
+  const totalValue = Number(totalSumResult[0]?.total ?? 0);
+  const peakIndex = jstHourlyData.indexOf(Math.max(...jstHourlyData));
+
+  if (category === "message") {
+    return {
+      hourlyActivity: jstHourlyData,
+      totalMessages: totalValue,
+      averageParticipants,
+      mostActiveHour: peakIndex,
+    };
+  } else {
+    return {
+      hourlyActivity: jstHourlyData,
+      totalDurationHours: totalValue,
+      averageParticipants,
+      peakHour: peakIndex,
+    };
+  }
+};
 
 export const generateComponentsForActivity = ({
   category,
@@ -131,44 +216,24 @@ export const generateActivityReply = async ({
   const timeframeLabel = timeframeLabels[timeframe];
   let imageBuffer: Buffer;
 
-  if (isTestMode) {
-    const data = getMockActivityData(category, timeframe);
-    if (category === "message") {
-      imageBuffer = await generateMessageActivityImage(
-        data as MessageActivityData,
-        serverIconUrl,
-        guild.name,
-        timeframeLabel,
-      );
-    } else {
-      imageBuffer = await generateVoiceActivityImage(
-        data as VoiceActivityData,
-        serverIconUrl,
-        guild.name,
-        timeframeLabel,
-      );
-    }
-  } else {
-    // TODO: Replace with real data fetching logic
-    console.warn(
-      `[ActivityHelper] Using mock data as real data fetch is not implemented.`,
+  const data = isTestMode
+    ? getMockActivityData(category, timeframe)
+    : await fetchActivityData(category, timeframe);
+
+  if (category === "message") {
+    imageBuffer = await generateMessageActivityImage(
+      data as MessageActivityData,
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
     );
-    const data = getMockActivityData(category, timeframe);
-    if (category === "message") {
-      imageBuffer = await generateMessageActivityImage(
-        data as MessageActivityData,
-        serverIconUrl,
-        guild.name,
-        timeframeLabel,
-      );
-    } else {
-      imageBuffer = await generateVoiceActivityImage(
-        data as VoiceActivityData,
-        serverIconUrl,
-        guild.name,
-        timeframeLabel,
-      );
-    }
+  } else {
+    imageBuffer = await generateVoiceActivityImage(
+      data as VoiceActivityData,
+      serverIconUrl,
+      guild.name,
+      timeframeLabel,
+    );
   }
 
   const attachment = new AttachmentBuilder(imageBuffer, {

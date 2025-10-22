@@ -77,3 +77,16 @@ export const confessions = pgTable("confessions", {
   id: integer("id").primaryKey(),
   messageId: text("message_id").notNull(),
 });
+
+export const hourlyActivity = pgTable(
+  "hourly_activity",
+  {
+    date: date("date", { mode: "string" }).notNull(),
+    hour: integer("hour").notNull(),
+    messages: integer("messages").default(0).notNull(),
+    vcHours: real("vc_hours").default(0).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.date, table.hour] }),
+  }),
+);
