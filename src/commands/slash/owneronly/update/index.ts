@@ -80,7 +80,7 @@ export default createCommand(
       );
       const needsNpmInstall = packageJsonDiff.length > 0;
 
-      if (!commitLog && !needsNpmInstall) {
+      if (!isForceMode && !commitLog && !needsNpmInstall) {
         embed
           .setColor(Colors.purple)
           .setDescription(
@@ -117,6 +117,7 @@ export default createCommand(
             value: `\`\`\`ansi\n${truncateField(repo)}\n\`\`\``,
           },
         );
+
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
@@ -140,7 +141,7 @@ export default createCommand(
             summaryLines.push(`- Vulnerabilities: ${vulnerabilityMatch[0]}`);
           embed.spliceFields(-1, 1, {
             name: "依存関係 / Dependencies",
-            value: `\`\`\`\n${truncateField(summaryLines.join("\n"))}\n\`\`\``,
+            value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "NPM install completed.")}\n\`\`\``,
           });
         } catch (npmError) {
           console.error("Error during npm install:", npmError);
@@ -157,6 +158,35 @@ export default createCommand(
           await interaction.editReply({ embeds: [embed] });
           return;
         }
+      }
+
+      embed.addFields({
+        name: "ビルド / Build",
+        value: "```ビルド中...```",
+      });
+      await interaction.editReply({ embeds: [embed] });
+
+      try {
+        const { stdout: buildStdout } = await execPromise("npm run build");
+        const buildOutput = buildStdout || "ビルドが正常に完了しました。";
+        embed.spliceFields(-1, 1, {
+          name: "ビルド / Build",
+          value: `\`\`\`\n${truncateField(buildOutput.slice(-1000))}\n\`\`\``,
+        });
+      } catch (buildError) {
+        console.error("Error during build:", buildError);
+        const err = buildError as Error & { stderr?: string; stdout?: string };
+        embed
+          .setColor(Colors.red)
+          .setDescription(
+            "ビルド中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。",
+          )
+          .spliceFields(-1, 1, {
+            name: "Build Error",
+            value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
+          });
+        await interaction.editReply({ embeds: [embed] });
+        return;
       }
 
       embed.setFooter({
