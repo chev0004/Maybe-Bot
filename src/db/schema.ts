@@ -6,6 +6,7 @@ import {
   pgTable,
   primaryKey,
   real,
+  serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -88,5 +89,31 @@ export const hourlyActivity = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.date, table.hour] }),
+  }),
+);
+
+export const voiceSessions = pgTable("voice_sessions", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id")
+    .references(() => channels.id)
+    .notNull(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }),
+  durationSeconds: integer("duration_seconds"),
+  totalUniqueParticipants: integer("total_unique_participants"),
+});
+
+export const voiceSessionParticipants = pgTable(
+  "voice_session_participants",
+  {
+    sessionId: integer("session_id")
+      .references(() => voiceSessions.id)
+      .notNull(),
+    userId: text("user_id")
+      .references(() => users.id)
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.sessionId, table.userId] }),
   }),
 );
