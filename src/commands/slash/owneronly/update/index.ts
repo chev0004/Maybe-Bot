@@ -10,6 +10,11 @@ import { getMockUpdateData, parseMockGitUpdateOutput } from "./update.mock.js";
 const execPromise = util.promisify(exec);
 const PULLED_BRANCH = "develop";
 
+const truncateField = (text: string, maxLength = 1000): string => {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 3)}...`;
+};
+
 export default createCommand(
   "update",
   "GitHubから最新のコミットを取得し、BOTを再起動する。Pulls the latest changes from GitHub and restarts the bot.",
@@ -33,15 +38,15 @@ export default createCommand(
         .setFields(
           {
             name: "更新内容 / Changes",
-            value: `\`\`\`ansi\n${changes}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(changes)}\n\`\`\``,
           },
           {
             name: "更新ファイル / Files Changed",
-            value: `\`\`\`ansi\n${files}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(files)}\n\`\`\``,
           },
           {
             name: "リポジトリ / Repository",
-            value: `\`\`\`ansi\n${repo}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(repo)}\n\`\`\``,
           },
         )
         .setFooter({
@@ -50,7 +55,7 @@ export default createCommand(
       if (mockData.needsNpmInstall) {
         embed.addFields({
           name: mockData.npmFieldName || "NPM Install (Simulated)",
-          value: `\`\`\`\n${mockData.npmOutput || "Simulated NPM install output."}\n\`\`\``,
+          value: `\`\`\`\n${truncateField(mockData.npmOutput || "Simulated NPM install output.")}\n\`\`\``,
         });
       }
 
@@ -101,15 +106,15 @@ export default createCommand(
         .setFields(
           {
             name: "更新内容 / Changes",
-            value: `\`\`\`ansi\n${changes}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(changes)}\n\`\`\``,
           },
           {
             name: "更新ファイル / Files Changed",
-            value: `\`\`\`ansi\n${files}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(files)}\n\`\`\``,
           },
           {
             name: "リポジトリ / Repository",
-            value: `\`\`\`ansi\n${repo}\n\`\`\``,
+            value: `\`\`\`ansi\n${truncateField(repo)}\n\`\`\``,
           },
         );
       if (needsNpmInstall) {
@@ -135,7 +140,7 @@ export default createCommand(
             summaryLines.push(`- Vulnerabilities: ${vulnerabilityMatch[0]}`);
           embed.spliceFields(-1, 1, {
             name: "依存関係 / Dependencies",
-            value: `\`\`\`\n${summaryLines.join("\n")}\n\`\`\``,
+            value: `\`\`\`\n${truncateField(summaryLines.join("\n"))}\n\`\`\``,
           });
         } catch (npmError) {
           console.error("Error during npm install:", npmError);
@@ -147,7 +152,7 @@ export default createCommand(
             )
             .spliceFields(-1, 1, {
               name: "NPM Install Error",
-              value: `\`\`\`\n${err.stderr || err.stdout || err.message}\n\`\`\``,
+              value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
             });
           await interaction.editReply({ embeds: [embed] });
           return;
@@ -178,7 +183,7 @@ export default createCommand(
         .setDescription("更新プロセス中にエラーが発生しました。")
         .setFields({
           name: "Error",
-          value: `\`\`\`\n${err.stderr || err.message}\n\`\`\``,
+          value: `\`\`\`\n${truncateField(err.stderr || err.message)}\n\`\`\``,
         });
       await interaction.editReply({ embeds: [embed] }).catch(console.error);
     }
