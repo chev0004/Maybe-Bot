@@ -223,12 +223,12 @@ export const generateVoiceActivityImage = async (
       value: `${data.peakHour.toString().padStart(2, "0")}:00`,
     },
     {
-      label: "合計時間 / Total Hours",
-      value: `${data.totalDurationHours.toFixed(1)}h`,
+      label: "合計VC時間 / Total VC Hours",
+      value: `${data.totalDurationHours.toFixed(1)}時間`,
     },
     {
       label: "平均参加者 / Avg. Participants",
-      value: data.averageParticipants.toFixed(1),
+      value: `${data.averageParticipants.toFixed(0)}人`,
     },
   ];
   drawLegendBox(ctx, stats);
@@ -265,7 +265,7 @@ export const generateMessageActivityImage = async (
     },
     {
       label: "平均参加者 / Avg. Participants",
-      value: data.averageParticipants.toFixed(0),
+      value: `${data.averageParticipants.toFixed(0)}人`,
     },
     {
       label: "合計メッセージ / Total Messages",
