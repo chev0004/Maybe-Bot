@@ -4,61 +4,48 @@ import type {
 } from "discord.js";
 import type { InteractionModule } from "../../../handlers/interactionHandler.js";
 import {
-  generateComponentsForTop,
-  generateTopReply,
-  type TopCategory,
-  type TopTimeframe,
-} from "../../../utils/helpers/topHelper.js";
+  type ActivityCategory,
+  generateActivityReply,
+} from "../../../utils/helpers/activityHelper.js";
+import type { TopTimeframe } from "../../../utils/helpers/topHelper.js";
 
-const processTopInteraction = async (
+const processActivityInteraction = async (
   interaction: ButtonInteraction | StringSelectMenuInteraction,
 ) => {
   if (!interaction.inGuild() || !interaction.guild) return;
 
   const parts = interaction.customId.split("-");
   const action = parts[1];
-  let category: TopCategory,
+  let category: ActivityCategory,
     timeframe: TopTimeframe,
     showTimeframeButtons: boolean,
     isTestMode: boolean;
 
   if (action === "timeframe") {
     const subAction = parts[2] as "show" | "back";
-    category = parts[3] as TopCategory;
+    category = parts[3] as ActivityCategory;
     timeframe = parts[4] as TopTimeframe;
     isTestMode = parts[5] === "1";
     showTimeframeButtons = subAction === "show";
-
-    const newComponents = generateComponentsForTop({
-      category,
-      timeframe,
-      showTimeframeButtons,
-      isTestMode,
-    });
-    await interaction.editReply({ components: newComponents });
-    return;
-  }
-
-  if (action === "refresh") {
-    category = parts[2] as TopCategory;
+  } else if (action === "refresh") {
+    category = parts[2] as ActivityCategory;
     timeframe = parts[3] as TopTimeframe;
     isTestMode = parts[4] === "1";
     showTimeframeButtons = false;
   } else if (interaction.isStringSelectMenu()) {
-    category = interaction.values[0] as TopCategory;
+    category = interaction.values[0] as ActivityCategory;
     timeframe = parts[2] as TopTimeframe;
     showTimeframeButtons = parts[3] === "1";
     isTestMode = parts[4] === "1";
   } else {
-    category = parts[2] as TopCategory;
+    category = parts[2] as ActivityCategory;
     timeframe = parts[3] as TopTimeframe;
-    showTimeframeButtons = action === "select";
     isTestMode = parts[4] === "1";
+    showTimeframeButtons = true;
   }
 
-  const reply = await generateTopReply({
+  const reply = await generateActivityReply({
     guild: interaction.guild,
-    client: interaction.client,
     category,
     timeframe,
     showTimeframeButtons,
@@ -70,12 +57,12 @@ const processTopInteraction = async (
 };
 
 export default {
-  customId: "top-",
+  customId: "activity-",
   async execute(interaction: ButtonInteraction | StringSelectMenuInteraction) {
     await interaction.deferUpdate();
 
-    processTopInteraction(interaction).catch((err) => {
-      console.error("Failed to process /top interaction:", err);
+    processActivityInteraction(interaction).catch((err) => {
+      console.error("Failed to process /activity interaction:", err);
       interaction
         .followUp({
           content: "An error occurred while processing your request.",

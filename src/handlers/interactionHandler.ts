@@ -51,15 +51,36 @@ export default class InteractionHandler {
   public async loadInteractions(): Promise<void> {
     const interactionsPath = path.join(__dirname, "..", "interactions");
 
-    if (fs.existsSync(interactionsPath)) {
-      const interactionFiles = getFiles(interactionsPath);
+    if (
+      !fs.existsSync(interactionsPath) ||
+      !fs.lstatSync(interactionsPath).isDirectory()
+    ) {
+      console.warn(
+        `[InteractionHandler] Directory not found: ${interactionsPath}. No interactions will be loaded.`,
+      );
+      return;
+    }
 
-      for (const file of interactionFiles) {
+    const interactionFiles = getFiles(interactionsPath);
+
+    for (const file of interactionFiles) {
+      try {
         const interactionModule = await import(`file://${file}`);
         const interaction: InteractionModule = interactionModule.default;
 
-        this.interactions.set(interaction.customId, interaction);
-        console.log(`Loaded interaction: ${interaction.customId}`);
+        if (interaction?.customId) {
+          this.interactions.set(interaction.customId, interaction);
+          console.log(`Loaded interaction: ${interaction.customId}`);
+        } else {
+          console.warn(
+            `[InteractionHandler] Skipping file (no default export or customId): ${file}`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[InteractionHandler] Failed to load interaction file ${file}:`,
+          error,
+        );
       }
     }
   }
