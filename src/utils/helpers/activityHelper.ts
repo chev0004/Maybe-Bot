@@ -7,14 +7,18 @@ import {
   type InteractionReplyOptions,
   StringSelectMenuBuilder,
 } from "discord.js";
-import { and, countDistinct, gte, sql, sum } from "drizzle-orm";
+import { and, countDistinct, gte, isNotNull, sql, sum } from "drizzle-orm";
 import {
   getMockActivityData,
   type MessageActivityData,
   type VoiceActivityData,
 } from "../../commands/slash/stats/activity/activity.mock.js";
 import { db } from "../../db/index.js";
-import { dailyUserStats, hourlyActivity } from "../../db/schema.js";
+import {
+  dailyUserStats,
+  hourlyActivity,
+  voiceSessions,
+} from "../../db/schema.js";
 import {
   generateMessageActivityImage,
   generateVoiceActivityImage,
@@ -39,7 +43,6 @@ const fetchActivityData = async (
   const dateCondition =
     timeframe === "all" ? undefined : gte(hourlyActivity.date, startDateString);
 
-  // Fetch hourly aggregate data (Messages or VC Hours)
   const hourlyResults = await db
     .select({
       hour: hourlyActivity.hour,
@@ -52,7 +55,6 @@ const fetchActivityData = async (
     .where(dateCondition)
     .groupBy(hourlyActivity.hour);
 
-  // Convert UTC hours from DB to JST hours for the chart
   const jstHourlyData = Array(24).fill(0);
   for (const result of hourlyResults) {
     const utcHour = result.hour;
@@ -60,41 +62,29 @@ const fetchActivityData = async (
     jstHourlyData[jstHour] = result.total;
   }
 
-  // --- Calculate Average Participants ---
   let averageParticipants = 0;
 
-  // New logic for Voice: Average of daily distinct participants
   if (category === "voice") {
-    const dailyCountsSubquery = db
-      .select({
-        // No need to select date here, just the daily count
-        dailyCount: countDistinct(dailyUserStats.userId).as("daily_count"),
-      })
-      .from(dailyUserStats)
-      .where(
-        and(
-          // Apply date condition directly
-          timeframe === "all"
-            ? undefined
-            : gte(dailyUserStats.date, startDateString),
-          gte(dailyUserStats.vcHours, 0.001), // Condition for voice participation
-        ),
-      )
-      .groupBy(dailyUserStats.date) // Group by date to count distinct users *per day*
-      .as("daily_counts");
-
-    // Calculate the average of these daily counts
     const avgResult = await db
       .select({
-        average: sql<number>`avg(${dailyCountsSubquery.dailyCount})`.mapWith(
-          Number,
-        ),
+        average:
+          sql<number>`avg(${voiceSessions.totalUniqueParticipants})`.mapWith(
+            Number,
+          ),
       })
-      .from(dailyCountsSubquery);
+      .from(voiceSessions)
+      .where(
+        and(
+          timeframe === "all"
+            ? undefined
+            : gte(voiceSessions.startTime, startDate),
+          isNotNull(voiceSessions.endTime),
+          isNotNull(voiceSessions.totalUniqueParticipants),
+        ),
+      );
 
     averageParticipants = avgResult[0]?.average ?? 0;
   } else {
-    // Original logic for Message: Total unique participants / days
     const participantResults = await db
       .select({
         count: countDistinct(dailyUserStats.userId),
@@ -105,16 +95,14 @@ const fetchActivityData = async (
           timeframe === "all"
             ? undefined
             : gte(dailyUserStats.date, startDateString),
-          gte(dailyUserStats.messages, 1), // Condition for message participation
+          gte(dailyUserStats.messages, 1),
         ),
       );
     const totalParticipants = participantResults[0]?.count ?? 0;
-    // Keep the simple day calculation for messages
     const numberOfDays = timeframe === "all" ? 9999 : parseInt(timeframe, 10);
-    averageParticipants = totalParticipants / Math.max(numberOfDays, 1); // Avoid division by zero
+    averageParticipants = totalParticipants / Math.max(numberOfDays, 1);
   }
 
-  // --- Calculate Total Value (Messages or VC Hours) ---
   const totalSumResult = await db
     .select({
       total:
@@ -123,25 +111,23 @@ const fetchActivityData = async (
           : sum(hourlyActivity.vcHours),
     })
     .from(hourlyActivity)
-    .where(dateCondition); // Use the same dateCondition as hourlyResults
+    .where(dateCondition);
 
   const totalValue = Number(totalSumResult[0]?.total ?? 0);
-  const peakIndex = jstHourlyData.indexOf(Math.max(...jstHourlyData, 0)); // Ensure peakIndex is found even if all data is 0
+  const peakIndex = jstHourlyData.indexOf(Math.max(...jstHourlyData, 0));
 
-  // --- Return structured data ---
   if (category === "message") {
     return {
       hourlyActivity: jstHourlyData,
       totalMessages: totalValue,
-      averageParticipants, // Use calculated average
+      averageParticipants,
       mostActiveHour: peakIndex,
     };
   }
-  // category === 'voice'
   return {
     hourlyActivity: jstHourlyData,
     totalDurationHours: totalValue,
-    averageParticipants, // Use calculated average
+    averageParticipants,
     peakHour: peakIndex,
   };
 };
