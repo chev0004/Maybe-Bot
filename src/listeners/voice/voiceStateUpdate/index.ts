@@ -3,7 +3,7 @@ import {
   type GuildTextBasedChannel,
   type VoiceState,
 } from "discord.js";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { db } from "../../../db/index.js";
@@ -14,8 +14,15 @@ import {
   dailyUserStats,
   hourlyActivity,
   users,
+  voiceSessionParticipants,
+  voiceSessions,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
+
+const activeChannelSessions = new Map<
+  string,
+  { sessionId: number; participants: Set<string> }
+>();
 
 /**
  * Formats milliseconds into a human-readable string (e.g., "1時間3分5秒").
@@ -161,28 +168,127 @@ const logStreamSession = async (
 };
 
 export default createListener(
-  "voiceChannelLoggerAndStats",
+  "voiceStateUpdate",
   "voiceStateUpdate",
   async (oldState: VoiceState, newState: VoiceState) => {
     if (newState.guild.id === config.ids.testGuild) {
       return;
     }
+    const member = newState.member || oldState.member;
+    if (!member || member.user.bot) return;
+    const userId = member.id;
+
+    try {
+      // --- User Joins or Moves INTO a channel ---
+      if (newState.channelId && newState.channelId !== oldState.channelId) {
+        if (newState.channel && newState.channel.members.size === 1) {
+          const newSession = await db
+            .insert(voiceSessions)
+            .values({
+              channelId: newState.channelId,
+              startTime: new Date(),
+            })
+            .returning({ id: voiceSessions.id });
+          if (newSession.length > 0) {
+            const sessionId = newSession[0].id;
+            activeChannelSessions.set(newState.channelId, {
+              sessionId,
+              participants: new Set(newState.channel.members.map((m) => m.id)),
+            });
+          }
+        } else if (newState.channel) {
+          const sessionInfo = activeChannelSessions.get(newState.channelId);
+          if (sessionInfo) {
+            sessionInfo.participants.add(userId);
+          } else {
+            const openSession = await db.query.voiceSessions.findFirst({
+              where: and(
+                eq(voiceSessions.channelId, newState.channelId),
+                isNull(voiceSessions.endTime),
+              ),
+            });
+            if (openSession) {
+              const currentParticipants = newState.channel.members.map(
+                (m) => m.id,
+              );
+              activeChannelSessions.set(newState.channelId, {
+                sessionId: openSession.id,
+                participants: new Set(currentParticipants),
+              });
+            } else {
+              const fallbackSession = await db
+                .insert(voiceSessions)
+                .values({
+                  channelId: newState.channelId,
+                  startTime: new Date(),
+                })
+                .returning({ id: voiceSessions.id });
+              if (fallbackSession.length > 0) {
+                activeChannelSessions.set(newState.channelId, {
+                  sessionId: fallbackSession[0].id,
+                  participants: new Set(
+                    newState.channel.members.map((m) => m.id),
+                  ),
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // --- User Leaves or Moves FROM a channel ---
+      if (oldState.channelId && oldState.channelId !== newState.channelId) {
+        if (oldState.channel && oldState.channel.members.size === 0) {
+          const sessionInfo = activeChannelSessions.get(oldState.channelId);
+          if (sessionInfo) {
+            const endTime = new Date();
+            const sessionRecord = await db.query.voiceSessions.findFirst({
+              where: eq(voiceSessions.id, sessionInfo.sessionId),
+            });
+            if (sessionRecord) {
+              const durationSeconds = Math.floor(
+                (endTime.getTime() - sessionRecord.startTime.getTime()) / 1000,
+              );
+              const uniqueParticipants = Array.from(sessionInfo.participants);
+              await db
+                .update(voiceSessions)
+                .set({
+                  endTime,
+                  durationSeconds,
+                  totalUniqueParticipants: uniqueParticipants.length,
+                })
+                .where(eq(voiceSessions.id, sessionInfo.sessionId));
+              if (uniqueParticipants.length > 0) {
+                await db
+                  .insert(voiceSessionParticipants)
+                  .values(
+                    uniqueParticipants.map((uid) => ({
+                      sessionId: sessionInfo.sessionId,
+                      userId: uid,
+                    })),
+                  )
+                  .onConflictDoNothing();
+              }
+            }
+            activeChannelSessions.delete(oldState.channelId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error in new voice session tracking logic:", e);
+    }
 
     const logChannelId = process.env.VOICE_LOG_CHANNEL_ID;
     if (!logChannelId) return;
 
-    const member = newState.member || oldState.member;
-    if (!member || member.user.bot) return;
+    const username = member.user.username;
+    const now = new Date();
 
     const fetched = await newState.client.channels
       .fetch(logChannelId)
       .catch(() => null);
     if (!fetched || !fetched.isTextBased()) return;
     const logChannel = fetched as GuildTextBasedChannel;
-
-    const userId = member.id;
-    const username = member.user.username;
-    const now = new Date();
 
     const embed = new EmbedBuilder()
       .setAuthor({
