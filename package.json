@@ -24,6 +24,8 @@
     "exaroton": "^1.11.3",
     "nodemon": "^3.1.10",
     "pm2": "^6.0.13",
+    "@types/twemoji-parser": "^13.1.4",
+    "@types/exaroton": "^1.11.1",
     "postgres": "^3.4.7",
     "twemoji-parser": "^14.0.0"
   },
@@ -31,11 +33,9 @@
     "@biomejs/biome": "^2.2.4",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@types/exaroton": "^1.11.1",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.5.2",
-    "@types/twemoji-parser": "^13.1.4",
     "express": "^5.1.0",
+    "@types/node": "^24.5.2",
     "husky": "^9.1.7",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"
