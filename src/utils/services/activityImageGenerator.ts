@@ -134,6 +134,12 @@ function drawBars(ctx: CanvasRenderingContext2D, hourlyData: number[]) {
 
   for (let i = 0; i < 24; i++) {
     const value = hourlyData[i] || 0;
+
+    // If the value is 0, don't draw anything for this bar.
+    if (value === 0) {
+      continue;
+    }
+
     const barHeight = (value / maxValue) * CHART_HEIGHT;
     const x = CHART_START_X + i * barWidth;
     const y = CHART_END_Y - barHeight;
