@@ -252,14 +252,16 @@ const drawLeaderboardList = async (
  * @param {number} height The height of the canvas.
  * @param {string | null} serverIconUrl The URL of the server icon (can be null).
  * @param {string} serverName The name of the server.
+ * @param {string} subtitle The subtitle to display (e.g., "サーバーランキング" or "アクティビティ").
  * @param {string} timeframe The timeframe for the leaderboard.
  */
-const drawHeaderAndFooter = async (
+export const drawHeaderAndFooter = async (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   serverIconUrl: string | null,
   serverName: string,
+  subtitle: string,
   timeframe: string,
 ) => {
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -320,7 +322,7 @@ const drawHeaderAndFooter = async (
 
   ctx.fillStyle = "#A0A8B4";
   ctx.font = "18px 'Noto Sans JP', 'Sans'";
-  ctx.fillText("サーバーランキング", headerX + 77, headerY + 55);
+  ctx.fillText(subtitle, headerX + 77, headerY + 55);
 
   // --- FOOTER TEXT --- //
   ctx.fillStyle = "#ffffffff";
@@ -375,6 +377,7 @@ export const generateLeaderboardImage = async (
     height,
     serverIconUrl,
     serverName,
+    "サーバーランキング",
     timeframe,
   );
 
@@ -476,6 +479,7 @@ export const generateOverviewImage = async (
     height,
     serverIconUrl,
     serverName,
+    "サーバーランキング",
     timeframe,
   );
   let currentY = headerHeight + titleMargin;
