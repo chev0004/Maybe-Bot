@@ -2,9 +2,7 @@ import type { TopTimeframe } from "../../../../utils/helpers/topHelper.js";
 
 export interface VoiceActivityData {
   hourlyActivity: number[];
-  averageDurationMinutes: number;
   totalDurationHours: number;
-  averageUsersPerCall: number;
   averageParticipants: number;
   peakHour: number;
 }
@@ -22,9 +20,7 @@ const baseVoiceActivity: VoiceActivityData = {
     10, 5, 2, 1, 0, 0, 2, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 120,
     150, 130, 90, 40,
   ],
-  averageDurationMinutes: 45,
   totalDurationHours: 120.5,
-  averageUsersPerCall: 3.8,
   averageParticipants: 5.2,
   peakHour: 20,
 };

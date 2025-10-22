@@ -5,6 +5,7 @@ import {
   channels,
   dailyChannelStats,
   dailyUserStats,
+  hourlyActivity,
   users,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -24,6 +25,7 @@ export default createListener(
     const channelId = message.channel.id;
     const channelName = message.channel.name;
     const today = new Date().toISOString().slice(0, 10);
+    const hour = message.createdAt.getUTCHours();
 
     try {
       await db
@@ -56,6 +58,16 @@ export default createListener(
           target: [dailyChannelStats.channelId, dailyChannelStats.date],
           set: {
             messages: sql`${dailyChannelStats.messages} + 1`,
+          },
+        });
+
+      await db
+        .insert(hourlyActivity)
+        .values({ date: today, hour, messages: 1 })
+        .onConflictDoUpdate({
+          target: [hourlyActivity.date, hourlyActivity.hour],
+          set: {
+            messages: sql`${hourlyActivity.messages} + 1`,
           },
         });
     } catch (error) {
