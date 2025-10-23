@@ -6,6 +6,7 @@ import {
   dailyChannelStats,
   dailyUserStats,
   hourlyActivity,
+  hourlyUserActivity,
   users,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -70,6 +71,11 @@ export default createListener(
             messages: sql`${hourlyActivity.messages} + 1`,
           },
         });
+
+      await db
+        .insert(hourlyUserActivity)
+        .values({ date: today, hour, userId })
+        .onConflictDoNothing();
     } catch (error) {
       console.error("Error logging message stats:", error);
     }
