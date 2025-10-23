@@ -7,7 +7,15 @@ import {
   type InteractionReplyOptions,
   StringSelectMenuBuilder,
 } from "discord.js";
-import { and, countDistinct, gte, isNotNull, sql, sum } from "drizzle-orm";
+import {
+  and,
+  count,
+  countDistinct,
+  gte,
+  isNotNull,
+  sql,
+  sum,
+} from "drizzle-orm";
 import {
   getMockActivityData,
   type MessageActivityData,
@@ -15,8 +23,8 @@ import {
 } from "../../commands/slash/stats/activity/activity.mock.js";
 import { db } from "../../db/index.js";
 import {
-  dailyUserStats,
   hourlyActivity,
+  hourlyUserActivity,
   voiceSessions,
 } from "../../db/schema.js";
 import {
@@ -85,22 +93,34 @@ const fetchActivityData = async (
 
     averageParticipants = avgResult[0]?.average ?? 0;
   } else {
-    const participantResults = await db
+    const participantHoursResult = await db
       .select({
-        count: countDistinct(dailyUserStats.userId),
+        count: count(hourlyUserActivity.userId),
       })
-      .from(dailyUserStats)
+      .from(hourlyUserActivity)
       .where(
-        and(
-          timeframe === "all"
-            ? undefined
-            : gte(dailyUserStats.date, startDateString),
-          gte(dailyUserStats.messages, 1),
-        ),
+        timeframe === "all"
+          ? undefined
+          : gte(hourlyUserActivity.date, startDateString),
       );
-    const totalParticipants = participantResults[0]?.count ?? 0;
-    const numberOfDays = timeframe === "all" ? 9999 : parseInt(timeframe, 10);
-    averageParticipants = totalParticipants / Math.max(numberOfDays, 1);
+    const totalParticipantHours = participantHoursResult[0]?.count ?? 0;
+
+    const activeHoursResult = await db
+      .select({
+        count: countDistinct(
+          sql`${hourlyUserActivity.date}, ${hourlyUserActivity.hour}`,
+        ),
+      })
+      .from(hourlyUserActivity)
+      .where(
+        timeframe === "all"
+          ? undefined
+          : gte(hourlyUserActivity.date, startDateString),
+      );
+    const totalActiveHours = activeHoursResult[0]?.count ?? 0;
+
+    averageParticipants =
+      totalActiveHours > 0 ? totalParticipantHours / totalActiveHours : 0;
   }
 
   const totalSumResult = await db
