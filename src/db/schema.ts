@@ -92,6 +92,20 @@ export const hourlyActivity = pgTable(
   }),
 );
 
+export const hourlyUserActivity = pgTable(
+  "hourly_user_activity",
+  {
+    date: date("date", { mode: "string" }).notNull(),
+    hour: integer("hour").notNull(),
+    userId: text("user_id")
+      .references(() => users.id)
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.date, table.hour, table.userId] }),
+  }),
+);
+
 export const voiceSessions = pgTable("voice_sessions", {
   id: serial("id").primaryKey(),
   channelId: text("channel_id")
