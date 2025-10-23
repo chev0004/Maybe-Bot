@@ -80,4 +80,7 @@ export default createListener(
       console.error("Error logging message stats:", error);
     }
   },
+  {
+    ignoreChannels: [config.channels.welcome],
+  },
 );
