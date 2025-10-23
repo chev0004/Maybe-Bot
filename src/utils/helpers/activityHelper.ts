@@ -108,7 +108,7 @@ const fetchActivityData = async (
     const activeHoursResult = await db
       .select({
         count: countDistinct(
-          sql`${hourlyUserActivity.date}, ${hourlyUserActivity.hour}`,
+          sql`(${hourlyUserActivity.date}, ${hourlyUserActivity.hour})`,
         ),
       })
       .from(hourlyUserActivity)
