@@ -118,6 +118,8 @@ export default createCommand(
           },
         );
 
+      // Test
+
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
