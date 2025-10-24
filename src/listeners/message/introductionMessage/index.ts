@@ -1,5 +1,10 @@
 import type { GuildTextBasedChannel } from "discord.js";
-import { EmbedBuilder, PermissionsBitField } from "discord.js";
+import {
+  EmbedBuilder,
+  PermissionsBitField,
+  type Role,
+  type RoleResolvable,
+} from "discord.js";
 import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -11,7 +16,7 @@ import {
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
 const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
-0;
+
 type SubmissionAttempts = {
   timestamps: number[];
   spamNotifiedAt: number | null;
@@ -28,6 +33,10 @@ const CORRECT_TEMPLATE_HEADERS = [
 ];
 
 const CORRECT_TEMPLATE_STRING = CORRECT_TEMPLATE_HEADERS.join("\n");
+
+const englishRegex = /\b(english|eng|en|eigo)\b|(英語|えいご)/i;
+const japaneseRegex =
+  /\b(japanese|jap|jp|nihongo|kokugo)\b|(日本語|にほんご|国語|こくご)/i;
 
 const getErrorCode = (error: unknown): number | undefined => {
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -193,26 +202,32 @@ export default createListener(
     const validationResult = validateWelcomeMessage(message.content);
 
     if (validationResult.isValid) {
-      const welcomeRoleId = config.roles.verified;
-      if (welcomeRoleId) {
-        const roleToAssign = guild.roles.cache.get(welcomeRoleId);
+      const verifiedRoleId = config.roles.verified;
+      const enLearnerRoleId = config.roles.enLearner;
+      const jpLearnerRoleId = config.roles.jpLearner;
+      const enjaLearnerRoleId = config.roles.enjaLearner;
+
+      let assignedLanguageRoleName = "None";
+
+      if (verifiedRoleId) {
+        const roleToAssign = guild.roles.cache.get(verifiedRoleId);
         if (!roleToAssign) {
           console.error(
-            `welcomeMessage listener: Welcome role (ID: ${welcomeRoleId}) not found in guild ${guild.id}.`,
+            `welcomeMessage listener: Verified role (ID: ${verifiedRoleId}) not found in guild ${guild.id}.`,
           );
         } else {
-          if (!member.roles.cache.has(welcomeRoleId)) {
+          if (!member.roles.cache.has(verifiedRoleId)) {
             if (
               !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
             ) {
               console.warn(
-                `welcomeMessage listener: Bot is missing 'Manage Roles' permission in guild ${guild.id}. Cannot assign welcome role.`,
+                `welcomeMessage listener: Bot is missing 'Manage Roles' permission in guild ${guild.id}. Cannot assign roles.`,
               );
             } else if (
               botMember.roles.highest.position <= roleToAssign.position
             ) {
               console.warn(
-                `welcomeMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign welcome role '${roleToAssign.name}' (position ${roleToAssign.position}) in guild ${guild.id}. Bot role position: ${botMember.roles.highest.position}.`,
+                `welcomeMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign verified role '${roleToAssign.name}' (position ${roleToAssign.position}) in guild ${guild.id}. Bot role position: ${botMember.roles.highest.position}.`,
               );
             } else {
               try {
@@ -231,7 +246,118 @@ export default createListener(
         }
       } else {
         console.log(
-          "welcomeMessage listener: WELCOME_ROLE_ID is not defined, skipping role assignment.",
+          "welcomeMessage listener: VERIFIED_ROLE_ID is not defined, skipping verified role assignment.",
+        );
+      }
+
+      if (
+        enLearnerRoleId &&
+        jpLearnerRoleId &&
+        enjaLearnerRoleId &&
+        botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
+      ) {
+        const lines = message.content.split("\n");
+        const studyingLine = lines.find((line) =>
+          line.startsWith(CORRECT_TEMPLATE_HEADERS[3]),
+        );
+
+        let roleIdToAssign: string | null = null;
+        let roleNameForLog: string | null = null;
+
+        if (studyingLine) {
+          const studyingContent = studyingLine
+            .substring(CORRECT_TEMPLATE_HEADERS[3].length)
+            .trim()
+            .toLowerCase();
+
+          const studyingEnglish = englishRegex.test(studyingContent);
+          const studyingJapanese = japaneseRegex.test(studyingContent);
+
+          if (studyingEnglish && studyingJapanese) {
+            roleIdToAssign = enjaLearnerRoleId;
+            roleNameForLog = "EN/JA Learner";
+          } else if (studyingEnglish) {
+            roleIdToAssign = enLearnerRoleId;
+            roleNameForLog = "EN Learner";
+          } else if (studyingJapanese) {
+            roleIdToAssign = jpLearnerRoleId;
+            roleNameForLog = "JP Learner";
+          } else {
+            roleIdToAssign = enjaLearnerRoleId;
+            roleNameForLog = "EN/JA Learner (Default)";
+          }
+        } else {
+          roleIdToAssign = enjaLearnerRoleId;
+          roleNameForLog = "EN/JA Learner (Default - Missing Line)";
+          console.warn(
+            `welcomeMessage listener: Studying line missing for user ${member.user.tag}, assigning default role.`,
+          );
+        }
+
+        if (roleIdToAssign) {
+          const roleToAssign = guild.roles.cache.get(
+            roleIdToAssign,
+          ) as RoleResolvable;
+          if (!roleToAssign) {
+            console.error(
+              `welcomeMessage listener: Language role (ID: ${roleIdToAssign}) not found for ${roleNameForLog}.`,
+            );
+          } else if (
+            botMember.roles.highest.position <= (roleToAssign as Role).position
+          ) {
+            console.warn(
+              `welcomeMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign language role '${(roleToAssign as Role).name}' (position ${(roleToAssign as Role).position}). Bot role position: ${botMember.roles.highest.position}.`,
+            );
+          } else {
+            const allLanguageRoleIds = [
+              enLearnerRoleId,
+              jpLearnerRoleId,
+              enjaLearnerRoleId,
+            ];
+            const roleIdsToRemove = allLanguageRoleIds.filter(
+              (id) => id && id !== roleIdToAssign,
+            );
+            const actualRolesToRemove = roleIdsToRemove.filter((id) =>
+              member.roles.cache.has(id),
+            );
+
+            try {
+              if (actualRolesToRemove.length > 0) {
+                await member.roles.remove(actualRolesToRemove);
+                console.log(
+                  `welcomeMessage listener: Removed other language roles from ${member.user.tag}.`,
+                );
+              }
+
+              if (!member.roles.cache.has(roleIdToAssign)) {
+                await member.roles.add(roleToAssign);
+                assignedLanguageRoleName = (roleToAssign as Role).name;
+                console.log(
+                  `welcomeMessage listener: Successfully assigned role '${assignedLanguageRoleName}' to ${member.user.tag}.`,
+                );
+              } else {
+                assignedLanguageRoleName = (roleToAssign as Role).name;
+                console.log(
+                  `welcomeMessage listener: User ${member.user.tag} already has correct role '${assignedLanguageRoleName}'.`,
+                );
+              }
+            } catch (error) {
+              console.error(
+                `welcomeMessage listener: Failed to update language roles for ${member.user.tag}. Error:`,
+                error,
+              );
+            }
+          }
+        }
+      } else if (
+        !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
+      ) {
+        console.warn(
+          `welcomeMessage listener: Bot is missing 'Manage Roles' permission. Cannot assign language roles.`,
+        );
+      } else {
+        console.log(
+          "welcomeMessage listener: One or more language learner role IDs (EN_LEARNER_ROLE_ID, JP_LEARNER_ROLE_ID, ENJA_LEARNER_ROLE_ID) are not defined, skipping language role assignment.",
         );
       }
 
@@ -371,7 +497,7 @@ export default createListener(
             .addFields(
               {
                 name: "エラーの理由 / Reason for Error",
-                value: errorReasonFieldValue || "",
+                value: errorReasonFieldValue || "Unknown error",
               },
               {
                 name: "正しいテンプレート / Correct Template",
@@ -379,7 +505,7 @@ export default createListener(
               },
               {
                 name: "削除されたメッセージ / Deleted Message",
-                value: deletedMessageFieldValue || "",
+                value: deletedMessageFieldValue || "Could not display message",
               },
             )
             .setTimestamp();
