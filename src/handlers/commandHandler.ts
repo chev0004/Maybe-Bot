@@ -123,15 +123,15 @@ export default class CommandHandler {
 
       console.log("Refreshing application (/) commands.");
       const rest = new REST({ version: "10" }).setToken(TOKEN);
-      console.log("Attempting to register the following commands JSON:");
-      console.log(
-        JSON.stringify(
-          this.commandsArray,
-          (_key, value) =>
-            typeof value === "bigint" ? value.toString() : value,
-          2,
-        ),
-      );
+      // console.log("Attempting to register the following commands JSON:");
+      // console.log(
+      //   JSON.stringify(
+      //     this.commandsArray,
+      //     (_key, value) =>
+      //       typeof value === "bigint" ? value.toString() : value,
+      //     2,
+      //   ),
+      // );
 
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
         body: this.commandsArray,
