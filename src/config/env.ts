@@ -15,6 +15,9 @@ const requiredEnvVars = [
   "WELCOME_CHANNEL_ID",
   "VERIFIED_ROLE_ID",
   "DATABASE_URL",
+  "EN_LEARNER_ROLE_ID",
+  "JP_LEARNER_ROLE_ID",
+  "ENJA_LEARNER_ROLE_ID",
 ];
 
 validateEnvVars(requiredEnvVars);
@@ -41,6 +44,9 @@ export const config = {
   roles: {
     bump: process.env.BUMP_ROLE_ID as string,
     verified: process.env.VERIFIED_ROLE_ID as string,
+    enLearner: process.env.EN_LEARNER_ROLE_ID as string,
+    jpLearner: process.env.JP_LEARNER_ROLE_ID as string,
+    enjaLearner: process.env.ENJA_LEARNER_ROLE_ID as string,
   },
   urls: {
     database: process.env.DATABASE_URL as string,
