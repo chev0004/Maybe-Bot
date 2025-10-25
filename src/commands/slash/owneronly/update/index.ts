@@ -162,9 +162,33 @@ export default createCommand(
 
       embed.addFields({
         name: "ビルド / Build",
-        value:
-          "```ビルドは再起動時に実行されます。\nBuild will run on restart.```",
+        value: "```ビルディング... / Building...```",
       });
+      await interaction.editReply({ embeds: [embed] });
+
+      try {
+        await execPromise("rm -rf dist");
+        await execPromise("npm run build");
+
+        embed.spliceFields(-1, 1, {
+          name: "ビルド / Build",
+          value: "```ビルド完了 / Build complete.```",
+        });
+      } catch (buildError) {
+        console.error("Error during build:", buildError);
+        const err = buildError as Error & { stderr?: string; stdout?: string };
+        embed
+          .setColor(Colors.red)
+          .setDescription(
+            "ビルド中にエラーが発生しました。BOTは更新されましたが、再起動は中止します。",
+          )
+          .spliceFields(-1, 1, {
+            name: "NPM Build Error",
+            value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
+          });
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
 
       embed.setFooter({
         text: `BOTが再起動中... • ${new Date().toLocaleDateString("ja-JP")}`,
