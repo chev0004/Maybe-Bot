@@ -167,7 +167,6 @@ export default createCommand(
       await interaction.editReply({ embeds: [embed] });
 
       try {
-        await execPromise("rm -rf dist");
         await execPromise("npm run build");
 
         embed.spliceFields(-1, 1, {
