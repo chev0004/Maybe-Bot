@@ -40,8 +40,6 @@ export default {
       const originalMessage =
         await interaction.channel?.messages.fetch(originalMessageId);
       const originalEmbed = originalMessage?.embeds[0];
-      console.log(`Fetched original message for reply to #${targetId}.`);
-
       const titleMatch = originalEmbed?.title?.match(/(.+) \(#\d+\)/);
       const originalAuthorName = titleMatch
         ? titleMatch[1].trim()

@@ -207,8 +207,6 @@ export default createListener(
       const jpLearnerRoleId = config.roles.jpLearner;
       const enjaLearnerRoleId = config.roles.enjaLearner;
 
-      let assignedLanguageRoleName = "None";
-
       if (verifiedRoleId) {
         const roleToAssign = guild.roles.cache.get(verifiedRoleId);
         if (!roleToAssign) {
@@ -232,9 +230,6 @@ export default createListener(
             } else {
               try {
                 await member.roles.add(roleToAssign);
-                console.log(
-                  `introductionMessage listener: Successfully assigned role '${roleToAssign.name}' to ${member.user.tag}.`,
-                );
               } catch (error) {
                 console.error(
                   `introductionMessage listener: Failed to assign role '${roleToAssign.name}' to ${member.user.tag}. Error:`,
@@ -244,10 +239,6 @@ export default createListener(
             }
           }
         }
-      } else {
-        console.log(
-          "introductionMessage listener: VERIFIED_ROLE_ID is not defined, skipping verified role assignment.",
-        );
       }
 
       if (
@@ -324,22 +315,10 @@ export default createListener(
             try {
               if (actualRolesToRemove.length > 0) {
                 await member.roles.remove(actualRolesToRemove);
-                console.log(
-                  `introductionMessage listener: Removed other language roles from ${member.user.tag}.`,
-                );
               }
 
               if (!member.roles.cache.has(roleIdToAssign)) {
                 await member.roles.add(roleToAssign);
-                assignedLanguageRoleName = (roleToAssign as Role).name;
-                console.log(
-                  `introductionMessage listener: Successfully assigned role '${assignedLanguageRoleName}' to ${member.user.tag}.`,
-                );
-              } else {
-                assignedLanguageRoleName = (roleToAssign as Role).name;
-                console.log(
-                  `introductionMessage listener: User ${member.user.tag} already has correct role '${assignedLanguageRoleName}'.`,
-                );
               }
             } catch (error) {
               console.error(
@@ -354,10 +333,6 @@ export default createListener(
       ) {
         console.warn(
           `introductionMessage listener: Bot is missing 'Manage Roles' permission. Cannot assign language roles.`,
-        );
-      } else {
-        console.log(
-          "introductionMessage listener: One or more language learner role IDs (EN_LEARNER_ROLE_ID, JP_LEARNER_ROLE_ID, ENJA_LEARNER_ROLE_ID) are not defined, skipping language role assignment.",
         );
       }
 

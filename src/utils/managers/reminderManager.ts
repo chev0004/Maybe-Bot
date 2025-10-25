@@ -46,10 +46,6 @@ const executeReminder = async (
       content: `<@&${reminder.roleId}>`,
       embeds: [embedMsg],
     });
-
-    console.log(
-      `Sent ${bumpSource} reminder to channel ${reminder.channelId}.`,
-    );
   } catch (error) {
     console.error("Failed to execute reminder:", error);
   } finally {
@@ -74,7 +70,6 @@ const createTimeout = (reminder: Reminder, client: Client): void => {
   const delay = reminder.triggerAt - now;
 
   if (delay <= 0) {
-    console.log(`Executing overdue reminder ${reminder.id} immediately.`);
     void executeReminder(reminder, client);
   } else {
     const timeoutId = setTimeout(() => {
@@ -99,9 +94,6 @@ export const scheduleReminder = async (
   );
 
   if (existingReminder) {
-    console.log(
-      `[ReminderManager] Replacing existing reminder for ${reminderDetails.source}.`,
-    );
     if (activeTimers.has(existingReminder.id)) {
       clearTimeout(activeTimers.get(existingReminder.id));
       activeTimers.delete(existingReminder.id);
@@ -116,11 +108,6 @@ export const scheduleReminder = async (
 
   await addReminder(newReminder);
   createTimeout(newReminder, client);
-  console.log(
-    `Scheduled new reminder ${newReminder.id} for ${new Date(
-      newReminder.triggerAt,
-    ).toLocaleTimeString()}`,
-  );
 };
 
 /**
@@ -130,15 +117,12 @@ export const scheduleReminder = async (
 export const loadAndProcessReminders = async (
   client: Client,
 ): Promise<void> => {
-  console.log("Loading and processing pending reminders...");
   const reminders = getReminders();
   if (reminders.length === 0) {
-    console.log("No pending reminders found.");
     return;
   }
 
   for (const reminder of reminders) {
-    console.log(`Found pending reminder: ${reminder.id}`);
     createTimeout(reminder, client);
   }
 };
