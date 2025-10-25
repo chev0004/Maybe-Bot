@@ -160,6 +160,7 @@ export default createCommand(
         }
       }
 
+      // Test
       embed.addFields({
         name: "ビルド / Build",
         value: "```ビルディング... / Building...```",
