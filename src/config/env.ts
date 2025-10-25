@@ -39,7 +39,7 @@ export const config = {
     confessions: process.env.CONFESSIONS_CHANNEL_ID as string,
     voiceLog: process.env.VOICE_LOG_CHANNEL_ID as string,
     voiceCategory: process.env.VOICE_CATEGORY_ID as string,
-    welcome: process.env.WELCOME_CHANNEL_ID as string,
+    introduction: process.env.WELCOME_CHANNEL_ID as string,
   },
   roles: {
     bump: process.env.BUMP_ROLE_ID as string,
