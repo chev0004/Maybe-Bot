@@ -1,5 +1,10 @@
 import type { GuildTextBasedChannel } from "discord.js";
-import { EmbedBuilder, PermissionsBitField } from "discord.js";
+import {
+  EmbedBuilder,
+  PermissionsBitField,
+  type Role,
+  type RoleResolvable,
+} from "discord.js";
 import { config } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
@@ -11,7 +16,7 @@ import {
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
 const SPAM_COOLDOWN_MS = 5 * 60 * 1000;
-0;
+
 type SubmissionAttempts = {
   timestamps: number[];
   spamNotifiedAt: number | null;
@@ -28,6 +33,10 @@ const CORRECT_TEMPLATE_HEADERS = [
 ];
 
 const CORRECT_TEMPLATE_STRING = CORRECT_TEMPLATE_HEADERS.join("\n");
+
+const englishRegex = /\b(english|eng|en|eigo)\b|(英語|えいご)/i;
+const japaneseRegex =
+  /\b(japanese|jap|jp|nihongo|kokugo)\b|(日本語|にほんご|国語|こくご)/i;
 
 const getErrorCode = (error: unknown): number | undefined => {
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -164,7 +173,7 @@ export default createListener(
 
     if (!guild || !member) {
       console.error(
-        "welcomeMessage listener: Could not get guild or member object from the message. Skipping.",
+        "introductionMessage listener: Could not get guild or member object from the message. Skipping.",
       );
       return;
     }
@@ -172,7 +181,7 @@ export default createListener(
     const botMember = guild.members.me;
     if (!botMember) {
       console.error(
-        "welcomeMessage listener: Could not get bot's member object. Skipping.",
+        "introductionMessage listener: Could not get bot's member object. Skipping.",
       );
       return;
     }
@@ -185,7 +194,7 @@ export default createListener(
       !channelPermissions.has(PermissionsBitField.Flags.ViewChannel)
     ) {
       console.warn(
-        `welcomeMessage listener: Bot missing SendMessages or ViewChannel permission in ${channel.name}. Listener will not function effectively.`,
+        `introductionMessage listener: Bot missing SendMessages or ViewChannel permission in ${channel.name}. Listener will not function effectively.`,
       );
       return;
     }
@@ -193,45 +202,137 @@ export default createListener(
     const validationResult = validateWelcomeMessage(message.content);
 
     if (validationResult.isValid) {
-      const welcomeRoleId = config.roles.verified;
-      if (welcomeRoleId) {
-        const roleToAssign = guild.roles.cache.get(welcomeRoleId);
+      const verifiedRoleId = config.roles.verified;
+      const enLearnerRoleId = config.roles.enLearner;
+      const jpLearnerRoleId = config.roles.jpLearner;
+      const enjaLearnerRoleId = config.roles.enjaLearner;
+
+      if (verifiedRoleId) {
+        const roleToAssign = guild.roles.cache.get(verifiedRoleId);
         if (!roleToAssign) {
           console.error(
-            `welcomeMessage listener: Welcome role (ID: ${welcomeRoleId}) not found in guild ${guild.id}.`,
+            `introductionMessage listener: Verified role (ID: ${verifiedRoleId}) not found in guild ${guild.id}.`,
           );
         } else {
-          if (!member.roles.cache.has(welcomeRoleId)) {
+          if (!member.roles.cache.has(verifiedRoleId)) {
             if (
               !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
             ) {
               console.warn(
-                `welcomeMessage listener: Bot is missing 'Manage Roles' permission in guild ${guild.id}. Cannot assign welcome role.`,
+                `introductionMessage listener: Bot is missing 'Manage Roles' permission in guild ${guild.id}. Cannot assign roles.`,
               );
             } else if (
               botMember.roles.highest.position <= roleToAssign.position
             ) {
               console.warn(
-                `welcomeMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign welcome role '${roleToAssign.name}' (position ${roleToAssign.position}) in guild ${guild.id}. Bot role position: ${botMember.roles.highest.position}.`,
+                `introductionMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign verified role '${roleToAssign.name}' (position ${roleToAssign.position}) in guild ${guild.id}. Bot role position: ${botMember.roles.highest.position}.`,
               );
             } else {
               try {
                 await member.roles.add(roleToAssign);
-                console.log(
-                  `welcomeMessage listener: Successfully assigned role '${roleToAssign.name}' to ${member.user.tag}.`,
-                );
               } catch (error) {
                 console.error(
-                  `welcomeMessage listener: Failed to assign role '${roleToAssign.name}' to ${member.user.tag}. Error:`,
+                  `introductionMessage listener: Failed to assign role '${roleToAssign.name}' to ${member.user.tag}. Error:`,
                   error,
                 );
               }
             }
           }
         }
-      } else {
-        console.log(
-          "welcomeMessage listener: WELCOME_ROLE_ID is not defined, skipping role assignment.",
+      }
+
+      if (
+        enLearnerRoleId &&
+        jpLearnerRoleId &&
+        enjaLearnerRoleId &&
+        botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
+      ) {
+        const lines = message.content.split("\n");
+        const studyingLine = lines.find((line) =>
+          line.startsWith(CORRECT_TEMPLATE_HEADERS[3]),
+        );
+
+        let roleIdToAssign: string | null = null;
+        let roleNameForLog: string | null = null;
+
+        if (studyingLine) {
+          const studyingContent = studyingLine
+            .substring(CORRECT_TEMPLATE_HEADERS[3].length)
+            .trim()
+            .toLowerCase();
+
+          const studyingEnglish = englishRegex.test(studyingContent);
+          const studyingJapanese = japaneseRegex.test(studyingContent);
+
+          if (studyingEnglish && studyingJapanese) {
+            roleIdToAssign = enjaLearnerRoleId;
+            roleNameForLog = "EN/JA Learner";
+          } else if (studyingEnglish) {
+            roleIdToAssign = enLearnerRoleId;
+            roleNameForLog = "EN Learner";
+          } else if (studyingJapanese) {
+            roleIdToAssign = jpLearnerRoleId;
+            roleNameForLog = "JP Learner";
+          } else {
+            roleIdToAssign = enjaLearnerRoleId;
+            roleNameForLog = "EN/JA Learner (Default)";
+          }
+        } else {
+          roleIdToAssign = enjaLearnerRoleId;
+          roleNameForLog = "EN/JA Learner (Default - Missing Line)";
+          console.warn(
+            `introductionMessage listener: Studying line missing for user ${member.user.tag}, assigning default role.`,
+          );
+        }
+
+        if (roleIdToAssign) {
+          const roleToAssign = guild.roles.cache.get(
+            roleIdToAssign,
+          ) as RoleResolvable;
+          if (!roleToAssign) {
+            console.error(
+              `introductionMessage listener: Language role (ID: ${roleIdToAssign}) not found for ${roleNameForLog}.`,
+            );
+          } else if (
+            botMember.roles.highest.position <= (roleToAssign as Role).position
+          ) {
+            console.warn(
+              `introductionMessage listener: Bot's highest role (${botMember.roles.highest.name}) is not high enough to assign language role '${(roleToAssign as Role).name}' (position ${(roleToAssign as Role).position}). Bot role position: ${botMember.roles.highest.position}.`,
+            );
+          } else {
+            const allLanguageRoleIds = [
+              enLearnerRoleId,
+              jpLearnerRoleId,
+              enjaLearnerRoleId,
+            ];
+            const roleIdsToRemove = allLanguageRoleIds.filter(
+              (id) => id && id !== roleIdToAssign,
+            );
+            const actualRolesToRemove = roleIdsToRemove.filter((id) =>
+              member.roles.cache.has(id),
+            );
+
+            try {
+              if (actualRolesToRemove.length > 0) {
+                await member.roles.remove(actualRolesToRemove);
+              }
+
+              if (!member.roles.cache.has(roleIdToAssign)) {
+                await member.roles.add(roleToAssign);
+              }
+            } catch (error) {
+              console.error(
+                `introductionMessage listener: Failed to update language roles for ${member.user.tag}. Error:`,
+                error,
+              );
+            }
+          }
+        }
+      } else if (
+        !botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)
+      ) {
+        console.warn(
+          `introductionMessage listener: Bot is missing 'Manage Roles' permission. Cannot assign language roles.`,
         );
       }
 
@@ -255,7 +356,7 @@ export default createListener(
             const code = getErrorCode(err);
             if (code !== 10008) {
               console.warn(
-                "welcomeMessage listener: Error deleting old sticky message:",
+                "introductionMessage listener: Error deleting old sticky message:",
                 err instanceof Error ? err.message : String(err),
               );
             }
@@ -281,7 +382,7 @@ export default createListener(
       } catch (error) {
         const err = error as unknown;
         console.error(
-          "welcomeMessage listener: Error handling sticky message for correctly formatted welcome:",
+          "introductionMessage listener: Error handling sticky message for correctly formatted introduction:",
           err instanceof Error ? err.message : String(err),
         );
       }
@@ -326,7 +427,7 @@ export default createListener(
           !channelPermissions.has(PermissionsBitField.Flags.ManageMessages)
         ) {
           console.warn(
-            `welcomeMessage listener: Bot missing 'Manage Messages' permission in ${channel.name}. Cannot delete incorrectly formatted message.`,
+            `introductionMessage listener: Bot missing 'Manage Messages' permission in ${channel.name}. Cannot delete incorrectly formatted message.`,
           );
         }
 
@@ -371,7 +472,7 @@ export default createListener(
             .addFields(
               {
                 name: "エラーの理由 / Reason for Error",
-                value: errorReasonFieldValue || "",
+                value: errorReasonFieldValue || "Unknown error",
               },
               {
                 name: "正しいテンプレート / Correct Template",
@@ -379,7 +480,7 @@ export default createListener(
               },
               {
                 name: "削除されたメッセージ / Deleted Message",
-                value: deletedMessageFieldValue || "",
+                value: deletedMessageFieldValue || "Could not display message",
               },
             )
             .setTimestamp();
@@ -411,7 +512,7 @@ export default createListener(
             } catch (dmError) {
               const err = dmError as unknown;
               console.warn(
-                `welcomeMessage listener: Failed to DM user ${author.tag} about spamming:`,
+                `introductionMessage listener: Failed to DM user ${author.tag} about spamming:`,
                 err instanceof Error ? err.message : String(err),
               );
             }
@@ -420,7 +521,7 @@ export default createListener(
       } catch (error) {
         const err = error as unknown;
         console.error(
-          "welcomeMessage listener: Error handling incorrectly formatted welcome message:",
+          "introductionMessage listener: Error handling incorrectly formatted introduction message:",
           err instanceof Error ? err.message : String(err),
         );
       }
@@ -428,6 +529,6 @@ export default createListener(
   },
   {
     ignoreBots: false,
-    channels: ["welcome"],
+    channels: ["introduction"],
   },
 );

@@ -170,9 +170,6 @@ discordClient.once("clientReady", async (client: Client<true>) => {
           content: `<@${restartInfo.triggeringUserId}>`,
           embeds: [restartEmbed],
         });
-        console.log(
-          `Sent restart notification embed to channel ${restartInfo.channelId} for user ${restartInfo.triggeringUserId}`,
-        );
       } catch (sendError) {
         console.error(
           `Failed to send restart notification embed to channel ${restartInfo.channelId}:`,
@@ -186,7 +183,6 @@ discordClient.once("clientReady", async (client: Client<true>) => {
     }
 
     await clearRestartInfo();
-    console.log(`Cleared restart info.`);
   }
 });
 

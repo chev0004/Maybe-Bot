@@ -81,6 +81,6 @@ export default createListener(
     }
   },
   {
-    ignoreChannels: [config.channels.welcome],
+    ignoreChannels: [config.channels.introduction],
   },
 );

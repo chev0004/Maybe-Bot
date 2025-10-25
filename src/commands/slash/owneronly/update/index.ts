@@ -179,7 +179,6 @@ export default createCommand(
       await setRestartInfo(restartInfo);
 
       setTimeout(() => {
-        console.log(`Bot restarting due to /update command...`);
         process.exit(0);
       }, 3000);
     } catch (error) {
