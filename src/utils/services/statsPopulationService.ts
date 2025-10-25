@@ -14,10 +14,6 @@ export const populateInitialStats = async (guild: Guild): Promise<void> => {
     return;
   }
 
-  console.log(
-    "[Stats Population] Starting population of users and channels...",
-  );
-
   try {
     const allMembers = await guild.members.fetch();
     const allChannels = await guild.channels.fetch();
@@ -87,10 +83,6 @@ export const populateInitialStats = async (guild: Guild): Promise<void> => {
         .values(channelData.map((c) => ({ channelId: c.id, date: today })))
         .onConflictDoNothing();
     }
-
-    console.log(
-      `[Stats Population] Finished. Processed ${memberData.length} members and ${channelData.length} channels.`,
-    );
   } catch (error) {
     console.error(
       "[Stats Population] An error occurred during stats population:",

@@ -45,9 +45,6 @@ const loadData = async (): Promise<void> => {
     memoryStore = { ...defaultData, ...parsedData };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      console.log(
-        "[DataManager] bot_data.json not found. Creating with default data.",
-      );
       memoryStore = { ...defaultData };
       await saveData();
     } else {
@@ -73,7 +70,6 @@ const saveData = async (): Promise<void> => {
 
 (async () => {
   await loadData();
-  console.log("[DataManager] Persistent data loaded into memory.");
 })();
 
 const ensureStoreLoaded = async (): Promise<BotData> => {

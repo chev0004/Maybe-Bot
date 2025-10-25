@@ -29,7 +29,6 @@ export default createCommand(
 
     try {
       await setRestartInfo(restartInfo);
-      console.log(`Restart info saved by /restart command.`);
     } catch (writeError) {
       console.error(
         "Failed to write restart info during manual restart:",
@@ -44,9 +43,6 @@ export default createCommand(
     }
 
     setTimeout(() => {
-      console.log(
-        `Bot restarting due to /restart command issued by ${interaction.user.tag}...`,
-      );
       process.exit(0);
     }, 3000);
   },
