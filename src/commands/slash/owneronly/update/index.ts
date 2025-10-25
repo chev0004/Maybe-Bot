@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import util from "util";
 import { Colors } from "../../../../constants/Colors.js";
@@ -9,6 +9,70 @@ import { getMockUpdateData, parseMockGitUpdateOutput } from "./update.mock.js";
 
 const execPromise = util.promisify(exec);
 const PULLED_BRANCH = "develop";
+
+class ProcessError extends Error {
+  public stdout: string;
+  public stderr: string;
+
+  constructor(message: string, stdout: string, stderr: string) {
+    super(message);
+    this.name = "ProcessError";
+    this.stdout = stdout;
+    this.stderr = stderr;
+  }
+}
+
+/**
+ * Spawns a child process and streams its stdout/stderr to the main process
+ * console in real-time. Also captures the full output for later use.
+ * @param command The command to run (e.g., "npm")
+ * @param args An array of arguments (e.g., ["install"])
+ * @returns A promise that resolves with the captured stdout and stderr.
+ */
+const spawnWithLogs = (
+  command: string,
+  args: string[],
+): Promise<{ stdout: string; stderr: string }> => {
+  return new Promise((resolve, reject) => {
+    console.log(`[Logger] Running command: ${command} ${args.join(" ")}`);
+    const child = spawn(command, args, { shell: true });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      process.stdout.write(data);
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      process.stderr.write(data);
+      stderr += data.toString();
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log(`[Logger] Command finished: ${command} ${args.join(" ")}`);
+        resolve({ stdout, stderr });
+      } else {
+        const error = new ProcessError(
+          `Process exited with code ${code}`,
+          stdout,
+          stderr,
+        );
+        console.error(`[Logger] Command failed: ${command} ${args.join(" ")}`);
+        if (stdout) console.error("[Logger] Stdout:", stdout);
+        if (stderr) console.error("[Logger] Stderr:", stderr);
+        reject(error);
+      }
+    });
+
+    child.on("error", (err) => {
+      console.error(`[Logger] Failed to start command: ${command}`, err);
+      reject(err);
+    });
+  });
+};
 
 const truncateField = (text: string, maxLength = 1000): string => {
   if (text.length <= maxLength) return text;
@@ -71,13 +135,25 @@ export default createCommand(
     await interaction.editReply({ embeds: [embed] });
 
     try {
+      console.log("[Logger] Running: git fetch origin");
       const { stderr: fetchStderr } = await execPromise("git fetch origin");
-      const { stdout: commitLog } = await execPromise(
+      if (fetchStderr) console.warn("[Logger] git fetch stderr:", fetchStderr);
+
+      console.log("[Logger] Running: git log");
+      const { stdout: commitLog, stderr: logStderr } = await execPromise(
         `git log HEAD..origin/${PULLED_BRANCH} --pretty=format:"%h - %s"`,
       );
-      const { stdout: packageJsonDiff } = await execPromise(
+      if (commitLog) console.log("[Logger] git log stdout:", commitLog);
+      if (logStderr) console.warn("[Logger] git log stderr:", logStderr);
+
+      console.log("[Logger] Running: git diff package.json");
+      const { stdout: packageJsonDiff, stderr: diffStderr } = await execPromise(
         `git diff HEAD..origin/${PULLED_BRANCH} -- package.json`,
       );
+      if (packageJsonDiff)
+        console.log("[Logger] git diff stdout:", packageJsonDiff);
+      if (diffStderr) console.warn("[Logger] git diff stderr:", diffStderr);
+
       const needsNpmInstall = packageJsonDiff.length > 0;
 
       if (!isForceMode && !commitLog && !needsNpmInstall) {
@@ -93,12 +169,17 @@ export default createCommand(
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
-      const { stdout: pullStdout } = await execPromise(pullCommand);
+
+      console.log(`[Logger] Running: ${pullCommand}`);
+      const { stdout: pullStdout, stderr: pullStderr } =
+        await execPromise(pullCommand);
+      if (pullStdout) console.log("[Logger] git pull stdout:", pullStdout);
+      if (pullStderr) console.warn("[Logger] git pull stderr:", pullStderr);
 
       const { changes, files, repo } = parseGitUpdateOutput(
         commitLog,
         pullStdout,
-        fetchStderr,
+        fetchStderr || pullStderr,
       );
       embed
         .setColor(Colors.green)
@@ -121,12 +202,15 @@ export default createCommand(
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
-          value: "```依存関係を処理中...```",
+          value: "```依存関係を処理中... (コンソールでログを確認)```",
         });
         await interaction.editReply({ embeds: [embed] });
 
         try {
-          const { stdout: npmStdout } = await execPromise("npm install");
+          console.log("[Logger] Starting: npm install");
+          const { stdout: npmStdout } = await spawnWithLogs("npm", ["install"]);
+          console.log("[Logger] Finished: npm install");
+
           const addedMatch = npmStdout.match(/added (\d+ packages?)/);
           const auditMatch = npmStdout.match(/audited (\d+ packages?)/);
           const timeMatch = npmStdout.match(/in (\d+s|\d+\.\d+s)/);
@@ -160,15 +244,16 @@ export default createCommand(
         }
       }
 
-      // Test
       embed.addFields({
         name: "ビルド / Build",
-        value: "```ビルディング... / Building...```",
+        value: "```ビルディング... / Building... (コンソールでログを確認)```",
       });
       await interaction.editReply({ embeds: [embed] });
 
       try {
-        await execPromise("npm run build");
+        console.log("[Logger] Starting: npm run build");
+        await spawnWithLogs("npm", ["run", "build"]);
+        console.log("[Logger] Finished: npm run build");
 
         embed.spliceFields(-1, 1, {
           name: "ビルド / Build",
@@ -207,13 +292,13 @@ export default createCommand(
       }, 3000);
     } catch (error) {
       console.error("Error during update process:", error);
-      const err = error as Error & { stderr?: string };
+      const err = error as Error & { stderr?: string; stdout?: string };
       embed
         .setColor(Colors.red)
         .setDescription("更新プロセス中にエラーが発生しました。")
         .setFields({
           name: "Error",
-          value: `\`\`\`\n${truncateField(err.stderr || err.message)}\n\`\`\``,
+          value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
         });
       await interaction.editReply({ embeds: [embed] }).catch(console.error);
     }
