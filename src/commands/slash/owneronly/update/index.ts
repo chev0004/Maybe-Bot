@@ -249,10 +249,9 @@ export default createCommand(
         value: "```ビルディング... / Building... (コンソールでログを確認)```",
       });
       await interaction.editReply({ embeds: [embed] });
-      // Test
       try {
-        console.log("[Logger] Starting: npm run build");
-        await spawnWithLogs("npm", ["run", "build"]);
+        console.log("[Logger] Starting: npm run build -- --incremental");
+        await spawnWithLogs("npm", ["run", "build", "--", "--incremental"]);
         console.log("[Logger] Finished: npm run build");
 
         embed.spliceFields(-1, 1, {
