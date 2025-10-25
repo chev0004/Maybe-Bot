@@ -167,7 +167,6 @@ export default createCommand(
       await interaction.editReply({ embeds: [embed] });
 
       try {
-        // Run build before restarting
         await execPromise("npm run build");
 
         embed.spliceFields(-1, 1, {
