@@ -5,22 +5,22 @@
  * Color Codes: 30-37
  */
 const ansiColors = {
-  // Dim/Faint Colors
-  dimRed: "2;31m",
-  dimGreen: "2;32m",
-  dimYellow: "2;33m",
-  dimBlue: "2;34m",
-  dimMagenta: "2;35m",
-  dimCyan: "2;36m",
-  dimWhite: "2;37m",
-  // Bold Colors
-  boldRed: "1;31m",
-  boldGreen: "1;32m",
-  boldYellow: "1;33m",
-  boldBlue: "1;34m",
-  boldMagenta: "1;35m",
-  boldCyan: "1;36m",
-  boldWhite: "1;37m",
+    // Dim/Faint Colors
+    dimRed: "2;31m",
+    dimGreen: "2;32m",
+    dimYellow: "2;33m",
+    dimBlue: "2;34m",
+    dimMagenta: "2;35m",
+    dimCyan: "2;36m",
+    dimWhite: "2;37m",
+    // Bold Colors
+    boldRed: "1;31m",
+    boldGreen: "1;32m",
+    boldYellow: "1;33m",
+    boldBlue: "1;34m",
+    boldMagenta: "1;35m",
+    boldCyan: "1;36m",
+    boldWhite: "1;37m",
 };
 /**
  * Wraps a string in ANSI color codes for use in Discord embeds.
@@ -29,9 +29,9 @@ const ansiColors = {
  * @returns The colorized text string.
  */
 export const setColor = (color, text) => {
-  const colorCode = ansiColors[color];
-  if (!colorCode) {
-    return text;
-  }
-  return `\u001b[${colorCode}${text}\u001b[0m`;
+    const colorCode = ansiColors[color];
+    if (!colorCode) {
+        return text;
+    }
+    return `\u001b[${colorCode}${text}\u001b[0m`;
 };
