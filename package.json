@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "db:migrate": "tsx src/scripts/baseline-and-migrate.ts",
     "start": "node dist/index.js",
     "preview:ui": "nodemon --watch src --ext ts --exec \"tsx src/preview.ts\"",
     "dev": "tsc -w & node --watch dist/index.js",
