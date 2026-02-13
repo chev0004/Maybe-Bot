@@ -76,6 +76,27 @@ Custom bot for an in-house language learning Discord server.
 | type-check | `bun run type-check` | tsc --noEmit |
 | preview:ui | `bun run preview:ui` | Nodemon + tsx for preview server |
 
+## Server / deployment | サーバー・デプロイ
+
+The bot is designed to run in a container and is kept up to date via Git and owner-only Discord commands.
+
+### startup.sh
+
+Runs when the container starts. Expects `cd /home/container` and uses `REPO_URL` / `BRANCH` (default: this repo, `develop`).
+
+1. **Clone or pull:** If `.git` exists, `git fetch` + `git reset --hard origin/develop`. Otherwise removes everything except `startup.sh` and `.env`, then clones the repo.
+2. **Install:** `bun install --production` (no devDependencies).
+3. **Start:** `pm2-runtime start dist/index.js --name maybe-bot`. No build step: `dist/` is committed to Git so the server runs pre-built JS.
+
+`pm2-runtime` keeps the process running and restarts it on crash or exit. Override entry with env `BOT_JS_FILE` (default `dist/index.js`).
+
+### In-Discord updates
+
+- **`/restart`** (owner-only): Saves restart context, then `process.exit(0)` after 3s. PM2 restarts the process; same code, clean restart.
+- **`/update`** (owner-only): Fetches `origin`, pulls `develop` (or `--force` for `git reset --hard`). If `package.json` changed, runs `bun install --production`. Then exits so PM2 restarts with the new code. No `tsc` on the server: updated `dist/` must be committed and pushed before running `/update`.
+
+Typical flow: build locally (`bun run build`), commit `dist/`, push to `develop`. On the server, either let the next container start run `startup.sh` (pull + install + start) or run `/update` to pull and restart the current process.
+
 ## Environment variables | 環境変数
 
 See `.env.example`. Required for normal run:
