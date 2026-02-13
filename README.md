@@ -189,18 +189,18 @@ Create a temporary voice channel.
    `git clone https://github.com/chev0004/maybe-bot.git`
 2. 依存関係をインストール  
    Install dependencies  
-   `npm install`
+   `bun install`
 3. `.env.example` を `.env` にコピーして環境変数を設定  
    Copy `.env.example` to `.env` and configure environment variables  
 4. データベースをマイグレート  
    Migrate the database  
-   `npx drizzle-kit migrate`
+   `bun run db:migrate`
 5. ビルド  
    Build the project  
-   `npm run build`
+   `bun run build`
 6. 起動  
    Start the bot  
-   `npm start`
+   `bun run start`
 
 ---
 
@@ -237,19 +237,19 @@ DATABASE_URL=
 ### スクリプト | Scripts
 ```bash
 # TypeScriptをビルド
-npm run build
+bun run build
 
 # BOTを起動
-npm run start
+bun run start
 
 # 開発モード (自動ビルド・再起動)
-npm run dev
+bun run dev
 
 # Biomeでコードをチェック・フォーマット
-npm run lint
+bun run lint
 
 # Biomeでコードをフォーマット
-npm run format
+bun run format
 ```
 
 ---
