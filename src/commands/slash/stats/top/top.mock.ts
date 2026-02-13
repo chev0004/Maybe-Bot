@@ -71,6 +71,19 @@ const allTimeUserBumps: LeaderboardItem[] = [
   { name: "MockBumper Kappa (kappa)", value: 5 },
 ];
 
+const allTimeUserWordle: LeaderboardItem[] = [
+  { name: "MockWordle Alpha (alpha)", value: 42 },
+  { name: "MockWordle Beta (beta)", value: 38 },
+  { name: "MockWordle Gamma (gamma)", value: 25 },
+  { name: "MockWordle Delta (delta)", value: 20 },
+  { name: "MockWordle Epsilon (epsilon)", value: 15 },
+  { name: "MockWordle Zeta (zeta)", value: 12 },
+  { name: "MockWordle Eta (eta)", value: 10 },
+  { name: "MockWordle Theta (theta)", value: 8 },
+  { name: "MockWordle Iota (iota)", value: 5 },
+  { name: "MockWordle Kappa (kappa)", value: 3 },
+];
+
 const allTimeUserStreamHours: LeaderboardItem[] = [
   { name: "MockStreamer Alpha (alpha)", value: 45.0 },
   { name: "MockStreamer Beta (beta)", value: 38.5 },
@@ -109,6 +122,7 @@ const dataFor30Days = {
   vc_users: scaleData(allTimeUserVC, 0.5),
   stream_users: scaleData(allTimeUserStreamHours, 0.6),
   bump_users: scaleData(allTimeUserBumps, 0.3),
+  wordle_users: scaleData(allTimeUserWordle, 0.4),
   msg_channels: scaleData(allTimeChannelMessages, 0.4),
   vc_channels: scaleData(allTimeChannelVC, 0.5),
 };
@@ -118,6 +132,7 @@ const dataFor7Days = {
   vc_users: scaleData(dataFor30Days.vc_users, 0.4),
   stream_users: scaleData(dataFor30Days.stream_users, 0.5),
   bump_users: scaleData(dataFor30Days.bump_users, 0.3),
+  wordle_users: scaleData(dataFor30Days.wordle_users, 0.35),
   msg_channels: scaleData(dataFor30Days.msg_channels, 0.35),
   vc_channels: scaleData(dataFor30Days.vc_channels, 0.4),
 };
@@ -127,6 +142,7 @@ const dataFor1Day = {
   vc_users: scaleData(dataFor7Days.vc_users, 0.25),
   stream_users: scaleData(dataFor7Days.stream_users, 0.3),
   bump_users: scaleData(dataFor7Days.bump_users, 0.15),
+  wordle_users: scaleData(dataFor7Days.wordle_users, 0.2),
   msg_channels: scaleData(dataFor7Days.msg_channels, 0.2),
   vc_channels: scaleData(dataFor7Days.vc_channels, 0.25),
 };
@@ -165,6 +181,7 @@ export const mockTopData = {
     vc_users: allTimeUserVC,
     stream_users: allTimeUserStreamHours,
     bump_users: allTimeUserBumps,
+    wordle_users: allTimeUserWordle,
     msg_channels: allTimeChannelMessages,
     vc_channels: allTimeChannelVC,
     overview: {

@@ -32,6 +32,7 @@ export type TopCategory =
   | "vc_users"
   | "stream_users"
   | "bump_users"
+  | "wordle_users"
   | "msg_channels"
   | "vc_channels";
 export type TopTimeframe = "1" | "7" | "30" | "all";
@@ -46,6 +47,7 @@ const categoryOptions = [
   { label: "Top Message Users", value: "msg_users" },
   { label: "Top Voice Users", value: "vc_users" },
   { label: "Top Bumpers", value: "bump_users" },
+  { label: "Top Wordle", value: "wordle_users" },
   { label: "Top Streamers", value: "stream_users" },
   { label: "Top Message Channels", value: "msg_channels" },
   { label: "Top Voice Channels", value: "vc_channels" },
@@ -68,7 +70,7 @@ const getDateCondition = (timeframe: TopTimeframe) => {
 };
 
 const getTopData = async (
-  category: "messages" | "vcHours" | "streamHours" | "bumps",
+  category: "messages" | "vcHours" | "streamHours" | "bumps" | "wordleWins",
   type: "users" | "channels",
   timeframe: TopTimeframe,
   limit: number,
@@ -279,11 +281,13 @@ export const generateMockTopReply = async ({
     } else if (category === "bump_users") {
       title = "バンプ数・Top Bumpers";
       iconPath = "src/assets/icons/bump.png";
+    } else if (category === "wordle_users") {
+      title = "Wordle・Top Wordle";
+      iconPath = "src/assets/icons/wordle.png";
     } else if (category === "msg_channels") {
       title = "送信メッセージ・Top Message Channels";
       iconPath = "src/assets/icons/chat.png";
     } else {
-      // vc_channels
       title = "ボイス時間・Top Voice Channels";
       iconPath = "src/assets/icons/mic.png";
     }
@@ -380,7 +384,6 @@ export const generateTopReply = async ({
   };
 
   if (category === "overview") {
-    // Prepare data structure matching OverviewData
     const overviewData: OverviewData = {
       messages: {
         users: await formatDataWithNicknames(
@@ -411,7 +414,12 @@ export const generateTopReply = async ({
     );
   } else {
     let title: string,
-      dbCategory: "messages" | "vcHours" | "streamHours" | "bumps",
+      dbCategory:
+        | "messages"
+        | "vcHours"
+        | "streamHours"
+        | "bumps"
+        | "wordleWins",
       type: "users" | "channels",
       iconPath: string;
     if (category === "msg_users") {
@@ -434,6 +442,11 @@ export const generateTopReply = async ({
       dbCategory = "bumps";
       type = "users";
       iconPath = "src/assets/icons/bump.png";
+    } else if (category === "wordle_users") {
+      title = "Wordle・Top Wordle";
+      dbCategory = "wordleWins";
+      type = "users";
+      iconPath = "src/assets/icons/wordle.png";
     } else if (category === "msg_channels") {
       title = "送信メッセージ・Top Message Channels";
       dbCategory = "messages";
