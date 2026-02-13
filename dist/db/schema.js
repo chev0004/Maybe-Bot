@@ -31,6 +31,7 @@ export const dailyUserStats = pgTable(
     vcHours: real("vc_hours").default(0).notNull(),
     streamHours: real("stream_hours").default(0).notNull(),
     bumps: integer("bumps").default(0).notNull(),
+    wordleWins: integer("wordle_wins").default(0).notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.userId, table.date] }),
