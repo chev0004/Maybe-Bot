@@ -1,0 +1,10 @@
+ALTER TABLE "public"."voice_sessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."active_vc_sessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."voice_session_participants" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."confessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."channels" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."hourly_user_activity" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."daily_user_stats" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."daily_channel_stats" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."hourly_activity" ENABLE ROW LEVEL SECURITY;

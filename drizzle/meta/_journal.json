@@ -36,6 +36,13 @@
       "when": 1759543937666,
       "tag": "0004_low_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760000000000,
+      "tag": "0005_enable_rls_public_tables",
+      "breakpoints": true
     }
   ]
 }
