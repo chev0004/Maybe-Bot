@@ -131,13 +131,41 @@ export default createCommand(
     const embed = new EmbedBuilder()
       .setTitle(`BOTの更新${isForceMode ? " (FORCE)" : ""}`)
       .setColor(Colors.yellow)
-      .setDescription(`最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`);
+      .setDescription(
+        isForceMode
+          ? `最新のコミットを確認中... ローカルの変更はすべて破棄されます。`
+          : `最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`,
+      );
     await interaction.editReply({ embeds: [embed] });
 
     try {
+      try {
+        await execPromise("git rev-parse --is-inside-work-tree");
+      } catch {
+        embed
+          .setColor(Colors.red)
+          .setDescription(
+            "Gitリポジトリ内で実行されていません。BOTをリポジトリのルートから起動してください。",
+          );
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
       console.log("[Logger] Running: git fetch origin");
       const { stderr: fetchStderr } = await execPromise("git fetch origin");
       if (fetchStderr) console.warn("[Logger] git fetch stderr:", fetchStderr);
+
+      try {
+        await execPromise(`git rev-parse origin/${PULLED_BRANCH}`);
+      } catch {
+        embed
+          .setColor(Colors.red)
+          .setDescription(
+            `リモートブランチ origin/${PULLED_BRANCH} が見つかりません。fetch を確認してください。`,
+          );
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
 
       console.log("[Logger] Running: git log");
       const { stdout: commitLog, stderr: logStderr } = await execPromise(
@@ -171,15 +199,43 @@ export default createCommand(
         await execPromise("git restore dist/").catch(() => {});
       }
 
+      const { stdout: headBeforeStdout } =
+        await execPromise("git rev-parse HEAD");
+      const headBefore = headBeforeStdout.trim();
+
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
 
-      console.log(`[Logger] Running: ${pullCommand}`);
-      const { stdout: pullStdout, stderr: pullStderr } =
-        await execPromise(pullCommand);
-      if (pullStdout) console.log("[Logger] git pull stdout:", pullStdout);
-      if (pullStderr) console.warn("[Logger] git pull stderr:", pullStderr);
+      let pullStdout: string;
+      let pullStderr: string;
+      try {
+        console.log(`[Logger] Running: ${pullCommand}`);
+        const result = await execPromise(pullCommand);
+        pullStdout = result.stdout;
+        pullStderr = result.stderr;
+        if (pullStdout) console.log("[Logger] git pull stdout:", pullStdout);
+        if (pullStderr) console.warn("[Logger] git pull stderr:", pullStderr);
+      } catch (pullError) {
+        const err = pullError as ProcessError;
+        const stderr = err.stderr ?? "";
+        const hasConflict =
+          /conflict|CONFLICT|merge conflict/i.test(stderr) ||
+          /conflict|CONFLICT/i.test(err.message);
+        embed
+          .setColor(Colors.red)
+          .setDescription(
+            hasConflict
+              ? "git pull でコンフリクトが発生しました。force オプションで上書きするか、サーバーで手動で解決してください。"
+              : "git pull に失敗しました。",
+          )
+          .setFields({
+            name: "Error",
+            value: `\`\`\`\n${truncateField(stderr || err.stdout || err.message)}\n\`\`\``,
+          });
+        await interaction.editReply({ embeds: [embed] }).catch(console.error);
+        return;
+      }
 
       const { changes, files, repo } = parseGitUpdateOutput(
         commitLog,
@@ -204,12 +260,47 @@ export default createCommand(
           },
         );
 
+      try {
+        const { stdout: diffNames } = await execPromise(
+          `git diff --name-only ${headBefore} HEAD`,
+        );
+        const changedPaths = diffNames.split("\n").map((s) => s.trim());
+        const distTouched = changedPaths.some(
+          (p) => p === "dist" || p.startsWith("dist/"),
+        );
+        if (changedPaths.length > 0 && !distTouched) {
+          embed.addFields({
+            name: "⚠ dist/ の更新がありません",
+            value:
+              "今回のコミットに dist/ が含まれていません。ローカルで `bun run build` して dist/ をコミットしてから push してください。",
+          });
+        }
+      } catch {
+        // best-effort; ignore if diff fails
+      }
+
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
           value: "```依存関係を処理中... (コンソールでログを確認)```",
         });
         await interaction.editReply({ embeds: [embed] });
+
+        const progressInterval = setInterval(() => {
+          const fields = embed.data.fields ?? [];
+          if (fields.length === 0) return;
+          const prev = fields.slice(0, -1);
+          const updated = [
+            ...prev,
+            {
+              name: "依存関係 / Dependencies",
+              value: "```依存関係をインストール中... (まだ処理中です)```",
+            },
+          ];
+          interaction
+            .editReply({ embeds: [embed.setFields(...updated)] })
+            .catch(() => {});
+        }, 60_000);
 
         try {
           console.log("[Logger] Starting: npm install --production");
@@ -218,6 +309,7 @@ export default createCommand(
             "--production",
           ]);
           console.log("[Logger] Finished: npm install");
+          clearInterval(progressInterval);
 
           const addedMatch =
             installStdout.match(/(\d+)\s+packages? added/) ??
@@ -232,15 +324,21 @@ export default createCommand(
             value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "Install completed.")}\n\`\`\``,
           });
         } catch (installError) {
+          clearInterval(progressInterval);
           console.error("Error during dependency install:", installError);
           const err = installError as Error & {
             stderr?: string;
             stdout?: string;
           };
           const isOom = err.message.includes("137");
+          try {
+            await execPromise(`git reset --hard ${headBefore}`);
+          } catch (revertErr) {
+            console.error("Failed to revert after install error:", revertErr);
+          }
           const description = isOom
-            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。メモリを増やすか、手動で npm install --production を実行してください。"
-            : "依存関係のインストール中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。";
+            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。リポジトリは更新前の状態に戻しました。メモリを増やすか、手動で npm install --production を実行してから再度 /update してください。"
+            : "依存関係のインストール中にエラーが発生しました。リポジトリは更新前の状態に戻しました。修正後に再度 /update してください。";
           embed
             .setColor(Colors.red)
             .setDescription(description)
