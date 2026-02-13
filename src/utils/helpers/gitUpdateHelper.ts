@@ -3,6 +3,9 @@ import { setColor } from "./ansiColorHelper.js";
 const summaryLineRegex = /(\d+ files? changed.*)/;
 const fileChangeRegex = /(.+?)\s+\|\s+\d+\s*[+-]*/;
 const renameDetectionRegex = /(.+)\{(.+) => (.+)\}(.*)/;
+
+const isInDist = (path: string): boolean =>
+  path.startsWith("dist/") || path.includes("/dist/");
 const mergeCommitRegex =
   /^Merge (pull request|PR) #(\d+) from (\S+)|Merge branch '(\S+)'/;
 
@@ -71,11 +74,13 @@ export const parseGitUpdateOutput = (
         const [, pre, oldPart, newPart, post] = renameMatch;
         const fromPath = `${pre}${oldPart}${post}`.trim();
         const toPath = `${pre}${newPart}${post}`.trim();
+        if (isInDist(fromPath) || isInDist(toPath)) continue;
         formattedFileLines.push(
           `${setColor("dimYellow", "rn:")} ${fromPath}`,
           `${setColor("dimYellow", "to:")} ${toPath}`,
         );
       } else {
+        if (isInDist(filePath)) continue;
         formattedFileLines.push(filePath);
       }
     }
