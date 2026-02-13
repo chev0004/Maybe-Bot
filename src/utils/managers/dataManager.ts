@@ -63,6 +63,9 @@ const saveData = async (): Promise<void> => {
     const tempFile = `${BOT_DATA_FILE}.${Date.now()}.tmp`;
     await fs.writeFile(tempFile, JSON.stringify(memoryStore, null, 2));
     await fs.rename(tempFile, BOT_DATA_FILE);
+    const handle = await fs.open(BOT_DATA_FILE, "r");
+    await handle.sync();
+    await handle.close();
   } catch (error) {
     console.error("[DataManager] Error saving data:", error);
   }
