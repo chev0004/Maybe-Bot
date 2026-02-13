@@ -26,7 +26,7 @@ fi
 # --- INSTALL PRODUCTION DEPENDENCIES ---
 if [ -f "package.json" ]; then
   echo "[CUSTOM STARTUP SCRIPT] Found package.json. Installing deps... Don't expect me to be happy about it."
-  bun install --production
+  npm install --production
   echo "[CUSTOM STARTUP SCRIPT] Production install complete. Baka."
 else
   echo "[CUSTOM STARTUP SCRIPT] No package.json? As if I'm surprised. Skipping install."
