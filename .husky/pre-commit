@@ -1,9 +1,9 @@
 set -e
 
-echo "Running lint-staged..."
+echo "Don't get the wrong idea. I'm just running lint-staged..."
 bunx lint-staged || {
-  echo "❌ Pre-commit checks failed. Please fix the errors above."
+  echo "❌ As if I'm surprised. Fix the errors above. I'm not telling you again!"
   exit 1
 }
 
-echo "✅ Pre-commit checks passed!"
+echo "✅ Hmph. I suppose it passed. Not that I care."

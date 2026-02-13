@@ -1,15 +1,15 @@
 set -e
 
-echo "Running lint checks..."
+echo "Running lint checks. Don't expect me to be nice about it."
 bun run lint || {
-  echo "❌ Lint checks failed. Please fix the errors above."
+  echo "❌ Of course they failed. Go fix the errors above. Baka."
   exit 1
 }
 
-echo "Running type checks..."
+echo "Running type checks. Try not to mess this up."
 bun run type-check || {
-  echo "❌ Type checks failed. Please fix the errors above."
+  echo "❌ Type checks failed. Fix them. It's not like I'm waiting or anything."
   exit 1
 }
 
-echo "✅ All pre-push checks passed!"
+echo "✅ ...All passed. Not that I was worried. Idiot."
