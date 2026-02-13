@@ -1,6 +1,6 @@
 import type { Client, Embed, Message, PartialMessage } from "discord.js";
 import { sql } from "drizzle-orm";
-import { config } from "../../config/env.js";
+import { config, isTestInstance } from "../../config/env.js";
 import { db } from "../../db/index.js";
 import { dailyUserStats, users } from "../../db/schema.js";
 import { scheduleReminder } from "../managers/reminderManager.js";
@@ -68,7 +68,11 @@ export const handleBump = async (
   bumpSource: string,
   bumpIdentifierText: string,
 ): Promise<void> => {
-  if (message.guild?.id === config.ids.testGuild) {
+  if (
+    !isTestInstance &&
+    config.ids.testGuild &&
+    message.guild?.id === config.ids.testGuild
+  ) {
     return;
   }
 

@@ -1,6 +1,6 @@
 import { ChannelType, type Guild } from "discord.js";
 import { sql } from "drizzle-orm";
-import { config } from "../../config/env.js";
+import { config, isTestInstance } from "../../config/env.js";
 import { db } from "../../db/index.js";
 import {
   channels,
@@ -10,7 +10,11 @@ import {
 } from "../../db/schema.js";
 
 export const populateInitialStats = async (guild: Guild): Promise<void> => {
-  if (guild.id === config.ids.testGuild) {
+  if (
+    !isTestInstance &&
+    config.ids.testGuild &&
+    guild.id === config.ids.testGuild
+  ) {
     return;
   }
 

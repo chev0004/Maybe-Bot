@@ -5,7 +5,7 @@ import {
   type VoiceState,
 } from "discord.js";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import { config } from "../../../config/env.js";
+import { config, isTestInstance } from "../../../config/env.js";
 import { Colors } from "../../../constants/Colors.js";
 import { db } from "../../../db/index.js";
 import {
@@ -197,7 +197,11 @@ export default createListener(
   "voiceStateUpdate",
   "voiceStateUpdate",
   async (oldState: VoiceState, newState: VoiceState) => {
-    if (newState.guild.id === config.ids.testGuild) {
+    if (
+      !isTestInstance &&
+      config.ids.testGuild &&
+      newState.guild.id === config.ids.testGuild
+    ) {
       return;
     }
     const member = newState.member || oldState.member;

@@ -22,6 +22,10 @@ const requiredEnvVars = [
 
 validateEnvVars(requiredEnvVars);
 
+const guildId = process.env.GUILD_ID as string;
+const testGuildId = process.env.TEST_GUILD_ID as string | undefined;
+export const isTestInstance = Boolean(testGuildId) && guildId === testGuildId;
+
 export const config = {
   tokens: {
     discord: process.env.TOKEN as string,
