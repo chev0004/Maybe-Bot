@@ -112,7 +112,7 @@ export default class CommandHandler {
 
   async registerCommands() {
     try {
-      const { CLIENT_ID, GUILD_ID, TOKEN } = process.env;
+      const { CLIENT_ID, GUILD_ID, TEST_GUILD_ID, TOKEN } = process.env;
 
       if (!CLIENT_ID || !GUILD_ID || !TOKEN) {
         console.error(
@@ -121,21 +121,19 @@ export default class CommandHandler {
         return;
       }
 
+      const guildIds = [GUILD_ID];
+      if (TEST_GUILD_ID && TEST_GUILD_ID !== GUILD_ID) {
+        guildIds.push(TEST_GUILD_ID);
+      }
+
       console.log("Refreshing application (/) commands.");
       const rest = new REST({ version: "10" }).setToken(TOKEN);
-      // console.log("Attempting to register the following commands JSON:");
-      // console.log(
-      //   JSON.stringify(
-      //     this.commandsArray,
-      //     (_key, value) =>
-      //       typeof value === "bigint" ? value.toString() : value,
-      //     2,
-      //   ),
-      // );
 
-      await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-        body: this.commandsArray,
-      });
+      for (const guildId of guildIds) {
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, guildId), {
+          body: this.commandsArray,
+        });
+      }
 
       console.log("Successfully reloaded application (/) commands.");
     } catch (error) {
