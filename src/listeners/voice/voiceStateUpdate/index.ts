@@ -1,6 +1,7 @@
 import {
   EmbedBuilder,
   type GuildTextBasedChannel,
+  type VoiceBasedChannel,
   type VoiceState,
 } from "discord.js";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -18,6 +19,31 @@ import {
   voiceSessions,
 } from "../../../db/schema.js";
 import { createListener } from "../../../utils/builders/listenerBuilder.js";
+
+const ensureChannelInDb = async (
+  channelId: string,
+  channel: VoiceBasedChannel | null,
+  client: VoiceState["client"],
+): Promise<boolean> => {
+  const resolved =
+    channel?.id === channelId
+      ? channel
+      : await client.channels.fetch(channelId).catch(() => null);
+  if (!resolved || !resolved.isVoiceBased()) return false;
+  const voiceChannel = resolved as VoiceBasedChannel;
+  await db
+    .insert(channels)
+    .values({
+      id: voiceChannel.id,
+      name: voiceChannel.name,
+      type: "voice",
+    })
+    .onConflictDoUpdate({
+      target: channels.id,
+      set: { name: voiceChannel.name, type: "voice" },
+    });
+  return true;
+};
 
 const activeChannelSessions = new Map<
   string,
@@ -182,19 +208,28 @@ export default createListener(
       // --- User Joins or Moves INTO a channel ---
       if (newState.channelId && newState.channelId !== oldState.channelId) {
         if (newState.channel && newState.channel.members.size === 1) {
-          const newSession = await db
-            .insert(voiceSessions)
-            .values({
-              channelId: newState.channelId,
-              startTime: new Date(),
-            })
-            .returning({ id: voiceSessions.id });
-          if (newSession.length > 0) {
-            const sessionId = newSession[0].id;
-            activeChannelSessions.set(newState.channelId, {
-              sessionId,
-              participants: new Set(newState.channel.members.map((m) => m.id)),
-            });
+          const channelOk = await ensureChannelInDb(
+            newState.channelId,
+            newState.channel,
+            newState.client,
+          );
+          if (channelOk) {
+            const newSession = await db
+              .insert(voiceSessions)
+              .values({
+                channelId: newState.channelId,
+                startTime: new Date(),
+              })
+              .returning({ id: voiceSessions.id });
+            if (newSession.length > 0) {
+              const sessionId = newSession[0].id;
+              activeChannelSessions.set(newState.channelId, {
+                sessionId,
+                participants: new Set(
+                  newState.channel.members.map((m) => m.id),
+                ),
+              });
+            }
           }
         } else if (newState.channel) {
           const sessionInfo = activeChannelSessions.get(newState.channelId);
@@ -216,20 +251,27 @@ export default createListener(
                 participants: new Set(currentParticipants),
               });
             } else {
-              const fallbackSession = await db
-                .insert(voiceSessions)
-                .values({
-                  channelId: newState.channelId,
-                  startTime: new Date(),
-                })
-                .returning({ id: voiceSessions.id });
-              if (fallbackSession.length > 0) {
-                activeChannelSessions.set(newState.channelId, {
-                  sessionId: fallbackSession[0].id,
-                  participants: new Set(
-                    newState.channel.members.map((m) => m.id),
-                  ),
-                });
+              const channelOk = await ensureChannelInDb(
+                newState.channelId,
+                newState.channel,
+                newState.client,
+              );
+              if (channelOk) {
+                const fallbackSession = await db
+                  .insert(voiceSessions)
+                  .values({
+                    channelId: newState.channelId,
+                    startTime: new Date(),
+                  })
+                  .returning({ id: voiceSessions.id });
+                if (fallbackSession.length > 0) {
+                  activeChannelSessions.set(newState.channelId, {
+                    sessionId: fallbackSession[0].id,
+                    participants: new Set(
+                      newState.channel.members.map((m) => m.id),
+                    ),
+                  });
+                }
               }
             }
           }
@@ -299,14 +341,21 @@ export default createListener(
       .setTimestamp();
 
     if (!oldState.channelId && newState.channelId) {
-      await db
-        .insert(activeVcSessions)
-        .values({
-          userId,
-          channelId: newState.channelId,
-          joinTime: now,
-        })
-        .onConflictDoNothing();
+      const channelOk = await ensureChannelInDb(
+        newState.channelId,
+        newState.channel,
+        newState.client,
+      );
+      if (channelOk) {
+        await db
+          .insert(activeVcSessions)
+          .values({
+            userId,
+            channelId: newState.channelId,
+            joinTime: now,
+          })
+          .onConflictDoNothing();
+      }
       embed
         .setTitle("ボイスチャンネル参加")
         .setDescription(
@@ -393,19 +442,26 @@ export default createListener(
         });
       }
 
-      await db
-        .insert(activeVcSessions)
-        .values({
-          userId,
-          channelId: newState.channelId,
-          joinTime: now,
-          isStreaming: session?.isStreaming ?? false,
-          streamStartTime: session?.streamStartTime,
-        })
-        .onConflictDoUpdate({
-          target: activeVcSessions.userId,
-          set: { channelId: newState.channelId, joinTime: now },
-        });
+      const channelOk = await ensureChannelInDb(
+        newState.channelId,
+        newState.channel,
+        newState.client,
+      );
+      if (channelOk) {
+        await db
+          .insert(activeVcSessions)
+          .values({
+            userId,
+            channelId: newState.channelId,
+            joinTime: now,
+            isStreaming: session?.isStreaming ?? false,
+            streamStartTime: session?.streamStartTime,
+          })
+          .onConflictDoUpdate({
+            target: activeVcSessions.userId,
+            set: { channelId: newState.channelId, joinTime: now },
+          });
+      }
 
       await logChannel.send({ embeds: [embed] });
     }
