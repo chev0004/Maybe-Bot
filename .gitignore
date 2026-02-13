@@ -9,3 +9,5 @@ confessions_log.json
 logs/
 
 *.txt
+
+package-lock.json
