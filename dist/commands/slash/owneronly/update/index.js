@@ -22,7 +22,7 @@ class ProcessError extends Error {
 /**
  * Spawns a child process and streams its stdout/stderr to the main process
  * console in real-time. Also captures the full output for later use.
- * @param command The command to run (e.g., "npm")
+ * @param command The command to run (e.g., "bun")
  * @param args An array of arguments (e.g., ["install"])
  * @returns A promise that resolves with the captured stdout and stderr.
  */
@@ -102,8 +102,8 @@ export default createCommand(
         });
       if (mockData.needsNpmInstall) {
         embed.addFields({
-          name: mockData.npmFieldName || "NPM Install (Simulated)",
-          value: `\`\`\`\n${truncateField(mockData.npmOutput || "Simulated NPM install output.")}\n\`\`\``,
+          name: mockData.npmFieldName || "Dependencies (Simulated)",
+          value: `\`\`\`\n${truncateField(mockData.npmOutput || "Simulated npm install output.")}\n\`\`\``,
         });
       }
       await interaction.editReply({ embeds: [embed] });
@@ -142,6 +142,10 @@ export default createCommand(
         await interaction.editReply({ embeds: [embed] });
         return;
       }
+      if (!isForceMode) {
+        console.log("[Logger] Running: git restore dist/");
+        await execPromise("git restore dist/").catch(() => {});
+      }
       const pullCommand = isForceMode
         ? `git reset --hard origin/${PULLED_BRANCH}`
         : `git pull origin ${PULLED_BRANCH}`;
@@ -179,68 +183,41 @@ export default createCommand(
         });
         await interaction.editReply({ embeds: [embed] });
         try {
-          console.log("[Logger] Starting: npm install");
-          const { stdout: npmStdout } = await spawnWithLogs("npm", ["install"]);
+          console.log("[Logger] Starting: npm install --production");
+          const { stdout: installStdout } = await spawnWithLogs("npm", [
+            "install",
+            "--production",
+          ]);
           console.log("[Logger] Finished: npm install");
-          const addedMatch = npmStdout.match(/added (\d+ packages?)/);
-          const auditMatch = npmStdout.match(/audited (\d+ packages?)/);
-          const timeMatch = npmStdout.match(/in (\d+s|\d+\.\d+s)/);
-          const vulnerabilityMatch = npmStdout.match(
-            /(\d+)\s+(low|moderate|high|critical)\s+severity vulnerabilities/,
-          );
+          const addedMatch =
+            installStdout.match(/(\d+)\s+packages? added/) ??
+            installStdout.match(/(\d+)\s+packages? installed/);
+          const timeMatch = installStdout.match(/in ([\d.]+s)/);
           const summaryLines = [];
-          if (addedMatch) summaryLines.push(`- Added: ${addedMatch[1]}`);
-          if (auditMatch) summaryLines.push(`- Audited: ${auditMatch[1]}`);
+          if (addedMatch)
+            summaryLines.push(`- Installed: ${addedMatch[1]} packages`);
           if (timeMatch) summaryLines.push(`- Time: ${timeMatch[1]}`);
-          if (vulnerabilityMatch)
-            summaryLines.push(`- Vulnerabilities: ${vulnerabilityMatch[0]}`);
           embed.spliceFields(-1, 1, {
             name: "依存関係 / Dependencies",
-            value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "NPM install completed.")}\n\`\`\``,
+            value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "Install completed.")}\n\`\`\``,
           });
-        } catch (npmError) {
-          console.error("Error during npm install:", npmError);
-          const err = npmError;
+        } catch (installError) {
+          console.error("Error during dependency install:", installError);
+          const err = installError;
+          const isOom = err.message.includes("137");
+          const description = isOom
+            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。メモリを増やすか、手動で npm install --production を実行してください。"
+            : "依存関係のインストール中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。";
           embed
             .setColor(Colors.red)
-            .setDescription(
-              "依存関係のインストール中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。",
-            )
+            .setDescription(description)
             .spliceFields(-1, 1, {
-              name: "NPM Install Error",
+              name: "Dependencies Error",
               value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
             });
           await interaction.editReply({ embeds: [embed] });
           return;
         }
-      }
-      embed.addFields({
-        name: "ビルド / Build",
-        value: "```ビルディング... / Building... (コンソールでログを確認)```",
-      });
-      await interaction.editReply({ embeds: [embed] });
-      try {
-        console.log("[Logger] Starting: npm run build -- --incremental");
-        await spawnWithLogs("npm", ["run", "build", "--", "--incremental"]);
-        console.log("[Logger] Finished: npm run build");
-        embed.spliceFields(-1, 1, {
-          name: "ビルド / Build",
-          value: "```ビルド完了 / Build complete.```",
-        });
-      } catch (buildError) {
-        console.error("Error during build:", buildError);
-        const err = buildError;
-        embed
-          .setColor(Colors.red)
-          .setDescription(
-            "ビルド中にエラーが発生しました。BOTは更新されましたが、再起動は中止します。",
-          )
-          .spliceFields(-1, 1, {
-            name: "NPM Build Error",
-            value: `\`\`\`\n${truncateField(err.stderr || err.stdout || err.message)}\n\`\`\``,
-          });
-        await interaction.editReply({ embeds: [embed] });
-        return;
       }
       embed.setFooter({
         text: `BOTが再起動中... • ${new Date().toLocaleDateString("ja-JP")}`,
@@ -296,7 +273,7 @@ export default createCommand(
             .addChoices(
               { name: "Normal Update", value: "normal" },
               { name: "Rename Update", value: "rename" },
-              { name: "NPM Install Update", value: "npm" },
+              { name: "Dependencies Update", value: "npm" },
             ),
         );
       return builder;

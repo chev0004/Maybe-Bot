@@ -119,7 +119,7 @@ export default createCommand(
       if (mockData.needsNpmInstall) {
         embed.addFields({
           name: mockData.npmFieldName || "Dependencies (Simulated)",
-          value: `\`\`\`\n${truncateField(mockData.npmOutput || "Simulated bun install output.")}\n\`\`\``,
+          value: `\`\`\`\n${truncateField(mockData.npmOutput || "Simulated npm install output.")}\n\`\`\``,
         });
       }
 
@@ -212,14 +212,16 @@ export default createCommand(
         await interaction.editReply({ embeds: [embed] });
 
         try {
-          console.log("[Logger] Starting: bun install --production");
-          const { stdout: installStdout } = await spawnWithLogs("bun", [
+          console.log("[Logger] Starting: npm install --production");
+          const { stdout: installStdout } = await spawnWithLogs("npm", [
             "install",
             "--production",
           ]);
-          console.log("[Logger] Finished: bun install");
+          console.log("[Logger] Finished: npm install");
 
-          const addedMatch = installStdout.match(/(\d+)\s+packages? installed/);
+          const addedMatch =
+            installStdout.match(/(\d+)\s+packages? added/) ??
+            installStdout.match(/(\d+)\s+packages? installed/);
           const timeMatch = installStdout.match(/in ([\d.]+s)/);
           const summaryLines = [];
           if (addedMatch)
@@ -227,17 +229,17 @@ export default createCommand(
           if (timeMatch) summaryLines.push(`- Time: ${timeMatch[1]}`);
           embed.spliceFields(-1, 1, {
             name: "依存関係 / Dependencies",
-            value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "bun install completed.")}\n\`\`\``,
+            value: `\`\`\`\n${truncateField(summaryLines.join("\n") || "Install completed.")}\n\`\`\``,
           });
         } catch (installError) {
-          console.error("Error during bun install:", installError);
+          console.error("Error during dependency install:", installError);
           const err = installError as Error & {
             stderr?: string;
             stdout?: string;
           };
           const isOom = err.message.includes("137");
           const description = isOom
-            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。メモリを増やすか、手動で bun install --production を実行してください。"
+            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。メモリを増やすか、手動で npm install --production を実行してください。"
             : "依存関係のインストール中にエラーが発生しました。BOTの更新は行われましたが、再起動は中止します。";
           embed
             .setColor(Colors.red)
