@@ -12,6 +12,7 @@
     "dev": "tsc -w & node --watch dist/index.js",
     "prepare": "husky",
     "lint": "bunx biome check --write --no-errors-on-unmatched .",
+    "type-check": "tsc --noEmit",
     "format": "bunx @biomejs/biome format --write ."
   },
   "author": "chev",
@@ -38,6 +39,7 @@
     "express": "^5.1.0",
     "@types/node": "^24.5.2",
     "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"
   }
