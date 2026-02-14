@@ -9,7 +9,7 @@ Custom bot for an in-house language learning Discord server.
 
 | Layer | Tech |
 |-------|------|
-| Runtime | Bun / Node 18+ |
+| Runtime | Node 18+ |
 | Language | TypeScript |
 | Discord | discord.js 14 |
 | Database | Drizzle ORM, PostgreSQL |
@@ -20,7 +20,7 @@ Custom bot for an in-house language learning Discord server.
 
 ## Prerequisites | 必要環境
 
-- **Bun** (recommended) or Node 18+
+- **Node 18+** and npm
 - **PostgreSQL** (for Drizzle)
 - Git
 
@@ -30,7 +30,7 @@ Custom bot for an in-house language learning Discord server.
    ```bash
    git clone https://github.com/chev0004/Maybe-Bot.git
    cd Maybe-Bot
-   bun install
+   npm install
    ```
 
 2. **Environment**
@@ -41,40 +41,40 @@ Custom bot for an in-house language learning Discord server.
 
 3. **Database**
    ```bash
-   bun run db:migrate
+   npm run db:migrate
    ```
    Uses `DATABASE_URL`. Applies baseline and migrations.
 
 4. **Build and run**
    ```bash
-   bun run build
-   bun run start
+   npm run build
+   npm run start
    ```
 
 ## Development | 開発
 
-- **Watch build and run:** `bun run dev` (tsc -w + node --watch)
-- **Lint:** `bun run lint` (Biome check --write)
-- **Format:** `bun run format` (Biome format --write)
-- **Type-check only:** `bun run type-check` (tsc --noEmit)
+- **Watch build and run:** `npm run dev` (tsc -w + node --watch)
+- **Lint:** `npm run lint` (Biome check --write)
+- **Format:** `npm run format` (Biome format --write)
+- **Type-check only:** `npm run type-check` (tsc --noEmit)
 
 **Git hooks (Husky):**
 - **pre-commit:** lint-staged (Biome on staged `.ts`, `.json`, `.md`)
 - **commit-msg:** commitlint (conventional commits, no scope)
-- **pre-push:** `bun run lint` then `bun run type-check`
+- **pre-push:** `npm run lint` then `npm run type-check`
 
 ## Scripts | スクリプト
 
 | Script | Command | Description |
 |--------|---------|-------------|
-| build | `bun run build` | Compile TypeScript to `dist/` |
-| start | `bun run start` | Run `node dist/index.js` |
-| dev | `bun run dev` | Watch build and run |
-| db:migrate | `bun run db:migrate` | Run baseline + Drizzle migrations |
-| lint | `bun run lint` | Biome check --write |
-| format | `bun run format` | Biome format --write |
-| type-check | `bun run type-check` | tsc --noEmit |
-| preview:ui | `bun run preview:ui` | Nodemon + tsx for preview server |
+| build | `npm run build` | Compile TypeScript to `dist/` |
+| start | `npm run start` | Run `node dist/index.js` |
+| dev | `npm run dev` | Watch build and run |
+| db:migrate | `npm run db:migrate` | Run baseline + Drizzle migrations |
+| lint | `npm run lint` | Biome check --write |
+| format | `npm run format` | Biome format --write |
+| type-check | `npm run type-check` | tsc --noEmit |
+| preview:ui | `npm run preview:ui` | Nodemon + tsx for preview server |
 
 ## Server / deployment | サーバー・デプロイ
 
@@ -95,7 +95,7 @@ Runs when the container starts. Expects `cd /home/container` and uses `REPO_URL`
 - **`/restart`** (owner-only): Saves restart context, then `process.exit(0)` after 3s. PM2 restarts the process; same code, clean restart.
 - **`/update`** (owner-only): Fetches `origin`, pulls `develop` (or `--force` for `git reset --hard`). If `package.json` changed, runs `npm install --production`. Then exits so PM2 restarts with the new code. No `tsc` on the server: updated `dist/` must be committed and pushed before running `/update`.
 
-Typical flow: build locally (`bun run build`), commit `dist/`, push to `develop`. On the server, either let the next container start run `startup.sh` (pull + install + start) or run `/update` to pull and restart the current process.
+Typical flow: build locally (`npm run build`), commit `dist/`, push to `develop`. On the server, either let the next container start run `startup.sh` (pull + install + start) or run `/update` to pull and restart the current process.
 
 ## Environment variables | 環境変数
 
