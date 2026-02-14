@@ -1,5 +1,6 @@
 set -e
 
+./scripts/guard-no-bun.sh || exit 1
 echo "Running lint checks. Don't expect me to be nice about it."
 npm run lint || {
   echo "❌ Of course they failed. Go fix the errors above. Baka."

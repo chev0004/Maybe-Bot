@@ -1,5 +1,6 @@
 set -e
 
+./scripts/guard-no-bun.sh || exit 1
 echo "Don't get the wrong idea. I'm just running lint-staged..."
 npx lint-staged || {
   echo "❌ As if I'm surprised. Fix the errors above. I'm not telling you again!"

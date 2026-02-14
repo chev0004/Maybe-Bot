@@ -1,5 +1,6 @@
 set -e
 
+./scripts/guard-no-bun.sh || exit 1
 echo "Hmph. Checking your commit message, I guess..."
 npx commitlint --edit "$1" || {
   echo "❌ W-what? That's not even a proper commit message! Don't make me say it twice!"
