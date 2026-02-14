@@ -16,7 +16,7 @@ Custom bot for an in-house language learning Discord server.
 | Minecraft | exaroton API |
 | Lint / format | Biome |
 | Git hooks | Husky, commitlint (conventional, no scope), lint-staged |
-| Build | tsc |
+| Build | tsc (incremental) |
 
 ## Prerequisites | 必要環境
 
@@ -67,7 +67,7 @@ Custom bot for an in-house language learning Discord server.
 
 | Script | Command | Description |
 |--------|---------|-------------|
-| build | `npm run build` | Compile TypeScript to `dist/` |
+| build | `npm run build` | Incremental compile TypeScript to `dist/` |
 | start | `npm run start` | Run `node dist/index.js` |
 | dev | `npm run dev` | Watch build and run |
 | db:migrate | `npm run db:migrate` | Run baseline + Drizzle migrations |
@@ -127,7 +127,7 @@ src/
   scripts/               # baseline-and-migrate (db)
 ```
 
-Output: `dist/` (from `tsc`, `rootDir: src`).
+Output: `dist/` (from `tsc --incremental`, `rootDir: src`). Only files whose source changed are re-emitted.
 
 ## Features (overview) | 機能概要
 
