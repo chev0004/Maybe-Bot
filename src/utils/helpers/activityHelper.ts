@@ -1,11 +1,7 @@
 import {
-  ActionRowBuilder,
   AttachmentBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   type Guild,
   type InteractionReplyOptions,
-  StringSelectMenuBuilder,
 } from "discord.js";
 import {
   and,
@@ -28,6 +24,10 @@ import {
   voiceSessions,
 } from "../../db/schema.js";
 import {
+  buildComponents,
+  type InteractionConfig,
+} from "../builders/interactionBuilder.js";
+import {
   generateMessageActivityImage,
   generateVoiceActivityImage,
 } from "../services/activityImageGenerator.js";
@@ -35,10 +35,20 @@ import { type TopTimeframe, timeframeLabels } from "./topHelper.js";
 
 export type ActivityCategory = "message" | "voice";
 
-const categoryOptions = [
-  { label: "Message Activity", value: "message" },
-  { label: "Voice Activity", value: "voice" },
-];
+export const activityInteractionConfig: InteractionConfig = {
+  prefix: "activity",
+  categoryOptions: [
+    { label: "Message Activity", value: "message" },
+    { label: "Voice Activity", value: "voice" },
+  ],
+  interactions: ["dropdown", "timeframe", "refresh"],
+  timeframeOptions: [
+    { value: "1", label: "1日" },
+    { value: "7", label: "7日" },
+    { value: "30", label: "30日" },
+    { value: "all", label: "全期間" },
+  ],
+};
 
 const fetchActivityData = async (
   category: ActivityCategory,
@@ -162,84 +172,13 @@ export const generateComponentsForActivity = ({
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
   isTestMode?: boolean;
-}) => {
-  const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
-  const testModeFlag = isTestMode ? "1" : "0";
-  const currentCategoryLabel =
-    categoryOptions.find((opt) => opt.value === category)?.label ||
-    "Select an activity type";
-
-  const dropdown = new StringSelectMenuBuilder()
-    .setCustomId(
-      `activity-category-${timeframe}-${showTimeframeFlag}-${testModeFlag}`,
-    )
-    .setPlaceholder(currentCategoryLabel)
-    .addOptions(
-      categoryOptions.map((opt) => ({
-        ...opt,
-        default: opt.value === category,
-      })),
-    );
-
-  const components: ActionRowBuilder<
-    StringSelectMenuBuilder | ButtonBuilder
-  >[] = [
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(dropdown),
-  ];
-
-  if (showTimeframeButtons) {
-    const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(
-          `activity-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
-        )
-        .setEmoji({ id: "1423520590261780541" })
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`activity-select-${category}-1-${testModeFlag}`)
-        .setLabel("1日")
-        .setStyle(
-          timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`activity-select-${category}-7-${testModeFlag}`)
-        .setLabel("7日")
-        .setStyle(
-          timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`activity-select-${category}-30-${testModeFlag}`)
-        .setLabel("30日")
-        .setStyle(
-          timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`activity-select-${category}-all-${testModeFlag}`)
-        .setLabel("全期間")
-        .setStyle(
-          timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-    );
-    components.push(timeButtons);
-  } else {
-    const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(
-          `activity-timeframe-show-${category}-${timeframe}-${testModeFlag}`,
-        )
-        .setEmoji({ id: "1423521666159611914" })
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(
-          `activity-refresh-${category}-${timeframe}-${testModeFlag}`,
-        )
-        .setEmoji({ id: "1423520588638453850" })
-        .setStyle(ButtonStyle.Secondary),
-    );
-    components.push(actionButtons);
-  }
-  return components;
-};
+}) =>
+  buildComponents(activityInteractionConfig, {
+    category,
+    timeframe,
+    showTimeframeButtons,
+    isTestMode,
+  });
 
 export const generateActivityReply = async ({
   guild,

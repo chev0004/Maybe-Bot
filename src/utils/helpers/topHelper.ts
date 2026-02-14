@@ -1,13 +1,8 @@
-/// File: src/utils/helpers/topHelper.ts
 import {
-  ActionRowBuilder,
   AttachmentBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   type Client,
   type Guild,
   type InteractionReplyOptions,
-  StringSelectMenuBuilder,
 } from "discord.js";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getMockTopData } from "../../commands/slash/stats/top/top.mock.js";
@@ -19,6 +14,10 @@ import {
   dailyUserStats,
   users,
 } from "../../db/schema.js";
+import {
+  buildComponents,
+  type InteractionConfig,
+} from "../builders/interactionBuilder.js";
 import {
   generateLeaderboardImage,
   generateOverviewImage,
@@ -35,23 +34,38 @@ export type TopCategory =
   | "wordle_users"
   | "msg_channels"
   | "vc_channels";
+
 export type TopTimeframe = "1" | "7" | "30" | "all";
+
 export const timeframeLabels: Record<TopTimeframe, string> = {
   "1": "過去24時間",
   "7": "過去7日間",
   "30": "過去30日間",
   all: "全期間",
 };
-const categoryOptions = [
-  { label: "Overview", value: "overview" },
-  { label: "Top Message Users", value: "msg_users" },
-  { label: "Top Voice Users", value: "vc_users" },
-  { label: "Top Bumpers", value: "bump_users" },
-  { label: "Top Wordle", value: "wordle_users" },
-  { label: "Top Streamers", value: "stream_users" },
-  { label: "Top Message Channels", value: "msg_channels" },
-  { label: "Top Voice Channels", value: "vc_channels" },
+
+const timeframeOptions = [
+  { value: "1", label: "1日" },
+  { value: "7", label: "7日" },
+  { value: "30", label: "30日" },
+  { value: "all", label: "全期間" },
 ];
+
+export const topInteractionConfig: InteractionConfig = {
+  prefix: "top",
+  categoryOptions: [
+    { label: "Overview", value: "overview" },
+    { label: "Top Message Users", value: "msg_users" },
+    { label: "Top Voice Users", value: "vc_users" },
+    { label: "Top Bumpers", value: "bump_users" },
+    { label: "Top Wordle", value: "wordle_users" },
+    { label: "Top Streamers", value: "stream_users" },
+    { label: "Top Message Channels", value: "msg_channels" },
+    { label: "Top Voice Channels", value: "vc_channels" },
+  ],
+  interactions: ["dropdown", "timeframe", "refresh"],
+  timeframeOptions,
+};
 const getDateCondition = (timeframe: TopTimeframe) => {
   if (timeframe === "all") return undefined;
   const days = parseInt(timeframe, 10);
@@ -158,79 +172,13 @@ export const generateComponentsForTop = ({
   timeframe: TopTimeframe;
   showTimeframeButtons: boolean;
   isTestMode?: boolean;
-}) => {
-  const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
-  const testModeFlag = isTestMode ? "1" : "0";
-  const currentCategoryLabel =
-    categoryOptions.find((opt) => opt.value === category)?.label ||
-    "Select a category...";
-  const dropdown = new StringSelectMenuBuilder()
-    .setCustomId(
-      `top-category-${timeframe}-${showTimeframeFlag}-${testModeFlag}`,
-    )
-    .setPlaceholder(currentCategoryLabel)
-    .addOptions(
-      categoryOptions.map((opt) => ({
-        ...opt,
-        default: opt.value === category,
-      })),
-    );
-  const components: ActionRowBuilder<
-    StringSelectMenuBuilder | ButtonBuilder
-  >[] = [
-    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(dropdown),
-  ];
-  if (showTimeframeButtons) {
-    const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(
-          `top-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
-        )
-        .setEmoji({ id: "1423520590261780541" }) // Ensure this ID is correct
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`top-select-${category}-1-${testModeFlag}`)
-        .setLabel("1日")
-        .setStyle(
-          timeframe === "1" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`top-select-${category}-7-${testModeFlag}`)
-        .setLabel("7日")
-        .setStyle(
-          timeframe === "7" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`top-select-${category}-30-${testModeFlag}`)
-        .setLabel("30日")
-        .setStyle(
-          timeframe === "30" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-      new ButtonBuilder()
-        .setCustomId(`top-select-${category}-all-${testModeFlag}`)
-        .setLabel("全期間")
-        .setStyle(
-          timeframe === "all" ? ButtonStyle.Primary : ButtonStyle.Secondary,
-        ),
-    );
-    components.push(timeButtons);
-  } else {
-    const actionButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(
-          `top-timeframe-show-${category}-${timeframe}-${testModeFlag}`,
-        )
-        .setEmoji({ id: "1423521666159611914" }) // Ensure this ID is correct
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`top-refresh-${category}-${timeframe}-${testModeFlag}`)
-        .setEmoji({ id: "1423520588638453850" }) // Ensure this ID is correct
-        .setStyle(ButtonStyle.Secondary),
-    );
-    components.push(actionButtons);
-  }
-  return components;
-};
+}) =>
+  buildComponents(topInteractionConfig, {
+    category,
+    timeframe,
+    showTimeframeButtons,
+    isTestMode,
+  });
 
 export const generateInitialTopReply = async (guild: Guild, client: Client) => {
   return generateTopReply({

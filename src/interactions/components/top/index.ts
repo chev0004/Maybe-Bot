@@ -4,10 +4,14 @@ import type {
 } from "discord.js";
 import type { InteractionModule } from "../../../handlers/interactionHandler.js";
 import {
-  generateComponentsForTop,
+  buildComponents,
+  parseInteraction,
+} from "../../../utils/builders/interactionBuilder.js";
+import {
   generateTopReply,
   type TopCategory,
   type TopTimeframe,
+  topInteractionConfig,
 } from "../../../utils/helpers/topHelper.js";
 
 const processTopInteraction = async (
@@ -15,21 +19,13 @@ const processTopInteraction = async (
 ) => {
   if (!interaction.inGuild() || !interaction.guild) return;
 
-  const parts = interaction.customId.split("-");
-  const action = parts[1];
-  let category: TopCategory,
-    timeframe: TopTimeframe,
-    showTimeframeButtons: boolean,
-    isTestMode: boolean;
+  const parsed = parseInteraction(interaction);
+  const category = parsed.category as TopCategory;
+  const timeframe = parsed.timeframe as TopTimeframe;
+  const { showTimeframeButtons, isTestMode } = parsed;
 
-  if (action === "timeframe") {
-    const subAction = parts[2] as "show" | "back";
-    category = parts[3] as TopCategory;
-    timeframe = parts[4] as TopTimeframe;
-    isTestMode = parts[5] === "1";
-    showTimeframeButtons = subAction === "show";
-
-    const newComponents = generateComponentsForTop({
+  if (parsed.isTimeframeToggleOnly) {
+    const newComponents = buildComponents(topInteractionConfig, {
       category,
       timeframe,
       showTimeframeButtons,
@@ -37,23 +33,6 @@ const processTopInteraction = async (
     });
     await interaction.editReply({ components: newComponents });
     return;
-  }
-
-  if (action === "refresh") {
-    category = parts[2] as TopCategory;
-    timeframe = parts[3] as TopTimeframe;
-    isTestMode = parts[4] === "1";
-    showTimeframeButtons = false;
-  } else if (interaction.isStringSelectMenu()) {
-    category = interaction.values[0] as TopCategory;
-    timeframe = parts[2] as TopTimeframe;
-    showTimeframeButtons = parts[3] === "1";
-    isTestMode = parts[4] === "1";
-  } else {
-    category = parts[2] as TopCategory;
-    timeframe = parts[3] as TopTimeframe;
-    showTimeframeButtons = action === "select";
-    isTestMode = parts[4] === "1";
   }
 
   const reply = await generateTopReply({
