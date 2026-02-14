@@ -179,16 +179,15 @@ function getWrongRangesForHeader(
   ) {
     firstWrong++;
   }
-  const noError =
-    firstWrong === userLine.length && firstWrong === expected.length;
-  if (noError) return [];
+  if (firstWrong === expected.length) return [];
 
   const errorAtEnd =
     firstWrong === userLine.length && userLine.length < expected.length;
   if (errorAtEnd) {
     return [[0, userLine.length]];
   }
-  return [[firstWrong, userLine.length]];
+  const highlightEnd = Math.min(userLine.length, expected.length);
+  return [[firstWrong, highlightEnd]];
 }
 
 export function drawUserMessageWithHighlights(content: string): Buffer {
