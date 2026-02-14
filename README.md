@@ -127,7 +127,7 @@ src/
 ```
 
 Output: `dist/` (from `tsc`, `rootDir: src`).
-
+P
 ## Features (overview) | 機能概要
 
 - **Admin:** purge, purgeto
