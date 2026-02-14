@@ -12,7 +12,7 @@ const requiredEnvVars = [
   "CONFESSIONS_CHANNEL_ID",
   "VOICE_LOG_CHANNEL_ID",
   "VOICE_CATEGORY_ID",
-  "WELCOME_CHANNEL_ID",
+  "INTRO_CHANNEL_ID",
   "VERIFIED_ROLE_ID",
   "DATABASE_URL",
   "EN_LEARNER_ROLE_ID",
@@ -43,7 +43,7 @@ export const config = {
     confessions: process.env.CONFESSIONS_CHANNEL_ID as string,
     voiceLog: process.env.VOICE_LOG_CHANNEL_ID as string,
     voiceCategory: process.env.VOICE_CATEGORY_ID as string,
-    introduction: process.env.WELCOME_CHANNEL_ID as string,
+    introduction: process.env.INTRO_CHANNEL_ID as string,
   },
   roles: {
     bump: process.env.BUMP_ROLE_ID as string,
