@@ -79,6 +79,11 @@ const dataFor7Days = {
   voice: baseVoiceActivity,
 };
 
+const dataFor14Days = {
+  message: scaleActivityData(baseMessageActivity, 2),
+  voice: scaleActivityData(baseVoiceActivity, 2),
+};
+
 const dataFor1Day = {
   message: scaleActivityData(baseMessageActivity, 1 / 7),
   voice: scaleActivityData(baseVoiceActivity, 1 / 7),
@@ -92,6 +97,7 @@ const dataForAllTime = {
 export const mockActivityData = {
   "1": dataFor1Day,
   "7": dataFor7Days,
+  "14": dataFor14Days,
   "30": dataFor30Days,
   all: dataForAllTime,
 };

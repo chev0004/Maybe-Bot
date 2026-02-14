@@ -137,6 +137,16 @@ const dataFor7Days = {
   vc_channels: scaleData(dataFor30Days.vc_channels, 0.4),
 };
 
+const dataFor14Days = {
+  msg_users: scaleData(dataFor30Days.msg_users, 0.5),
+  vc_users: scaleData(dataFor30Days.vc_users, 0.55),
+  stream_users: scaleData(dataFor30Days.stream_users, 0.6),
+  bump_users: scaleData(dataFor30Days.bump_users, 0.4),
+  wordle_users: scaleData(dataFor30Days.wordle_users, 0.5),
+  msg_channels: scaleData(dataFor30Days.msg_channels, 0.5),
+  vc_channels: scaleData(dataFor30Days.vc_channels, 0.55),
+};
+
 const dataFor1Day = {
   msg_users: scaleData(dataFor7Days.msg_users, 0.2),
   vc_users: scaleData(dataFor7Days.vc_users, 0.25),
@@ -165,6 +175,15 @@ export const mockTopData = {
       bumps: { users: dataFor7Days.bump_users.slice(0, 3) },
       voice: { users: dataFor7Days.vc_users.slice(0, 3) },
       stream: { users: dataFor7Days.stream_users.slice(0, 3) },
+    },
+  },
+  "14": {
+    ...dataFor14Days,
+    overview: {
+      messages: { users: dataFor14Days.msg_users.slice(0, 3) },
+      bumps: { users: dataFor14Days.bump_users.slice(0, 3) },
+      voice: { users: dataFor14Days.vc_users.slice(0, 3) },
+      stream: { users: dataFor14Days.stream_users.slice(0, 3) },
     },
   },
   "30": {

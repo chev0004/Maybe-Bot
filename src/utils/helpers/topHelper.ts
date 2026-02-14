@@ -35,11 +35,12 @@ export type TopCategory =
   | "msg_channels"
   | "vc_channels";
 
-export type TopTimeframe = "1" | "7" | "30" | "all";
+export type TopTimeframe = "1" | "7" | "14" | "30" | "all";
 
 export const timeframeLabels: Record<TopTimeframe, string> = {
   "1": "過去24時間",
   "7": "過去7日間",
+  "14": "過去14日間",
   "30": "過去30日間",
   all: "全期間",
 };
@@ -47,6 +48,7 @@ export const timeframeLabels: Record<TopTimeframe, string> = {
 const timeframeOptions = [
   { value: "1", label: "1日" },
   { value: "7", label: "7日" },
+  { value: "14", label: "14日" },
   { value: "30", label: "30日" },
   { value: "all", label: "全期間" },
 ];
