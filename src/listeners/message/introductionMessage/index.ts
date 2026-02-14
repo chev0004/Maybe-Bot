@@ -1,5 +1,6 @@
 import type { GuildTextBasedChannel } from "discord.js";
 import {
+  AttachmentBuilder,
   EmbedBuilder,
   PermissionsBitField,
   type Role,
@@ -12,6 +13,7 @@ import {
   getStickyMessageId,
   setStickyMessageId,
 } from "../../../utils/managers/dataManager.js";
+import { drawUserMessageWithHighlights } from "../../../utils/services/introductionFormatImage.js";
 
 const SPAM_THRESHOLD_COUNT = 3;
 const SPAM_TIMEFRAME_MS = 60 * 1000;
@@ -44,45 +46,6 @@ const getErrorCode = (error: unknown): number | undefined => {
     return typeof code === "number" ? code : undefined;
   }
   return undefined;
-};
-
-/**
- * Creates a pointer line with appropriate spacing for full-width and half-width characters.
- * @param {string} line The content of the line with the error.
- * @param {number} errorIndex The index in the line where the error occurred.
- * @returns {string} A string with mixed spaces and a '^' to point at the error.
- */
-const createAlignmentPointer = (line: string, errorIndex: number): string => {
-  const specificFullWidthRegex = /[【】名前出身言語勉強趣味一]/;
-  const pointerParts = [];
-
-  for (let i = 0; i < line.length; i++) {
-    if (i === errorIndex) {
-      pointerParts.push("^");
-      break;
-    }
-    const char = line[i];
-
-    pointerParts.push(specificFullWidthRegex.test(char) ? "　" : " ");
-  }
-
-  const allFullWidth = [];
-  const fullWidthChars = [];
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const isFullWidth = specificFullWidthRegex.test(char);
-
-    if (i >= pointerParts.length) {
-      allFullWidth.push(isFullWidth);
-    }
-
-    if (isFullWidth) {
-      fullWidthChars.push({ char, index: i });
-    }
-  }
-
-  return pointerParts.join("");
 };
 
 type InvalidLineError = {
@@ -433,35 +396,22 @@ export default createListener(
 
         if (!isCurrentlySpamming) {
           const error = validationResult.error;
-          let deletedMessageFieldValue: string = "";
           let errorReasonFieldValue: string = "";
 
           if (error.type === "INVALID_LINE") {
-            const pointer = createAlignmentPointer(
-              error.lineContent,
-              error.charIndex,
-            );
-            const lineToShow = error.lineContent.substring(0, 950);
-            deletedMessageFieldValue = `\`\`\`\n${lineToShow}\n${pointer}\n\`\`\``;
-
             errorReasonFieldValue = `The format on line ${
               error.lineNumber + 1
-            } is incorrect. It should start with \`${
-              error.expectedHeader
-            }\`, but there's an error at the position marked with \`^\`.`;
+            } is incorrect. It should start with \`${error.expectedHeader}\`.`;
           } else if (error.type === "MISSING_LINE") {
-            const contentToShow = (error.problematicContent ?? "").substring(
-              0,
-              950,
-            );
-            deletedMessageFieldValue = `\`\`\`\n${contentToShow}${
-              contentToShow.length > 0 ? "\n" : ""
-            }<-- The line for "${
-              error.expectedHeader
-            }" is missing here.\n\`\`\``;
-
             errorReasonFieldValue = `You seem to be missing the line for \`${error.expectedHeader}\`.\nPlease include all headers from the template, in the correct order.`;
           }
+
+          const userImageBuffer = drawUserMessageWithHighlights(
+            message.content,
+          );
+          const userAttachment = new AttachmentBuilder(userImageBuffer, {
+            name: "your-message.png",
+          });
 
           const feedbackEmbed = new EmbedBuilder()
             .setColor(Colors.red)
@@ -478,17 +428,15 @@ export default createListener(
                 name: "正しいテンプレート / Correct Template",
                 value: `\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\``,
               },
-              {
-                name: "削除されたメッセージ / Deleted Message",
-                value: deletedMessageFieldValue || "Could not display message",
-              },
             )
-            .setTimestamp();
+            .setTimestamp()
+            .setImage("attachment://your-message.png");
 
           if (channelPermissions.has(PermissionsBitField.Flags.SendMessages)) {
             await channel.send({
               content: author.toString(),
               embeds: [feedbackEmbed],
+              files: [userAttachment],
             });
           }
         } else {
