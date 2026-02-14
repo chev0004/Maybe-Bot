@@ -1,4 +1,4 @@
 {
-  "*.ts": ["bunx biome check --write"],
-  "*.json": ["bunx biome format --write"]
+  "*.ts": ["npx biome check --write"],
+  "*.json": ["npx biome format --write"]
 }

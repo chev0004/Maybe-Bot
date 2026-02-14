@@ -11,9 +11,9 @@
     "preview:ui": "nodemon --watch src --ext ts --exec \"tsx src/preview.ts\"",
     "dev": "tsc -w & node --watch dist/index.js",
     "prepare": "husky",
-    "lint": "bunx biome check --write --no-errors-on-unmatched .",
+    "lint": "npx biome check --write --no-errors-on-unmatched .",
     "type-check": "tsc --noEmit",
-    "format": "bunx @biomejs/biome format --write ."
+    "format": "npx @biomejs/biome format --write ."
   },
   "author": "chev",
   "license": "ISC",
