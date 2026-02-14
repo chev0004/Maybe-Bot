@@ -6,11 +6,11 @@ import { confessions } from "../../db/schema.js";
  * @returns {Promise<number>} The next confession ID.
  */
 export const getNextConfessionId = async () => {
-    const result = await db
-        .select({ maxId: sql `max(${confessions.id})` })
-        .from(confessions);
-    const maxId = result[0]?.maxId ?? 0;
-    return maxId + 1;
+  const result = await db
+    .select({ maxId: sql`max(${confessions.id})` })
+    .from(confessions);
+  const maxId = result[0]?.maxId ?? 0;
+  return maxId + 1;
 };
 /**
  * Retrieves the message ID for a given confession ID from the database.
@@ -18,11 +18,11 @@ export const getNextConfessionId = async () => {
  * @returns {Promise<string | undefined>} The Discord message ID, or undefined if not found.
  */
 export const getConfessionMessageId = async (confessionId) => {
-    const result = await db
-        .select({ messageId: confessions.messageId })
-        .from(confessions)
-        .where(eq(confessions.id, confessionId));
-    return result[0]?.messageId;
+  const result = await db
+    .select({ messageId: confessions.messageId })
+    .from(confessions)
+    .where(eq(confessions.id, confessionId));
+  return result[0]?.messageId;
 };
 /**
  * Logs a new confession by inserting its ID and Discord message ID into the database.
@@ -30,10 +30,9 @@ export const getConfessionMessageId = async (confessionId) => {
  * @param {string} messageId The Discord message ID.
  */
 export const logConfession = async (confessionId, messageId) => {
-    try {
-        await db.insert(confessions).values({ id: confessionId, messageId });
-    }
-    catch (error) {
-        console.error("Error logging confession to database:", error);
-    }
+  try {
+    await db.insert(confessions).values({ id: confessionId, messageId });
+  } catch (error) {
+    console.error("Error logging confession to database:", error);
+  }
 };
