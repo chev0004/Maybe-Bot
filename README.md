@@ -16,7 +16,7 @@ Custom bot for an in-house language learning Discord server.
 | Minecraft | exaroton API |
 | Lint / format | Biome |
 | Git hooks | Husky, commitlint (conventional, no scope), lint-staged |
-| Build | tsc (incremental) |
+| Build | tsc |
 
 ## Prerequisites | 必要環境
 
@@ -37,7 +37,7 @@ Custom bot for an in-house language learning Discord server.
    ```bash
    cp .env.example .env
    ```
-   Set at minimum: `TOKEN`, `CLIENT_ID`, `GUILD_ID`, `DATABASE_URL`. See [Environment variables](#environment-variables).
+   Set at minimum: `OWNER_ID`, `TOKEN`, `CLIENT_ID`, `GUILD_ID`, `TEST_GUILD_ID`, `DATABASE_URL`.
 
 3. **Database**
    ```bash
@@ -59,7 +59,7 @@ Custom bot for an in-house language learning Discord server.
 - **Type-check only:** `npm run type-check` (tsc --noEmit)
 
 **Git hooks (Husky):**
-- **pre-commit:** lint-staged (Biome on staged `.ts`, `.json`, `.md`)
+- **pre-commit:** lint-staged (Biome check on `.ts`, format on `.json`)
 - **commit-msg:** commitlint (conventional commits, no scope)
 - **pre-push:** `npm run lint` then `npm run type-check`
 
@@ -122,19 +122,20 @@ src/
   handlers/              # commandHandler, interactionHandler, listenerHandler
   listeners/             # message (bump, intro, stats), voice (voiceStateUpdate)
   interactions/          # Modals, buttons, select menus
-  utils/                 # Helpers, managers, services, builders
+  utils/                 # Helpers, managers, services, builders, validators
+  assets/                # Fonts, icons, images
   scripts/               # baseline-and-migrate (db)
 ```
 
 Output: `dist/` (from `tsc`, `rootDir: src`).
-P
+
 ## Features (overview) | 機能概要
 
 - **Admin:** purge, purgeto
 - **Management:** listunverified
 - **Minecraft:** smite, startserver, statusserver, whitelist (exaroton)
-- **Owner:** restart, update (git pull + rebuild)
+- **Owner:** restart, update (git pull)
 - **Social:** confess, reply (anonymous)
-- **Stats:** top (leaderboards)
+- **Stats:** top (leaderboards), activity
 - **Utility:** uptime, vc (temp voice channels)
 - **Listeners:** Disboard/Dissoku bump, introduction validation, message stats, voice state tracking
