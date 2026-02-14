@@ -162,6 +162,16 @@ export default createListener(
       return;
     }
 
+    if (message.attachments.size > 0 && message.content.trim() === "") {
+      if (
+        message.deletable &&
+        channelPermissions.has(PermissionsBitField.Flags.ManageMessages)
+      ) {
+        await message.delete();
+      }
+      return;
+    }
+
     const validationResult = validateWelcomeMessage(message.content);
 
     if (validationResult.isValid) {
