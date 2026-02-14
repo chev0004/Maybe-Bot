@@ -93,27 +93,34 @@ export function buildComponents(
 
   if (hasTimeframe && showTimeframeButtons) {
     const tfOptions = config.timeframeOptions ?? [];
-    const timeButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    const maxPerRow = 4;
+    const backButton = new ButtonBuilder()
+      .setCustomId(
+        `${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
+      )
+      .setEmoji({ id: icons.back })
+      .setStyle(ButtonStyle.Secondary);
+    const timeframeButtons = tfOptions.map((opt) =>
       new ButtonBuilder()
         .setCustomId(
-          `${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
+          `${prefix}-select-${category}-${opt.value}-${testModeFlag}`,
         )
-        .setEmoji({ id: icons.back })
-        .setStyle(ButtonStyle.Secondary),
-      ...tfOptions.map((opt) =>
-        new ButtonBuilder()
-          .setCustomId(
-            `${prefix}-select-${category}-${opt.value}-${testModeFlag}`,
-          )
-          .setLabel(opt.label)
-          .setStyle(
-            timeframe === opt.value
-              ? ButtonStyle.Primary
-              : ButtonStyle.Secondary,
-          ),
-      ),
+        .setLabel(opt.label)
+        .setStyle(
+          timeframe === opt.value ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
     );
-    components.push(timeButtons);
+    const firstRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      backButton,
+      ...timeframeButtons.slice(0, maxPerRow),
+    );
+    components.push(firstRow);
+    if (timeframeButtons.length > maxPerRow) {
+      const secondRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        ...timeframeButtons.slice(maxPerRow),
+      );
+      components.push(secondRow);
+    }
   } else if (hasTimeframe || hasRefresh) {
     const buttons: ButtonBuilder[] = [];
 

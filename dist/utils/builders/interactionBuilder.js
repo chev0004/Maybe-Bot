@@ -27,16 +27,21 @@ export function buildComponents(config, state) {
     const hasRefresh = interactions.includes("refresh");
     if (hasTimeframe && showTimeframeButtons) {
         const tfOptions = config.timeframeOptions ?? [];
-        const timeButtons = new ActionRowBuilder().addComponents(new ButtonBuilder()
+        const maxPerRow = 4;
+        const backButton = new ButtonBuilder()
             .setCustomId(`${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}`)
             .setEmoji({ id: icons.back })
-            .setStyle(ButtonStyle.Secondary), ...tfOptions.map((opt) => new ButtonBuilder()
+            .setStyle(ButtonStyle.Secondary);
+        const timeframeButtons = tfOptions.map((opt) => new ButtonBuilder()
             .setCustomId(`${prefix}-select-${category}-${opt.value}-${testModeFlag}`)
             .setLabel(opt.label)
-            .setStyle(timeframe === opt.value
-            ? ButtonStyle.Primary
-            : ButtonStyle.Secondary)));
-        components.push(timeButtons);
+            .setStyle(timeframe === opt.value ? ButtonStyle.Primary : ButtonStyle.Secondary));
+        const firstRow = new ActionRowBuilder().addComponents(backButton, ...timeframeButtons.slice(0, maxPerRow));
+        components.push(firstRow);
+        if (timeframeButtons.length > maxPerRow) {
+            const secondRow = new ActionRowBuilder().addComponents(...timeframeButtons.slice(maxPerRow));
+            components.push(secondRow);
+        }
     }
     else if (hasTimeframe || hasRefresh) {
         const buttons = [];
