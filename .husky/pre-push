@@ -1,13 +1,13 @@
 set -e
 
 echo "Running lint checks. Don't expect me to be nice about it."
-bun run lint || {
+npm run lint || {
   echo "❌ Of course they failed. Go fix the errors above. Baka."
   exit 1
 }
 
 echo "Running type checks. Try not to mess this up."
-bun run type-check || {
+npm run type-check || {
   echo "❌ Type checks failed. Fix them. It's not like I'm waiting or anything."
   exit 1
 }
