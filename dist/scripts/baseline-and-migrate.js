@@ -2,17 +2,15 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("DATABASE_URL is not set");
-  process.exit(1);
+    console.error("DATABASE_URL is not set");
+    process.exit(1);
 }
 const client = postgres(url, { max: 1 });
 const db = drizzle(client);
 await client.unsafe("SET client_min_messages = 'warning'");
-const baselineHash =
-  "51934252b8a04d0d6d7ddffd4cc7f38a32d31a0a432c9beafd34093763162aaf";
+const baselineHash = "51934252b8a04d0d6d7ddffd4cc7f38a32d31a0a432c9beafd34093763162aaf";
 const baselineCreatedAt = 1759543937666;
 await client.unsafe("CREATE SCHEMA IF NOT EXISTS drizzle");
 await client.unsafe(`
@@ -31,6 +29,6 @@ await client.unsafe(`
   )
 `);
 await migrate(db, {
-  migrationsFolder: "./drizzle",
+    migrationsFolder: "./drizzle",
 });
 await client.end();
