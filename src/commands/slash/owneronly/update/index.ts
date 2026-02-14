@@ -25,7 +25,7 @@ class ProcessError extends Error {
 /**
  * Spawns a child process and streams its stdout/stderr to the main process
  * console in real-time. Also captures the full output for later use.
- * @param command The command to run (e.g., "bun")
+ * @param command The command to run (e.g., "npm")
  * @param args An array of arguments (e.g., ["install"])
  * @returns A promise that resolves with the captured stdout and stderr.
  */
@@ -272,7 +272,7 @@ export default createCommand(
           embed.addFields({
             name: "⚠ dist/ の更新がありません",
             value:
-              "今回のコミットに dist/ が含まれていません。ローカルで `bun run build` して dist/ をコミットしてから push してください。",
+              "今回のコミットに dist/ が含まれていません。ローカルで `npm run build` して dist/ をコミットしてから push してください。",
           });
         }
       } catch {
