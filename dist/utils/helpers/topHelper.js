@@ -1,4 +1,4 @@
-import { AttachmentBuilder, } from "discord.js";
+import { AttachmentBuilder, Collection, } from "discord.js";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getMockTopData } from "../../commands/slash/stats/top/top.mock.js";
 import { config } from "../../config/env.js";
@@ -35,6 +35,55 @@ export const topInteractionConfig = {
     interactions: ["dropdown", "timeframe", "refresh"],
     timeframeOptions,
 };
+function createTimer(label) {
+    const start = performance.now();
+    let last = start;
+    return {
+        step(name) {
+            const now = performance.now();
+            console.log(`  [${label}] ${name}: ${(now - last).toFixed(1)}ms`);
+            last = now;
+        },
+        total() {
+            console.log(`  [${label}] TOTAL: ${(performance.now() - start).toFixed(1)}ms`);
+        },
+    };
+}
+async function batchFetchMembers(guild, ids) {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0)
+        return new Collection();
+    return guild.members.fetch({ user: unique });
+}
+function applyNicknames(data, members) {
+    return data.map((item) => {
+        if (!item.id)
+            return item;
+        const member = members.get(item.id);
+        if (!member)
+            return { ...item, name: item.name || `User (${item.id})` };
+        const serverNickname = member.nickname;
+        const username = member.user.username;
+        const displayName = member.displayName;
+        let finalName;
+        if (serverNickname) {
+            if (serverNickname.toLowerCase() !== username.toLowerCase() &&
+                serverNickname.toLowerCase() !== displayName.toLowerCase()) {
+                finalName = `${serverNickname} (${username})`;
+            }
+            else {
+                finalName = serverNickname;
+            }
+        }
+        else if (displayName.toLowerCase() !== username.toLowerCase()) {
+            finalName = `${displayName} (${username})`;
+        }
+        else {
+            finalName = username;
+        }
+        return { ...item, name: finalName };
+    });
+}
 const getDateCondition = (timeframe) => {
     if (timeframe === "all")
         return undefined;
@@ -50,6 +99,7 @@ const getDateCondition = (timeframe) => {
     return sql `"date" >= ${date.toISOString().slice(0, 10)}`;
 };
 const getTopData = async (category, type, timeframe, limit) => {
+    const t0 = performance.now();
     const dateCondition = getDateCondition(timeframe);
     if (type === "users") {
         const statsSubquery = db
@@ -73,52 +123,50 @@ const getTopData = async (category, type, timeframe, limit) => {
             .leftJoin(statsSubquery, eq(users.id, statsSubquery.userId))
             .orderBy(desc(sql `coalesce(${statsSubquery.totalValue}, 0)`))
             .limit(limit);
+        console.log(`    [db] getTopData(${category}, ${type}, ${timeframe}, ${limit}): ${(performance.now() - t0).toFixed(1)}ms → ${results.length} rows`);
         return results.map((r) => ({
             id: r.id,
             name: r.name || "Unknown",
             value: r.totalValue,
         }));
     }
-    else {
-        // Correctly handle channel types for category
-        if (category !== "messages" && category !== "vcHours")
-            return [];
-        const statsSubquery = db
-            .select({
-            channelId: dailyChannelStats.channelId,
-            // Ensure category is correctly indexed here
-            totalValue: sql `sum(${dailyChannelStats[category]})`
-                .mapWith(Number)
-                .as("totalValue"),
-        })
-            .from(dailyChannelStats)
-            .where(dateCondition)
-            .groupBy(dailyChannelStats.channelId)
-            .as("statsSubquery");
-        const conditions = [];
-        if (category === "vcHours") {
-            conditions.push(eq(channels.type, "voice"));
-        }
-        else if (category === "messages") {
-            conditions.push(eq(channels.type, "text"));
-        }
-        const results = await db
-            .select({
-            name: channels.name,
-            type: channels.type,
-            totalValue: sql `coalesce(${statsSubquery.totalValue}, 0)`.mapWith(Number),
-        })
-            .from(channels)
-            .leftJoin(statsSubquery, eq(channels.id, statsSubquery.channelId))
-            .where(conditions.length > 0 ? and(...conditions) : undefined)
-            .orderBy(desc(sql `coalesce(${statsSubquery.totalValue}, 0)`))
-            .limit(limit);
-        return results.map((r) => ({
-            name: r.name || "Unknown",
-            value: r.totalValue,
-            type: r.type,
-        }));
+    if (category !== "messages" && category !== "vcHours")
+        return [];
+    const statsSubquery = db
+        .select({
+        channelId: dailyChannelStats.channelId,
+        totalValue: sql `sum(${dailyChannelStats[category]})`
+            .mapWith(Number)
+            .as("totalValue"),
+    })
+        .from(dailyChannelStats)
+        .where(dateCondition)
+        .groupBy(dailyChannelStats.channelId)
+        .as("statsSubquery");
+    const conditions = [];
+    if (category === "vcHours") {
+        conditions.push(eq(channels.type, "voice"));
     }
+    else if (category === "messages") {
+        conditions.push(eq(channels.type, "text"));
+    }
+    const results = await db
+        .select({
+        name: channels.name,
+        type: channels.type,
+        totalValue: sql `coalesce(${statsSubquery.totalValue}, 0)`.mapWith(Number),
+    })
+        .from(channels)
+        .leftJoin(statsSubquery, eq(channels.id, statsSubquery.channelId))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(sql `coalesce(${statsSubquery.totalValue}, 0)`))
+        .limit(limit);
+    console.log(`    [db] getTopData(${category}, ${type}, ${timeframe}, ${limit}): ${(performance.now() - t0).toFixed(1)}ms → ${results.length} rows`);
+    return results.map((r) => ({
+        name: r.name || "Unknown",
+        value: r.totalValue,
+        type: r.type,
+    }));
 };
 export const generateComponentsForTop = ({ category, timeframe, showTimeframeButtons, isTestMode = false, }) => buildComponents(topInteractionConfig, {
     category,
@@ -197,65 +245,44 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
             showTimeframeButtons,
         });
     }
+    const t = createTimer(`top:${category}`);
     const serverIconUrl = guild.iconURL({ extension: "png", size: 128 });
     const timeframeLabel = timeframeLabels[timeframe];
+    const mainGuild = client.guilds.cache.get(config.ids.guild) ??
+        (await client.guilds.fetch(config.ids.guild));
+    t.step("resolve guild");
     let imageBuffer;
-    const mainGuild = await client.guilds.fetch(config.ids.guild);
-    const formatDataWithNicknames = async (data) => {
-        if (!data.length || !data[0]?.id)
-            return data;
-        const formattedData = await Promise.all(data.map(async (item) => {
-            if (!item.id)
-                return item;
-            const member = await mainGuild.members.fetch(item.id).catch(() => null);
-            if (!member) {
-                // Keep original name if member not found
-                return { ...item, name: item.name || `User (${item.id})` };
-            }
-            const serverNickname = member.nickname;
-            const username = member.user.username;
-            const displayName = member.displayName;
-            let finalName;
-            // Logic prioritizing nickname, then display name, ensuring username is included if different
-            if (serverNickname) {
-                if (serverNickname.toLowerCase() !== username.toLowerCase() &&
-                    serverNickname.toLowerCase() !== displayName.toLowerCase()) {
-                    finalName = `${serverNickname} (${username})`;
-                }
-                else {
-                    finalName = serverNickname;
-                }
-            }
-            else if (displayName.toLowerCase() !== username.toLowerCase()) {
-                finalName = `${displayName} (${username})`;
-            }
-            else {
-                finalName = username; // Use username if display name is the same
-            }
-            return { ...item, name: finalName };
-        }));
-        return formattedData;
-    };
     if (category === "overview") {
+        const [messagesRaw, bumpsRaw, voiceRaw, streamRaw] = await Promise.all([
+            getTopData("messages", "users", timeframe, 3),
+            getTopData("bumps", "users", timeframe, 3),
+            getTopData("vcHours", "users", timeframe, 3),
+            getTopData("streamHours", "users", timeframe, 3),
+        ]);
+        t.step("db queries (4 parallel)");
+        const allUserIds = [];
+        for (const list of [messagesRaw, bumpsRaw, voiceRaw, streamRaw]) {
+            for (const item of list) {
+                if (item.id)
+                    allUserIds.push(item.id);
+            }
+        }
+        const members = await batchFetchMembers(mainGuild, allUserIds);
+        t.step(`fetch members (${new Set(allUserIds).size} unique)`);
         const overviewData = {
-            messages: {
-                users: await formatDataWithNicknames(await getTopData("messages", "users", timeframe, 3)),
-            },
-            bumps: {
-                users: await formatDataWithNicknames(await getTopData("bumps", "users", timeframe, 3)),
-            },
-            voice: {
-                users: await formatDataWithNicknames(await getTopData("vcHours", "users", timeframe, 3)),
-            },
-            stream: {
-                users: await formatDataWithNicknames(await getTopData("streamHours", "users", timeframe, 3)),
-            },
+            messages: { users: applyNicknames(messagesRaw, members) },
+            bumps: { users: applyNicknames(bumpsRaw, members) },
+            voice: { users: applyNicknames(voiceRaw, members) },
+            stream: { users: applyNicknames(streamRaw, members) },
         };
-        imageBuffer = await generateOverviewImage(overviewData, // Pass the correctly typed object
-        serverIconUrl, guild.name, timeframeLabel);
+        imageBuffer = await generateOverviewImage(overviewData, serverIconUrl, guild.name, timeframeLabel);
+        t.step("generate image");
     }
     else {
-        let title, dbCategory, type, iconPath;
+        let title;
+        let dbCategory;
+        let type;
+        let iconPath;
         if (category === "msg_users") {
             title = "メッセージ・Top Messages";
             dbCategory = "messages";
@@ -293,15 +320,25 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
             iconPath = "src/assets/icons/chat.png";
         }
         else {
-            // vc_channels
             title = "ボイス時間・Top Voice Channels";
             dbCategory = "vcHours";
             type = "channels";
             iconPath = "src/assets/icons/mic.png";
         }
         const rawData = await getTopData(dbCategory, type, timeframe, 10);
-        const data = type === "users" ? await formatDataWithNicknames(rawData) : rawData;
+        t.step("db query");
+        let data;
+        if (type === "users") {
+            const userIds = rawData.filter((r) => r.id).map((r) => r.id);
+            const members = await batchFetchMembers(mainGuild, userIds);
+            t.step(`fetch members (${userIds.length} users)`);
+            data = applyNicknames(rawData, members);
+        }
+        else {
+            data = rawData;
+        }
         imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel);
+        t.step("generate image");
     }
     const attachment = new AttachmentBuilder(imageBuffer, {
         name: "leaderboard.png",
@@ -312,5 +349,6 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
         showTimeframeButtons,
         isTestMode,
     });
+    t.total();
     return { files: [attachment], components };
 };
