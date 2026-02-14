@@ -10,7 +10,7 @@
     "start": "scripts/guard-no-bun.sh && node dist/index.js",
     "preview:ui": "scripts/guard-no-bun.sh && nodemon --watch src --ext ts --exec \"tsx src/preview.ts\"",
     "dev": "scripts/guard-no-bun.sh && (tsc -w & node --watch dist/index.js)",
-    "prepare": "scripts/guard-no-bun.sh && husky",
+    "prepare": "scripts/guard-no-bun.sh && (husky || true)",
     "lint": "scripts/guard-no-bun.sh && npx biome check --write --no-errors-on-unmatched .",
     "type-check": "scripts/guard-no-bun.sh && tsc --noEmit",
     "format": "scripts/guard-no-bun.sh && npx @biomejs/biome format --write ."
