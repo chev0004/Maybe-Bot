@@ -194,6 +194,7 @@ export function drawUserMessageWithHighlights(content) {
     const rctx = resized.getContext("2d");
     rctx.fillStyle = NORMAL_BG;
     rctx.fillRect(0, 0, width, height);
+    rctx.textDrawingMode = "glyph";
     rctx.textBaseline = "middle";
     let rowY = PADDING + topPaddingExtra;
     for (const line of leadingLines) {
@@ -272,7 +273,7 @@ export function drawUserMessageWithHighlights(content) {
         rowY += LINE_HEIGHT;
     }
     rctx.textBaseline = "alphabetic";
-    return resized.toBuffer("image/png");
+    return resized.toBuffer("image/png", { compressionLevel: 1 });
 }
 export function drawCorrectTemplate() {
     const lines = CORRECT_TEMPLATE_STRING.split("\n");
@@ -291,6 +292,7 @@ export function drawCorrectTemplate() {
     const rctx = resized.getContext("2d");
     rctx.fillStyle = NORMAL_BG;
     rctx.fillRect(0, 0, width, height);
+    rctx.textDrawingMode = "glyph";
     rctx.fillStyle = NORMAL_TEXT;
     rctx.textBaseline = "middle";
     for (let i = 0; i < lines.length; i++) {
@@ -299,5 +301,5 @@ export function drawCorrectTemplate() {
         drawRawText(rctx, line, PADDING, y, textWidth);
     }
     rctx.textBaseline = "alphabetic";
-    return resized.toBuffer("image/png");
+    return resized.toBuffer("image/png", { compressionLevel: 1 });
 }

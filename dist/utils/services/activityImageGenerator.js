@@ -13,6 +13,20 @@ registerFont(path.join(fontsPath, "NotoSans-Bold.ttf"), {
 registerFont(path.join(fontsPath, "NotoSansJP-Regular.ttf"), {
     family: "NotoSansJP",
 });
+function createTimer(label) {
+    const start = performance.now();
+    let last = start;
+    return {
+        step(name) {
+            const now = performance.now();
+            console.log(`  [${label}] ${name}: ${(now - last).toFixed(1)}ms`);
+            last = now;
+        },
+        total() {
+            console.log(`  [${label}] TOTAL: ${(performance.now() - start).toFixed(1)}ms`);
+        },
+    };
+}
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 650;
 const PADDING = 40;
@@ -143,10 +157,15 @@ function drawLegendBox(ctx, stats) {
  * Generates an image buffer for Voice Activity stats
  */
 export const generateVoiceActivityImage = async (data, serverIconUrl, serverName, timeframeLabel) => {
+    const t = createTimer("voice-activity");
     const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     const ctx = canvas.getContext("2d");
+    ctx.textDrawingMode = "glyph";
+    t.step("create canvas");
     await drawChartBase(ctx, data.hourlyActivity, serverName, serverIconUrl, timeframeLabel);
+    t.step("draw chart base");
     drawBars(ctx, data.hourlyActivity);
+    t.step("draw bars");
     const stats = [
         {
             label: "ピーク時間 / Peak Hour",
@@ -162,16 +181,25 @@ export const generateVoiceActivityImage = async (data, serverIconUrl, serverName
         },
     ];
     drawLegendBox(ctx, stats);
-    return canvas.toBuffer("image/png");
+    t.step("draw legend");
+    const buffer = canvas.toBuffer("image/png", { compressionLevel: 1 });
+    t.step("toBuffer (PNG encode)");
+    t.total();
+    return buffer;
 };
 /**
  * Generates an image buffer for Message Activity stats
  */
 export const generateMessageActivityImage = async (data, serverIconUrl, serverName, timeframeLabel) => {
+    const t = createTimer("msg-activity");
     const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     const ctx = canvas.getContext("2d");
+    ctx.textDrawingMode = "glyph";
+    t.step("create canvas");
     await drawChartBase(ctx, data.hourlyActivity, serverName, serverIconUrl, timeframeLabel);
+    t.step("draw chart base");
     drawBars(ctx, data.hourlyActivity);
+    t.step("draw bars");
     const stats = [
         {
             label: "ピーク時間 / Peak Hour",
@@ -187,5 +215,9 @@ export const generateMessageActivityImage = async (data, serverIconUrl, serverNa
         },
     ];
     drawLegendBox(ctx, stats);
-    return canvas.toBuffer("image/png");
+    t.step("draw legend");
+    const buffer = canvas.toBuffer("image/png", { compressionLevel: 1 });
+    t.step("toBuffer (PNG encode)");
+    t.total();
+    return buffer;
 };

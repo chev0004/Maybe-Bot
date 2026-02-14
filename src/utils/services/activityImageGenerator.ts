@@ -24,6 +24,23 @@ registerFont(path.join(fontsPath, "NotoSansJP-Regular.ttf"), {
   family: "NotoSansJP",
 });
 
+function createTimer(label: string) {
+  const start = performance.now();
+  let last = start;
+  return {
+    step(name: string) {
+      const now = performance.now();
+      console.log(`  [${label}] ${name}: ${(now - last).toFixed(1)}ms`);
+      last = now;
+    },
+    total() {
+      console.log(
+        `  [${label}] TOTAL: ${(performance.now() - start).toFixed(1)}ms`,
+      );
+    },
+  };
+}
+
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 650;
 const PADDING = 40;
@@ -211,8 +228,12 @@ export const generateVoiceActivityImage = async (
   serverName: string,
   timeframeLabel: string,
 ): Promise<Buffer> => {
+  const t = createTimer("voice-activity");
+
   const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
   const ctx = canvas.getContext("2d");
+  ctx.textDrawingMode = "glyph";
+  t.step("create canvas");
 
   await drawChartBase(
     ctx,
@@ -221,7 +242,10 @@ export const generateVoiceActivityImage = async (
     serverIconUrl,
     timeframeLabel,
   );
+  t.step("draw chart base");
+
   drawBars(ctx, data.hourlyActivity);
+  t.step("draw bars");
 
   const stats = [
     {
@@ -238,8 +262,12 @@ export const generateVoiceActivityImage = async (
     },
   ];
   drawLegendBox(ctx, stats);
+  t.step("draw legend");
 
-  return canvas.toBuffer("image/png");
+  const buffer = canvas.toBuffer("image/png", { compressionLevel: 1 });
+  t.step("toBuffer (PNG encode)");
+  t.total();
+  return buffer;
 };
 
 /**
@@ -251,8 +279,12 @@ export const generateMessageActivityImage = async (
   serverName: string,
   timeframeLabel: string,
 ): Promise<Buffer> => {
+  const t = createTimer("msg-activity");
+
   const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
   const ctx = canvas.getContext("2d");
+  ctx.textDrawingMode = "glyph";
+  t.step("create canvas");
 
   await drawChartBase(
     ctx,
@@ -261,8 +293,10 @@ export const generateMessageActivityImage = async (
     serverIconUrl,
     timeframeLabel,
   );
+  t.step("draw chart base");
 
   drawBars(ctx, data.hourlyActivity);
+  t.step("draw bars");
 
   const stats = [
     {
@@ -279,6 +313,10 @@ export const generateMessageActivityImage = async (
     },
   ];
   drawLegendBox(ctx, stats);
+  t.step("draw legend");
 
-  return canvas.toBuffer("image/png");
+  const buffer = canvas.toBuffer("image/png", { compressionLevel: 1 });
+  t.step("toBuffer (PNG encode)");
+  t.total();
+  return buffer;
 };

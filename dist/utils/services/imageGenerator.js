@@ -2,15 +2,67 @@ import { createCanvas, loadImage, registerFont, } from "canvas";
 import path from "path";
 import { parse } from "twemoji-parser";
 import { Colors } from "../../constants/Colors.js";
-/**
- * Draws a rounded rectangle on the canvas.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @param {number} x The x-coordinate of the rectangle's top-left corner.
- * @param {number} y The y-coordinate of the rectangle's top-left corner.
- * @param {number} width The width of the rectangle.
- * @param {number} height The height of the rectangle.
- * @param {number} radius The corner radius of the rectangle.
- */
+registerFont(path.resolve(process.cwd(), "src/assets/fonts/NotoSansJP-Regular.ttf"), { family: "Noto Sans JP" });
+// --- Image Cache ---
+const imageCache = new Map();
+async function cachedLoadImage(src) {
+    const cached = imageCache.get(src);
+    if (cached)
+        return cached;
+    const img = await loadImage(src);
+    imageCache.set(src, img);
+    return img;
+}
+async function preloadImages(sources, label) {
+    const unique = [...new Set(sources)].filter((s) => !imageCache.has(s));
+    if (unique.length === 0) {
+        if (label)
+            console.log(`  [${label}] preload: 0 to load (${sources.length} cached)`);
+        return;
+    }
+    const t0 = performance.now();
+    await Promise.allSettled(unique.map(async (src) => {
+        try {
+            const img = await loadImage(src);
+            imageCache.set(src, img);
+        }
+        catch { }
+    }));
+    if (label)
+        console.log(`  [${label}] preload: ${unique.length} images in ${(performance.now() - t0).toFixed(1)}ms`);
+}
+// --- Emoji URL Helpers ---
+const TWEMOJI_OLD_PREFIX = "https://twemoji.maxcdn.com/v/latest/";
+const TWEMOJI_NEW_PREFIX = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/";
+function getEmojiUrl(url) {
+    return url.replace(TWEMOJI_OLD_PREFIX, TWEMOJI_NEW_PREFIX);
+}
+function collectEmojiUrls(texts) {
+    const urls = [];
+    for (const text of texts) {
+        for (const entity of parse(text, { assetType: "png" })) {
+            urls.push(getEmojiUrl(entity.url));
+        }
+    }
+    return urls;
+}
+// --- Timing ---
+function createTimer(label) {
+    const start = performance.now();
+    let last = start;
+    return {
+        step(name) {
+            const now = performance.now();
+            console.log(`  [${label}] ${name}: ${(now - last).toFixed(1)}ms`);
+            last = now;
+        },
+        total() {
+            console.log(`  [${label}] TOTAL: ${(performance.now() - start).toFixed(1)}ms`);
+        },
+    };
+}
+// --- Canvas Helpers ---
+const PNG_CONFIG = { compressionLevel: 1 };
 const roundRect = (ctx, x, y, width, height, radius) => {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -24,6 +76,9 @@ const roundRect = (ctx, x, y, width, height, radius) => {
     ctx.arcTo(x, y, x + radius, y, radius);
     ctx.closePath();
 };
+function configureCtx(ctx) {
+    ctx.textDrawingMode = "glyph";
+}
 const drawMixedText = (ctx, text, x, y, fontSize) => {
     const japaneseRegex = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf]/;
     let currentX = x;
@@ -52,14 +107,6 @@ const drawMixedText = (ctx, text, x, y, fontSize) => {
     }
     ctx.textBaseline = "alphabetic";
 };
-/**
- * Draws text with Twemoji support, replacing emojis with images.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @param {string} text The text to draw, which may include emojis.
- * @param {number} x The x-coordinate to start drawing the text.
- * @param {number} y The y-coordinate to draw the text.
- * @param {number} maxWidth The maximum width for the text. Text exceeding this width will be truncated.
- */
 const drawTextWithTwemoji = async (ctx, text, x, y, maxWidth) => {
     const emojiSize = 20;
     const fontSize = 16;
@@ -81,8 +128,7 @@ const drawTextWithTwemoji = async (ctx, text, x, y, maxWidth) => {
         }
         if (currentX < x + maxWidth) {
             try {
-                const newUrl = entity.url.replace("https://twemoji.maxcdn.com/v/latest/", "https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/");
-                const emojiImage = await loadImage(newUrl);
+                const emojiImage = await cachedLoadImage(getEmojiUrl(entity.url));
                 const emojiY = y - fontSize + (fontSize - emojiSize) / 2 + 2;
                 ctx.drawImage(emojiImage, currentX, emojiY, emojiSize, emojiSize);
                 currentX += emojiSize + 2;
@@ -102,15 +148,6 @@ const drawTextWithTwemoji = async (ctx, text, x, y, maxWidth) => {
         ctx.fillText(textAfter, currentX, y, remainingWidth);
     }
 };
-/**
- * Draws the leaderboard list on the canvas.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @param {LeaderboardItem[]} data The leaderboard data to display.
- * @param {object} options Configuration options for drawing the list.
- * @param {number} options.startX The starting x-coordinate for the list.
- * @param {number} options.startY The starting y-coordinate for the list.
- * @param {number} [options.col2X] Optional x-coordinate for a second column (for two-column layouts).
- */
 const drawLeaderboardList = async (ctx, data, options) => {
     const { startX, startY, col2X } = options;
     const itemHeight = 50;
@@ -122,22 +159,21 @@ const drawLeaderboardList = async (ctx, data, options) => {
         const value = item.value % 1 === 0 ? item.value.toString() : item.value.toFixed(2);
         const x = col2X && i >= data.length / 2 ? col2X : startX;
         const y = startY + (i % (data.length / (col2X ? 2 : 1))) * (itemHeight + itemGap);
-        ctx.fillStyle = "#2B2D31"; // Background for each item
+        ctx.fillStyle = "#2B2D31";
         roundRect(ctx, x, y, itemWidth, itemHeight, 8);
         ctx.fill();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)"; // Border for each item
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.lineWidth = 1;
-        roundRect(ctx, x, y, itemWidth, itemHeight, 8);
         ctx.stroke();
         const rankX = x + 24;
         const rankY = y + 18;
         const rankRadius = 14;
         const textY = y + 26;
-        ctx.fillStyle = "#1d1e20ff"; // Circle rank number background
+        ctx.fillStyle = "#1d1e20ff";
         ctx.beginPath();
         ctx.arc(rankX, rankY, rankRadius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#FFFFFF"; // Rank number color
+        ctx.fillStyle = "#FFFFFF";
         ctx.font = "bold 14px 'Noto Sans JP', 'Sans'";
         ctx.textAlign = "center";
         ctx.fillText((i + 1).toString(), rankX, y + 23);
@@ -170,50 +206,22 @@ const drawLeaderboardList = async (ctx, data, options) => {
         }
     }
 };
-/**
- * Draws the header and footer on the canvas.
- * @param {CanvasRenderingContext2D} ctx The canvas rendering context.
- * @param {number} width The width of the canvas.
- * @param {number} height The height of the canvas.
- * @param {string | null} serverIconUrl The URL of the server icon (can be null).
- * @param {string} serverName The name of the server.
- * @param {string} subtitle The subtitle to display (e.g., "サーバーランキング" or "アクティビティ").
- * @param {string} timeframe The timeframe for the leaderboard.
- */
 export const drawHeaderAndFooter = async (ctx, width, height, serverIconUrl, serverName, subtitle, timeframe) => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, "#313338");
-    gradient.addColorStop(1, "#313338");
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = "#313338";
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = "#2B2D31";
     ctx.fillRect(0, 0, width, 95);
     const headerX = 35;
     const headerY = 20;
-    const roundRect = (ctx, x, y, width, height, radius) => {
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + width - radius, y);
-        ctx.arcTo(x + width, y, x + width, y + radius, radius);
-        ctx.lineTo(x + width, y + height - radius);
-        ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
-        ctx.lineTo(x + radius, y + height);
-        ctx.arcTo(x, y + height, x, y + height - radius, radius);
-        ctx.lineTo(x, y + radius);
-        ctx.arcTo(x, y, x + radius, y, radius);
-        ctx.closePath();
-    };
     if (serverIconUrl) {
         try {
-            const avatar = await loadImage(serverIconUrl);
+            const avatar = await cachedLoadImage(serverIconUrl);
             ctx.save();
-            ctx.beginPath();
             const iconX = headerX;
             const iconY = headerY;
             const iconSize = 60;
             const cornerRadius = 12;
             roundRect(ctx, iconX, iconY, iconSize, iconSize, cornerRadius);
-            ctx.closePath();
             ctx.clip();
             ctx.drawImage(avatar, iconX, iconY, iconSize, iconSize);
             ctx.restore();
@@ -235,24 +243,22 @@ export const drawHeaderAndFooter = async (ctx, width, height, serverIconUrl, ser
     ctx.textAlign = "left";
     drawMixedText(ctx, timeframe, 35, height - 20, 14);
 };
-/**
- * Generates a leaderboard image.
- * @param {string} title The title of the leaderboard.
- * @param {string | null} iconPath The local path to the icon for the title.
- * @param {LeaderboardItem[]} data The leaderboard data to display.
- * @param {string | null} serverIconUrl The URL of the server icon (can be null).
- * @param {string} serverName The name of the server.
- * @param {string} timeframe The timeframe for the leaderboard.
- */
 export const generateLeaderboardImage = async (title, iconPath, data, serverIconUrl, serverName, timeframe) => {
-    const fontPath = path.resolve(process.cwd(), "src/assets/fonts/NotoSansJP-Regular.ttf");
-    registerFont(fontPath, { family: "Noto Sans JP" });
-    const itemHeight = 50; // Height of each item
-    const itemGap = 8; // Space between items
+    const t = createTimer("leaderboard");
+    const allDisplayNames = data.map((item) => item.type === "text" ? `#${item.name}` : item.name);
+    const imageSources = collectEmojiUrls(allDisplayNames);
+    if (serverIconUrl)
+        imageSources.push(serverIconUrl);
+    if (iconPath)
+        imageSources.push(path.resolve(process.cwd(), iconPath));
+    await preloadImages(imageSources, "leaderboard");
+    t.step("preload images");
+    const itemHeight = 50;
+    const itemGap = 8;
     const headerHeight = 110;
     const footerHeight = 40;
-    const titleTopMargin = 28; // Adjusted for vertical centering
-    const listTopMargin = 24; // Space above list
+    const titleTopMargin = 28;
+    const listTopMargin = 24;
     const rows = data.length > 0 ? Math.ceil(data.length / 2) : 0;
     const listHeight = rows > 0 ? rows * itemHeight + (rows - 1) * itemGap : 0;
     const calculatedHeight = headerHeight + titleTopMargin + listTopMargin + listHeight + footerHeight;
@@ -260,13 +266,16 @@ export const generateLeaderboardImage = async (title, iconPath, data, serverIcon
     const height = Math.max(450, calculatedHeight);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
+    configureCtx(ctx);
+    t.step("create canvas");
     await drawHeaderAndFooter(ctx, width, height, serverIconUrl, serverName, "サーバーランキング", timeframe);
+    t.step("draw header/footer");
     const titleY = headerHeight + titleTopMargin;
     const iconSize = 24;
     let currentX = 35;
     if (iconPath) {
         try {
-            const icon = await loadImage(path.resolve(process.cwd(), iconPath));
+            const icon = await cachedLoadImage(path.resolve(process.cwd(), iconPath));
             ctx.drawImage(icon, currentX, titleY - iconSize / 2 - 2, iconSize, iconSize);
             currentX += iconSize + 6;
         }
@@ -280,23 +289,34 @@ export const generateLeaderboardImage = async (title, iconPath, data, serverIcon
     ctx.textBaseline = "middle";
     ctx.fillText(title, currentX, titleY - 2);
     ctx.textBaseline = "alphabetic";
+    t.step("draw title");
     await drawLeaderboardList(ctx, data, {
         startX: 30,
         startY: titleY + listTopMargin,
         col2X: 440,
     });
-    return canvas.toBuffer("image/png");
+    t.step(`draw list (${data.length} items)`);
+    const buffer = canvas.toBuffer("image/png", PNG_CONFIG);
+    t.step("toBuffer (PNG encode)");
+    t.total();
+    return buffer;
 };
-/**
- * Generates an overview image with multiple leaderboard sections.
- * @param {OverviewData} data The overview data containing multiple leaderboard sections.
- * @param {string | null} serverIconUrl The URL of the server icon (can be null).
- * @param {string} serverName The name of the server.
- * @param {string} timeframe The timeframe for the overview.
- */
 export const generateOverviewImage = async (data, serverIconUrl, serverName, timeframe) => {
-    const fontPath = path.resolve(process.cwd(), "src/assets/fonts/NotoSansJP-Regular.ttf");
-    registerFont(fontPath, { family: "Noto Sans JP" });
+    const t = createTimer("overview");
+    const allItems = [
+        ...data.messages.users,
+        ...data.bumps.users,
+        ...data.voice.users,
+        ...data.stream.users,
+    ];
+    const allDisplayNames = allItems.map((item) => item.type === "text" ? `#${item.name}` : item.name);
+    const iconBasePath = "src/assets/icons";
+    const localIcons = ["chat", "bump", "mic", "stream"].map((name) => path.resolve(process.cwd(), `${iconBasePath}/${name}.png`));
+    const imageSources = [...collectEmojiUrls(allDisplayNames), ...localIcons];
+    if (serverIconUrl)
+        imageSources.push(serverIconUrl);
+    await preloadImages(imageSources, "overview");
+    t.step("preload images");
     const itemHeight = 50;
     const itemGap = 8;
     const sectionGap = 24;
@@ -327,15 +347,17 @@ export const generateOverviewImage = async (data, serverIconUrl, serverName, tim
     const height = Math.max(480, calculatedHeight);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
+    configureCtx(ctx);
+    t.step("create canvas");
     await drawHeaderAndFooter(ctx, width, height, serverIconUrl, serverName, "サーバーランキング", timeframe);
+    t.step("draw header/footer");
     let currentY = headerHeight + titleMargin;
     const iconSize = 24;
     const iconPadding = 10;
-    const iconBasePath = "src/assets/icons";
     const drawSectionTitle = async (title, iconName, x, y) => {
         let currentX = x;
         try {
-            const icon = await loadImage(path.resolve(process.cwd(), `${iconBasePath}/${iconName}.png`));
+            const icon = await cachedLoadImage(path.resolve(process.cwd(), `${iconBasePath}/${iconName}.png`));
             ctx.drawImage(icon, currentX, y - iconSize / 2 - 2, iconSize, iconSize);
             currentX += iconSize + iconPadding;
         }
@@ -352,27 +374,36 @@ export const generateOverviewImage = async (data, serverIconUrl, serverName, tim
     if (messagesHeight > 0) {
         await drawSectionTitle("メッセージ・Top Messages", "chat", 35, currentY);
         await drawSectionTitle("バンプ数・Top Bumpers", "bump", 445, currentY);
+        t.step("draw message section titles");
         await drawLeaderboardList(ctx, data.messages.users, {
             startX: 30,
             startY: currentY + listTopMargin,
         });
+        t.step(`draw messages list (${data.messages.users.length} items)`);
         await drawLeaderboardList(ctx, data.bumps.users, {
             startX: 440,
             startY: currentY + listTopMargin,
         });
+        t.step(`draw bumps list (${data.bumps.users.length} items)`);
         currentY += titleHeight + listTopMargin + messagesHeight + sectionGap;
     }
     if (voiceHeight > 0) {
         await drawSectionTitle("ボイス時間・Top VC Hours", "mic", 35, currentY);
         await drawSectionTitle("配信時間・Top Stream Hours", "stream", 445, currentY);
+        t.step("draw voice section titles");
         await drawLeaderboardList(ctx, data.voice.users, {
             startX: 30,
             startY: currentY + listTopMargin,
         });
+        t.step(`draw voice list (${data.voice.users.length} items)`);
         await drawLeaderboardList(ctx, data.stream.users, {
             startX: 440,
             startY: currentY + listTopMargin,
         });
+        t.step(`draw stream list (${data.stream.users.length} items)`);
     }
-    return canvas.toBuffer("image/png");
+    const buffer = canvas.toBuffer("image/png", PNG_CONFIG);
+    t.step("toBuffer (PNG encode)");
+    t.total();
+    return buffer;
 };
