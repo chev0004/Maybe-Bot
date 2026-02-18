@@ -7,11 +7,19 @@ const WORDLE_BOT_ID = "1211781489931452447";
 const firstPlaceLineRegex = /👑\s*3\/6:\s*(.+)/;
 const logWordleWin = async (userId, username) => {
     const today = new Date().toISOString().slice(0, 10);
+    const ctx = { userId, username, date: today };
     try {
         await db
             .insert(users)
             .values({ id: userId, username })
             .onConflictDoUpdate({ target: users.id, set: { username } });
+    }
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error(`[wordleWin] Failed to upsert user:`, JSON.stringify(ctx), err.message, err.stack);
+        return;
+    }
+    try {
         await db
             .insert(dailyUserStats)
             .values({ userId, date: today, wordleWins: 1 })
@@ -23,7 +31,8 @@ const logWordleWin = async (userId, username) => {
         });
     }
     catch (error) {
-        console.error(`Error logging Wordle win for user ${userId}:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error(`[wordleWin] Failed to upsert daily stats:`, JSON.stringify(ctx), err.message, err.stack);
     }
 };
 export default createListener("wordleWinHandler", "messageCreate", async (message) => {
