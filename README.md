@@ -1,7 +1,7 @@
 # Maybe-Bot
 
 Custom bot for a language learning Discord server.  
-自前の語学系Discord用ボット。
+語学系ディスコードBOT。
 
 **Server:** [discord.gg/nCSuMW95zk](https://discord.gg/nCSuMW95zk)
 
