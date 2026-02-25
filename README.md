@@ -1,6 +1,6 @@
 # Maybe-Bot
 
-Custom bot for an in-house language learning Discord server.  
+Custom bot for a language learning Discord server.  
 自前の語学系Discord用ボット。
 
 **Server:** [discord.gg/nCSuMW95zk](https://discord.gg/nCSuMW95zk)
@@ -15,8 +15,8 @@ Custom bot for an in-house language learning Discord server.
 | Database | Drizzle ORM, PostgreSQL |
 | Minecraft | exaroton API |
 | Lint / format | Biome |
-| Git hooks | Husky, commitlint (conventional, no scope), lint-staged |
-| Build | tsc (incremental) |
+| Git hooks | Husky, commitlint, lint-staged |
+| Build | tsc |
 
 ## Prerequisites | 必要環境
 
@@ -82,20 +82,20 @@ The bot is designed to run in a container and is kept up to date via Git and own
 
 ### startup.sh
 
-Runs when the container starts. Expects `cd /home/container` and uses `REPO_URL` / `BRANCH` (default: this repo, `develop`).
+Runs when the container starts. Expects `cd /home/container` and uses `REPO_URL` / `BRANCH` (default: `develop`).
 
 1. **Clone or pull:** If `.git` exists, `git fetch` + `git reset --hard origin/develop`. Otherwise removes everything except `startup.sh` and `.env`, then clones the repo.
-2. **Install:** `npm install --production` (no devDependencies). The container is expected to provide Node/npm only.
-3. **Start:** `pm2-runtime start dist/index.js --name maybe-bot`. No build step: `dist/` is committed to Git so the server runs pre-built JS.
+2. **Install:** `npm install --production`.
+3. **Start:** `pm2-runtime start dist/index.js --name maybe-bot`.
 
 `pm2-runtime` keeps the process running and restarts it on crash or exit. Override entry with env `BOT_JS_FILE` (default `dist/index.js`).
 
 ### In-Discord updates
 
-- **`/restart`** (owner-only): Saves restart context, then `process.exit(0)` after 3s. PM2 restarts the process; same code, clean restart.
-- **`/update`** (owner-only): Fetches `origin`, pulls `develop` (or `--force` for `git reset --hard`). If `package.json` changed, runs `npm install --production`. Then exits so PM2 restarts with the new code. No `tsc` on the server: updated `dist/` must be committed and pushed before running `/update`.
+- **`/restart`** (owner-only): Saves restart context, then `process.exit(0)` after 3s. PM2 restarts the process.
+- **`/update`** (owner-only): Fetches `origin`, pulls `develop` (or `--force` for `git reset --hard`). If `package.json` changed, runs `npm install --production`. Then exits so PM2 restarts with the new code.
 
-Typical flow: build locally (`npm run build`), commit `dist/`, push to `develop`. On the server, either let the next container start run `startup.sh` (pull + install + start) or run `/update` to pull and restart the current process.
+Typical flow: build locally (`npm run build`), commit `dist/`, push to `develop`. On the server, either let the next container start run `startup.sh` or run `/update` to pull and restart the current process.
 
 ## Environment variables | 環境変数
 
@@ -133,9 +133,9 @@ Output: `dist/` (from `tsc --incremental`, `rootDir: src`). Only files whose sou
 
 - **Admin:** purge, purgeto
 - **Management:** listunverified
-- **Minecraft:** smite, startserver, statusserver, whitelist (exaroton)
-- **Owner:** restart, update (git pull)
-- **Social:** confess, reply (anonymous)
-- **Stats:** top (leaderboards), activity
-- **Utility:** uptime, vc (temp voice channels)
+- **Minecraft:** smite, startserver, statusserver, whitelist
+- **Owner:** restart, update
+- **Social:** confess, reply
+- **Stats:** top, activity
+- **Utility:** uptime, vc
 - **Listeners:** Disboard/Dissoku bump, introduction validation, message stats, voice state tracking
