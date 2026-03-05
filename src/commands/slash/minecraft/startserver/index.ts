@@ -7,7 +7,7 @@ export default createCommand(
   "マイクラサーバーを起動させる。Starts the MineCraft server.",
   async (interaction, _client, options: HandlerOptions): Promise<void> => {
     const { exarotonClient, SERVER_ID } = options;
-    const requiredApprovals = 1;
+    const requiredApprovals = 2;
     const actionMessage = "サーバーを起動する";
     const actionMessageEN = "start the server";
 
