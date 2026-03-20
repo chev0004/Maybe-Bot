@@ -2,7 +2,7 @@ import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 import { handleApprovalProcess } from "../../../../utils/helpers/approvalHelper.js";
 export default createCommand("startserver", "マイクラサーバーを起動させる。Starts the MineCraft server.", async (interaction, _client, options) => {
     const { exarotonClient, SERVER_ID } = options;
-    const requiredApprovals = 1;
+    const requiredApprovals = 2;
     const actionMessage = "サーバーを起動する";
     const actionMessageEN = "start the server";
     await handleApprovalProcess(interaction, requiredApprovals, actionMessage, actionMessageEN, async (pollMessage) => {
