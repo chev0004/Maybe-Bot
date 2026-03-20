@@ -12,7 +12,12 @@ import { Client as ExarotonClient } from "exaroton";
 import { config } from "./config/env.js";
 import { Colors } from "./constants/Colors.js";
 import { db } from "./db/index.js";
-import { activeVcSessions, voiceSessions } from "./db/schema.js";
+import {
+  activeVcSessions,
+  channels,
+  users,
+  voiceSessions,
+} from "./db/schema.js";
 import CommandHandler from "./handlers/commandHandler.js";
 import InteractionHandler from "./handlers/interactionHandler.js";
 import ListenerHandler from "./handlers/listenerHandler.js";
@@ -118,6 +123,38 @@ discordClient.once("clientReady", async (client: Client<true>) => {
     if (voiceStates.size > 0) {
       const activeSessions: (typeof activeVcSessions.$inferInsert)[] = [];
       for (const vs of voiceStates.values()) {
+        if (!vs.channelId || vs.member?.user.bot) {
+          continue;
+        }
+
+        const username = vs.member?.user.username;
+        if (!username || !vs.channel) {
+          continue;
+        }
+
+        await db
+          .insert(users)
+          .values({
+            id: vs.id,
+            username,
+          })
+          .onConflictDoUpdate({
+            target: users.id,
+            set: { username },
+          });
+
+        await db
+          .insert(channels)
+          .values({
+            id: vs.channel.id,
+            name: vs.channel.name,
+            type: "voice",
+          })
+          .onConflictDoUpdate({
+            target: channels.id,
+            set: { name: vs.channel.name, type: "voice" },
+          });
+
         if (vs.channelId) {
           activeSessions.push({
             userId: vs.id,
