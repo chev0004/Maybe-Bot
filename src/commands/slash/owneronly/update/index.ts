@@ -79,6 +79,8 @@ const truncateField = (text: string, maxLength = 1000): string => {
   return `${text.slice(0, maxLength - 3)}...`;
 };
 
+const inlineCode = (text: string): string => `\`${text.replace(/`/g, "'")}\``;
+
 export default createCommand(
   "update",
   "GitHubから最新のコミットを取得し、BOTを再起動する。Pulls the latest changes from GitHub and restarts the bot.",
@@ -133,8 +135,8 @@ export default createCommand(
       .setColor(Colors.yellow)
       .setDescription(
         isForceMode
-          ? `最新のコミットを確認中... ローカルの変更はすべて破棄されます。`
-          : `最新のコミット (${PULLED_BRANCH} ブランチ) を確認中...`,
+          ? `最新のコミットを確認中... ローカルの変更はすべて破棄されます（${inlineCode(`git reset --hard origin/${PULLED_BRANCH}`)}）。`
+          : `最新のコミット（${inlineCode(PULLED_BRANCH)}）を確認中...`,
       );
     await interaction.editReply({ embeds: [embed] });
 
@@ -161,7 +163,7 @@ export default createCommand(
         embed
           .setColor(Colors.red)
           .setDescription(
-            `リモートブランチ origin/${PULLED_BRANCH} が見つかりません。fetch を確認してください。`,
+            `リモートブランチ ${inlineCode(`origin/${PULLED_BRANCH}`)} が見つかりません。${inlineCode("git fetch origin")} を確認してください。`,
           );
         await interaction.editReply({ embeds: [embed] });
         return;
@@ -188,7 +190,7 @@ export default createCommand(
         embed
           .setColor(Colors.purple)
           .setDescription(
-            `BOTは既に最新の状態です (${PULLED_BRANCH} ブランチ)。`,
+            `BOTは既に最新の状態です（${inlineCode(PULLED_BRANCH)}）。`,
           );
         await interaction.editReply({ embeds: [embed] });
         return;
@@ -226,8 +228,8 @@ export default createCommand(
           .setColor(Colors.red)
           .setDescription(
             hasConflict
-              ? "git pull でコンフリクトが発生しました。force オプションで上書きするか、サーバーで手動で解決してください。"
-              : "git pull に失敗しました。",
+              ? `${inlineCode(pullCommand)} でコンフリクトが発生しました。force オプションで上書きするか、サーバーで手動で解決してください。`
+              : `${inlineCode(pullCommand)} に失敗しました。`,
           )
           .setFields({
             name: "Error",
@@ -281,8 +283,7 @@ export default createCommand(
         if (changedPaths.length > 0 && !distTouched) {
           embed.addFields({
             name: "⚠ dist/ の更新がありません",
-            value:
-              "今回のコミットに dist/ が含まれていません。ローカルで `npm run build` して dist/ をコミットしてから push してください。",
+            value: `今回のコミットに ${inlineCode("dist/")} が含まれていません。ローカルで ${inlineCode("npm run build")} して ${inlineCode("dist/")} をコミットしてから ${inlineCode("git push")} してください。`,
           });
         }
       } catch {
@@ -292,7 +293,7 @@ export default createCommand(
       if (needsNpmInstall) {
         embed.addFields({
           name: "依存関係 / Dependencies",
-          value: "```依存関係を処理中... (コンソールでログを確認)```",
+          value: `${inlineCode("npm install --production")} を処理中... (コンソールでログを確認)`,
         });
         await interaction.editReply({ embeds: [embed] });
 
@@ -304,7 +305,7 @@ export default createCommand(
             ...prev,
             {
               name: "依存関係 / Dependencies",
-              value: "```依存関係をインストール中... (まだ処理中です)```",
+              value: `${inlineCode("npm install --production")} をインストール中... (まだ処理中です)`,
             },
           ];
           interaction
@@ -347,8 +348,8 @@ export default createCommand(
             console.error("Failed to revert after install error:", revertErr);
           }
           const description = isOom
-            ? "依存関係のインストール中にプロセスが強制終了しました (exit 137)。サーバーのメモリ不足の可能性があります。リポジトリは更新前の状態に戻しました。メモリを増やすか、手動で npm install --production を実行してから再度 /update してください。"
-            : "依存関係のインストール中にエラーが発生しました。リポジトリは更新前の状態に戻しました。修正後に再度 /update してください。";
+            ? `依存関係のインストール中にプロセスが強制終了しました（${inlineCode("exit 137")}）。サーバーのメモリ不足の可能性があります。リポジトリは更新前の状態に戻しました。メモリを増やすか、手動で ${inlineCode("npm install --production")} を実行してから再度 ${inlineCode("/update")} してください。`
+            : `依存関係のインストール中にエラーが発生しました。リポジトリは更新前の状態に戻しました。修正後に再度 ${inlineCode("/update")} してください。`;
           embed
             .setColor(Colors.red)
             .setDescription(description)
