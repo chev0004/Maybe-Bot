@@ -9,10 +9,18 @@ const formatDuration = (milliseconds) => {
     if (milliseconds < 0)
         milliseconds = 0;
     const totalSeconds = Math.floor(milliseconds / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    const secPerYear = 365 * 86400;
+    const secPerDay = 86400;
+    const years = Math.floor(totalSeconds / secPerYear);
+    let rest = totalSeconds % secPerYear;
+    const days = Math.floor(rest / secPerDay);
+    rest %= secPerDay;
+    const hours = Math.floor(rest / 3600);
+    rest %= 3600;
+    const minutes = Math.floor(rest / 60);
+    const seconds = rest % 60;
+    if (years > 0)
+        return `${years}年${days}日${hours}時間${minutes}分`;
     if (days > 0)
         return `${days}日${hours}時間${minutes}分`;
     if (hours > 0)
