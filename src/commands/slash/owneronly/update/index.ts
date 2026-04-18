@@ -237,9 +237,19 @@ export default createCommand(
         return;
       }
 
+      let statStdout = "";
+      try {
+        const { stdout: diffStatOut } = await execPromise(
+          `git diff --stat=300 --no-color ${headBefore} HEAD -- . ':(exclude)dist' ':(exclude)dist/**'`,
+        );
+        statStdout = diffStatOut;
+      } catch (statErr) {
+        console.warn("[Logger] git diff --stat failed:", statErr);
+      }
+
       const { changes, files, repo } = parseGitUpdateOutput(
         commitLog,
-        pullStdout,
+        statStdout || pullStdout,
         fetchStderr || pullStderr,
       );
       embed
