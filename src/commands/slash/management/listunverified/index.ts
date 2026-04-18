@@ -34,7 +34,7 @@ export default createCommand(
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const sortCriteria =
       (interaction.options.getString("sort") as SortCriteria | null) ??
-      "createdAt";
+      "joinedAt";
     const sortOrder =
       (interaction.options.getString("order") as SortOrder | null) ?? "asc";
 
@@ -107,12 +107,12 @@ export default createCommand(
           option
             .setName("sort")
             .setDescription(
-              "並べ替え基準 / Sort criteria (default: アカウント作成日)",
+              "並べ替え基準 / Sort criteria (default: サーバー参加日)",
             )
             .setRequired(false)
             .addChoices(
-              { name: "作成日 (Account Date)", value: "createdAt" },
               { name: "参加日 (Join Date)", value: "joinedAt" },
+              { name: "作成日 (Account Date)", value: "createdAt" },
               { name: "名前 (Username)", value: "username" },
             ),
         )
@@ -122,8 +122,14 @@ export default createCommand(
             .setDescription("並び順 / Order (default: 昇順)")
             .setRequired(false)
             .addChoices(
-              { name: "昇順 / Ascending (oldest/A first)", value: "asc" },
-              { name: "降順 / Descending (newest/Z first)", value: "desc" },
+              {
+                name: "昇順 / Ascending (oldest join or A first)",
+                value: "asc",
+              },
+              {
+                name: "降順 / Descending (newest join or Z first)",
+                value: "desc",
+              },
             ),
         )
         .addBooleanOption((option) =>

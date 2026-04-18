@@ -31,7 +31,7 @@ export default {
     await interaction.deferUpdate();
 
     let currentPage = 0;
-    let sortCriteria: SortCriteria = "createdAt";
+    let sortCriteria: SortCriteria = "joinedAt";
     let sortOrder: SortOrder = "asc";
     let action = "";
     let isTestMode = false;
