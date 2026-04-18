@@ -13,28 +13,14 @@ import { Strings } from "../../../../constants/Strings.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 import {
   generatePage,
+  getUnverifiedMembers,
+  type SortCriteria,
+  type SortOrder,
+  sortFunctions,
   type UnverifiedMember,
 } from "../../../../utils/helpers/listUnverifiedHelper.js";
 import { mockData as listUnverifiedMockData } from "./listunverified.mock.js";
 
-const sortFunctions = {
-  username: (
-    a: { user: { username: string } },
-    b: { user: { username: string } },
-  ) => a.user.username.localeCompare(b.user.username),
-  joinedAt: (a: { joinedTimestamp: number }, b: { joinedTimestamp: number }) =>
-    a.joinedTimestamp - b.joinedTimestamp,
-  createdAt: (
-    a: { user: { createdTimestamp: number } },
-    b: { user: { createdTimestamp: number } },
-  ) => a.user.createdTimestamp - b.user.createdTimestamp,
-};
-
-/**
- * Generates fake members for testing purposes.
- * Note: This function is only intended for use within the test mode of the command.
- * @returns An array of fake member objects adhering to the UnverifiedMember structure.
- */
 export const generateFakeMembers = (): UnverifiedMember[] => {
   return listUnverifiedMockData.default();
 };
@@ -46,6 +32,12 @@ export default createCommand(
     await interaction.deferReply();
 
     const isTestMode = interaction.options.getBoolean("test") ?? false;
+    const sortCriteria =
+      (interaction.options.getString("sort") as SortCriteria | null) ??
+      "createdAt";
+    const sortOrder =
+      (interaction.options.getString("order") as SortOrder | null) ?? "asc";
+
     const guild = interaction.guild as Guild;
     let memberArray: UnverifiedMember[] = [];
 
@@ -59,18 +51,23 @@ export default createCommand(
         );
         return;
       }
-      const role = guild.roles.cache.get(verifiedRoleId) as Role;
+      const role = guild.roles.cache.get(verifiedRoleId) as Role | undefined;
+      if (!role) {
+        await interaction.editReply(
+          Strings.Errors.ConfigNotSet("VERIFIED_ROLE_ID"),
+        );
+        return;
+      }
 
       const botMember = guild.members.me;
       if (!botMember?.permissions.has(PermissionsBitField.Flags.ViewChannel)) {
         await interaction.editReply(Strings.Permissions.BotViewChannel);
         return;
       }
-      await guild.members.fetch();
-      const membersWithoutRole = guild.members.cache.filter(
-        (member) => !member.user.bot && !member.roles.cache.has(role.id),
-      );
-      if (membersWithoutRole.size === 0) {
+
+      memberArray = await getUnverifiedMembers(guild);
+
+      if (memberArray.length === 0) {
         const embed = new EmbedBuilder()
           .setTitle(`ロール「${role.name}」を持たないメンバーはいません。`)
           .setDescription(
@@ -85,18 +82,17 @@ export default createCommand(
         await interaction.editReply({ embeds: [embed] });
         return;
       }
-      memberArray = Array.from(
-        membersWithoutRole.values(),
-      ) as UnverifiedMember[];
     }
 
-    const initialSortCriteria = "username";
-    const initialSortOrder = "asc";
-    memberArray.sort(sortFunctions[initialSortCriteria]);
+    memberArray.sort((a, b) => {
+      const comparison = sortFunctions[sortCriteria](a, b);
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
     const initialPage = generatePage(
       memberArray,
-      initialSortCriteria,
-      initialSortOrder,
+      sortCriteria,
+      sortOrder,
       0,
       isTestMode,
     );
@@ -107,6 +103,29 @@ export default createCommand(
     adminOnly: true,
     setup: (builder) => {
       builder
+        .addStringOption((option) =>
+          option
+            .setName("sort")
+            .setDescription(
+              "並べ替え基準 / Sort criteria (default: アカウント作成日)",
+            )
+            .setRequired(false)
+            .addChoices(
+              { name: "作成日 (Account Date)", value: "createdAt" },
+              { name: "参加日 (Join Date)", value: "joinedAt" },
+              { name: "名前 (Username)", value: "username" },
+            ),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("order")
+            .setDescription("並び順 / Order (default: 昇順)")
+            .setRequired(false)
+            .addChoices(
+              { name: "昇順 / Ascending (oldest/A first)", value: "asc" },
+              { name: "降順 / Descending (newest/Z first)", value: "desc" },
+            ),
+        )
         .addBooleanOption((option) =>
           option
             .setName("test")

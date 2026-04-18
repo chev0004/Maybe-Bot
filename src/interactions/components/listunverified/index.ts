@@ -1,42 +1,18 @@
 import {
   type ButtonInteraction,
-  type Guild,
-  type GuildMember,
   MessageFlags,
   type StringSelectMenuInteraction,
 } from "discord.js";
 import { generateFakeMembers } from "../../../commands/slash/management/listunverified/index.js";
-import { config } from "../../../config/env.js";
 import type { InteractionModule } from "../../../handlers/interactionHandler.js";
 import {
   generatePage,
+  getUnverifiedMembers,
+  type SortCriteria,
+  type SortOrder,
+  sortFunctions,
   type UnverifiedMember,
 } from "../../../utils/helpers/listUnverifiedHelper.js";
-
-type SortCriteria = "username" | "joinedAt" | "createdAt";
-type SortOrder = "asc" | "desc";
-
-const sortFunctions: Record<
-  SortCriteria,
-  (a: UnverifiedMember, b: UnverifiedMember) => number
-> = {
-  username: (a, b) => a.user.username.localeCompare(b.user.username),
-  joinedAt: (a, b) => (a.joinedTimestamp ?? 0) - (b.joinedTimestamp ?? 0),
-  createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
-};
-
-const getUnverifiedMembers = async (guild: Guild): Promise<GuildMember[]> => {
-  const verifiedRoleId = config.roles.verified;
-  if (!verifiedRoleId) return [];
-  const role = guild.roles.cache.get(verifiedRoleId);
-  if (!role) return [];
-  await guild.members.fetch();
-  return Array.from(
-    guild.members.cache
-      .filter((member) => !member.user.bot && !member.roles.cache.has(role.id))
-      .values(),
-  );
-};
 
 export default {
   customId: "listunverified",
@@ -54,12 +30,12 @@ export default {
 
     await interaction.deferUpdate();
 
-    let currentPage: number = 0,
-      sortCriteria: SortCriteria = "username",
-      sortOrder: SortOrder = "asc",
-      action: string,
-      isTestMode: boolean = false,
-      testModeFlag: string;
+    let currentPage = 0;
+    let sortCriteria: SortCriteria = "createdAt";
+    let sortOrder: SortOrder = "asc";
+    let action = "";
+    let isTestMode = false;
+    let testModeFlag = "0";
     let memberArray: UnverifiedMember[];
 
     if (interaction.isButton()) {
