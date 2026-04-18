@@ -12,7 +12,7 @@ export default createCommand("listunverified", "認証ロールを持たない�
     await interaction.deferReply();
     const isTestMode = interaction.options.getBoolean("test") ?? false;
     const sortCriteria = interaction.options.getString("sort") ??
-        "createdAt";
+        "joinedAt";
     const sortOrder = interaction.options.getString("order") ?? "asc";
     const guild = interaction.guild;
     let memberArray = [];
@@ -63,14 +63,20 @@ export default createCommand("listunverified", "認証ロールを持たない�
         builder
             .addStringOption((option) => option
             .setName("sort")
-            .setDescription("並べ替え基準 / Sort criteria (default: アカウント作成日)")
+            .setDescription("並べ替え基準 / Sort criteria (default: サーバー参加日)")
             .setRequired(false)
-            .addChoices({ name: "作成日 (Account Date)", value: "createdAt" }, { name: "参加日 (Join Date)", value: "joinedAt" }, { name: "名前 (Username)", value: "username" }))
+            .addChoices({ name: "参加日 (Join Date)", value: "joinedAt" }, { name: "作成日 (Account Date)", value: "createdAt" }, { name: "名前 (Username)", value: "username" }))
             .addStringOption((option) => option
             .setName("order")
             .setDescription("並び順 / Order (default: 昇順)")
             .setRequired(false)
-            .addChoices({ name: "昇順 / Ascending (oldest/A first)", value: "asc" }, { name: "降順 / Descending (newest/Z first)", value: "desc" }))
+            .addChoices({
+            name: "昇順 / Ascending (oldest join or A first)",
+            value: "asc",
+        }, {
+            name: "降順 / Descending (newest join or Z first)",
+            value: "desc",
+        }))
             .addBooleanOption((option) => option
             .setName("test")
             .setDescription("テストモードで実行し、偽のデータを生成します。(Run in test mode with fake data.)")

@@ -23,21 +23,44 @@ export const getUnverifiedMembers = async (guild) => {
         .values());
 };
 const MS_PER_DAY = 86_400_000;
-const MS_PER_YEAR = 365 * MS_PER_DAY;
-const formatAccountAge = (createdTimestamp) => {
-    const ageMs = Date.now() - createdTimestamp;
+const formatTenureSinceJoin = (joinedTimestamp) => {
+    const ageMs = Date.now() - joinedTimestamp;
     if (ageMs < 0)
-        return "新規";
-    const years = Math.floor(ageMs / MS_PER_YEAR);
-    const days = Math.floor((ageMs % MS_PER_YEAR) / MS_PER_DAY);
+        return "—";
+    if (ageMs < MS_PER_DAY)
+        return "1日未満";
+    const start = new Date(joinedTimestamp);
+    const end = new Date();
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+    let days = end.getDate() - start.getDate();
+    if (days < 0) {
+        months--;
+        const prevMonthEnd = new Date(end.getFullYear(), end.getMonth(), 0);
+        days += prevMonthEnd.getDate();
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+    const parts = [];
     if (years > 0)
-        return `${years}年${days}日`;
-    return `${days}日`;
+        parts.push(`${years}年`);
+    if (months > 0)
+        parts.push(`${months}ヶ月`);
+    if (days > 0 || parts.length === 0)
+        parts.push(`${days}日`);
+    return parts.join("");
 };
 const formatMemberLine = (member) => {
-    const createdUnix = Math.floor(member.user.createdTimestamp / 1000);
-    const age = formatAccountAge(member.user.createdTimestamp);
-    return `<@${member.id}> \`${member.user.username}\` - 作成 <t:${createdUnix}:D> (${age})`;
+    const name = `\`${member.user.username}\``;
+    const mention = `<@${member.id}>`;
+    if (member.joinedTimestamp == null) {
+        return `${mention} ${name} - 参加日不明`;
+    }
+    const joinUnix = Math.floor(member.joinedTimestamp / 1000);
+    const tenure = formatTenureSinceJoin(member.joinedTimestamp);
+    return `${mention} ${name} - 参加日 <t:${joinUnix}:D>（在籍 ${tenure}）`;
 };
 export const generatePage = (memberArray, sortCriteria, sortOrder, currentPage, isTestMode = false) => {
     const totalPages = Math.max(1, Math.ceil(memberArray.length / PAGE_SIZE));
@@ -75,13 +98,13 @@ export const generatePage = (memberArray, sortCriteria, sortOrder, currentPage, 
         .setCustomId(`listunverified_select_${currentPage}_${sortOrder}_${testModeFlag}`)
         .setPlaceholder("並べ替えの基準を選択")
         .addOptions({
-        label: "作成日 (Account Date)",
-        value: "createdAt",
-        default: sortCriteria === "createdAt",
-    }, {
         label: "参加日 (Join Date)",
         value: "joinedAt",
         default: sortCriteria === "joinedAt",
+    }, {
+        label: "作成日 (Account Date)",
+        value: "createdAt",
+        default: sortCriteria === "createdAt",
     }, {
         label: "名前 (Username)",
         value: "username",
