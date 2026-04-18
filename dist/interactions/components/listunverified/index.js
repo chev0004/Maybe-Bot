@@ -1,24 +1,6 @@
 import { MessageFlags, } from "discord.js";
 import { generateFakeMembers } from "../../../commands/slash/management/listunverified/index.js";
-import { config } from "../../../config/env.js";
-import { generatePage, } from "../../../utils/helpers/listUnverifiedHelper.js";
-const sortFunctions = {
-    username: (a, b) => a.user.username.localeCompare(b.user.username),
-    joinedAt: (a, b) => (a.joinedTimestamp ?? 0) - (b.joinedTimestamp ?? 0),
-    createdAt: (a, b) => a.user.createdTimestamp - b.user.createdTimestamp,
-};
-const getUnverifiedMembers = async (guild) => {
-    const verifiedRoleId = config.roles.verified;
-    if (!verifiedRoleId)
-        return [];
-    const role = guild.roles.cache.get(verifiedRoleId);
-    if (!role)
-        return [];
-    await guild.members.fetch();
-    return Array.from(guild.members.cache
-        .filter((member) => !member.user.bot && !member.roles.cache.has(role.id))
-        .values());
-};
+import { generatePage, getUnverifiedMembers, sortFunctions, } from "../../../utils/helpers/listUnverifiedHelper.js";
 export default {
     customId: "listunverified",
     async execute(interaction) {
@@ -30,7 +12,12 @@ export default {
             });
         }
         await interaction.deferUpdate();
-        let currentPage = 0, sortCriteria = "username", sortOrder = "asc", action, isTestMode = false, testModeFlag;
+        let currentPage = 0;
+        let sortCriteria = "createdAt";
+        let sortOrder = "asc";
+        let action = "";
+        let isTestMode = false;
+        let testModeFlag = "0";
         let memberArray;
         if (interaction.isButton()) {
             let currentPageStr;
