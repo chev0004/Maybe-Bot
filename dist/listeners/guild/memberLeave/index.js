@@ -72,7 +72,9 @@ export default createListener("memberLeave", "guildMemberRemove", async (member)
         .setColor(Colors.red)
         .setFooter({ text: `ID: ${member.id}` })
         .setTimestamp(now);
-    const stayLabel = stayMs !== null ? `${formatDuration(stayMs)}で退出` : "参加日時不明で退出";
+    const stayLabel = stayMs !== null
+        ? `${formatDuration(stayMs)}で退出`
+        : "参加日時不明で退出";
     embed.setDescription(`<@${member.id}> が ${stayLabel}。`);
     embed.addFields({
         name: "サーバー滞在時間",
