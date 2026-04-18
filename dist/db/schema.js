@@ -89,6 +89,24 @@ export const memberLeaves = pgTable("member_leaves", {
     stayMs: bigint("stay_ms", { mode: "number" }),
     accountCreatedAt: timestamp("account_created_at", { withTimezone: true }),
 });
+export const memberKicks = pgTable("member_kicks", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    username: text("username").notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    kickedAt: timestamp("kicked_at", { withTimezone: true }).notNull(),
+    stayMs: bigint("stay_ms", { mode: "number" }),
+    accountCreatedAt: timestamp("account_created_at", { withTimezone: true }),
+});
+export const memberBans = pgTable("member_bans", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    username: text("username").notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    bannedAt: timestamp("banned_at", { withTimezone: true }).notNull(),
+    stayMs: bigint("stay_ms", { mode: "number" }),
+    accountCreatedAt: timestamp("account_created_at", { withTimezone: true }),
+});
 export const voiceSessionParticipants = pgTable("voice_session_participants", {
     sessionId: integer("session_id")
         .references(() => voiceSessions.id)
