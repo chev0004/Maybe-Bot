@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   date,
   integer,
@@ -116,6 +117,16 @@ export const voiceSessions = pgTable("voice_sessions", {
   endTime: timestamp("end_time", { withTimezone: true }),
   durationSeconds: integer("duration_seconds"),
   totalUniqueParticipants: integer("total_unique_participants"),
+});
+
+export const memberLeaves = pgTable("member_leaves", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  joinedAt: timestamp("joined_at", { withTimezone: true }),
+  leftAt: timestamp("left_at", { withTimezone: true }).notNull(),
+  stayMs: bigint("stay_ms", { mode: "number" }),
+  accountCreatedAt: timestamp("account_created_at", { withTimezone: true }),
 });
 
 export const voiceSessionParticipants = pgTable(
