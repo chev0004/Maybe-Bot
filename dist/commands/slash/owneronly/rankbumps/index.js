@@ -4,6 +4,7 @@ import { Colors } from "../../../../constants/Colors.js";
 import { createCommand } from "../../../../utils/builders/commandBuilder.js";
 const FETCH_LIMIT = 100;
 const MAX_RANKING_LINES = 20;
+const LOG_PROGRESS_INTERVAL = 1000;
 const bumpSources = [
     {
         name: "Disboard",
@@ -40,27 +41,29 @@ const formatRankings = (rankings) => {
     return rankings
         .slice(0, MAX_RANKING_LINES)
         .map((entry, index) => {
-        const noun = entry.count === 1 ? "bump" : "bumps";
-        return `${index + 1}. <@${entry.userId}> - ${entry.count} ${noun}`;
+        return `${index + 1}. <@${entry.userId}> - ${entry.count}回`;
     })
         .join("\n");
 };
-export default createCommand("rankbumps", "Scans the bump channel and ranks users by successful bump count.", async (interaction, client) => {
+export default createCommand("rankbumps", "バンプチャンネルをスキャンしてバンプ数ランキングを表示します。", async (interaction, client) => {
     await interaction.deferReply();
     const channelId = config.channels.bump;
     const channel = await client.channels.fetch(channelId);
     if (!channel || !channel.isTextBased() || !("messages" in channel)) {
         await interaction.editReply({
-            content: "That channel was not found or does not support messages.",
+            content: "バンプチャンネルが見つからないか、メッセージを取得できないチャンネルです。",
         });
         return;
     }
+    console.log(`[rankbumps] scan started for channel ${channelId}`);
     const bumpCounts = new Map();
     const sourceCounts = new Map();
     let scannedMessages = 0;
     let matchedBumps = 0;
     let unattributedBumps = 0;
+    let nextProgressLog = LOG_PROGRESS_INTERVAL;
     let before;
+    const startedAt = performance.now();
     try {
         while (true) {
             const messages = await channel.messages.fetch({
@@ -83,6 +86,10 @@ export default createCommand("rankbumps", "Scans the bump channel and ranks user
                 }
                 bumpCounts.set(bumper.id, (bumpCounts.get(bumper.id) ?? 0) + 1);
             }
+            if (scannedMessages >= nextProgressLog) {
+                console.log(`[rankbumps] scanned ${scannedMessages} messages, found ${matchedBumps} bumps`);
+                nextProgressLog += LOG_PROGRESS_INTERVAL;
+            }
             before = [...messages.values()].reduce((oldestMessage, message) => !oldestMessage ||
                 message.createdTimestamp < oldestMessage.createdTimestamp
                 ? message
@@ -94,38 +101,40 @@ export default createCommand("rankbumps", "Scans the bump channel and ranks user
     catch (error) {
         console.error(`Error scanning bump rankings for channel ${channelId}:`, error);
         await interaction.editReply({
-            content: "I could not scan that channel. Please check that I can view it and read message history.",
+            content: "バンプチャンネルをスキャンできませんでした。BOTがチャンネルを閲覧し、メッセージ履歴を読めるか確認してください。",
         });
         return;
     }
     const rankings = [...bumpCounts.entries()]
         .map(([userId, count]) => ({ userId, count }))
         .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId));
+    const elapsedMs = Math.round(performance.now() - startedAt);
+    console.log(`[rankbumps] scan completed for channel ${channelId}: scanned=${scannedMessages}, bumps=${matchedBumps}, ranked=${rankings.length}, unattributed=${unattributedBumps}, elapsed=${elapsedMs}ms`);
     const embed = new EmbedBuilder()
-        .setTitle("Bump Rankings")
+        .setTitle("バンプランキング")
         .setColor(rankings.length > 0 ? Colors.green : Colors.purple)
-        .setDescription(`Scanned <#${channelId}> and found ${matchedBumps} successful bump${matchedBumps === 1 ? "" : "s"}.`)
+        .setDescription(`<#${channelId}> をスキャンして、成功したバンプを ${matchedBumps} 件見つけました。`)
         .addFields({
-        name: "Messages Scanned",
+        name: "スキャンしたメッセージ",
         value: scannedMessages.toLocaleString(),
         inline: true,
     })
         .setTimestamp();
     if (rankings.length > 0) {
         embed.addFields({
-            name: "Rankings",
+            name: "ランキング",
             value: formatRankings(rankings),
         });
     }
     else {
         embed.addFields({
-            name: "Rankings",
-            value: "No attributable bump messages were found.",
+            name: "ランキング",
+            value: "ユーザーを特定できるバンプは見つかりませんでした。",
         });
     }
     if (sourceCounts.size > 0) {
         embed.addFields({
-            name: "Sources",
+            name: "ソース",
             value: [...sourceCounts.entries()]
                 .map(([source, count]) => `${source}: ${count}`)
                 .join("\n"),
@@ -134,8 +143,8 @@ export default createCommand("rankbumps", "Scans the bump channel and ranks user
     }
     if (unattributedBumps > 0) {
         embed.addFields({
-            name: "Unattributed",
-            value: `${unattributedBumps} bump${unattributedBumps === 1 ? "" : "s"} had no interaction user attached.`,
+            name: "ユーザー不明",
+            value: `${unattributedBumps} 件のバンプは実行ユーザーを取得できませんでした。`,
             inline: true,
         });
     }
