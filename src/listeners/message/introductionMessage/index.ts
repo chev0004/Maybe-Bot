@@ -336,19 +336,19 @@ export default createListener(
           }
         }
 
-        const stickyEmbed = new EmbedBuilder()
-          .setColor(Colors.green)
-          .setTitle("自己紹介へようこそ！")
-          .setDescription(
-            `以下のテンプレートを使用して自己紹介をお願いします：\n\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\``,
-          )
-          .setFooter({
-            text: "このメッセージは新しい自己紹介が投稿されると更新されます。",
-          });
+        // const stickyEmbed = new EmbedBuilder()
+        //   .setColor(Colors.green)
+        //   .setTitle("自己紹介へようこそ！")
+        //   .setDescription(
+        //     `以下のテンプレートを使用して自己紹介をお願いします：\n\`\`\`\n${CORRECT_TEMPLATE_STRING}\n\`\`\``,
+        //   )
+        //   .setFooter({
+        //     text: "このメッセージは新しい自己紹介が投稿されると更新されます。",
+        //   });
 
         if (channelPermissions.has(PermissionsBitField.Flags.SendMessages)) {
           const newStickyMessage = await channel.send({
-            embeds: [stickyEmbed],
+            content: CORRECT_TEMPLATE_STRING,
           });
           await setStickyMessageId(newStickyMessage.id);
         }
