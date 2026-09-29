@@ -6,7 +6,7 @@ const defaultIcons = {
 };
 export function buildComponents(config, state) {
     const { prefix, categoryOptions, interactions } = config;
-    const { category, timeframe, showTimeframeButtons, isTestMode = false, } = state;
+    const { category, timeframe, showTimeframeButtons, isTestMode = false, page = 0, hasNextPage = false, } = state;
     const icons = { ...defaultIcons, ...config.icons };
     const showTimeframeFlag = showTimeframeButtons ? "1" : "0";
     const testModeFlag = isTestMode ? "1" : "0";
@@ -23,13 +23,26 @@ export function buildComponents(config, state) {
         })));
         components.push(new ActionRowBuilder().addComponents(dropdown));
     }
+    if (interactions.includes("navigation") && category !== "overview") {
+        const previousButton = new ButtonBuilder()
+            .setCustomId(`${prefix}-page-${Math.max(0, page - 1)}-${category}-${timeframe}-${testModeFlag}`)
+            .setLabel("←")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(page === 0);
+        const nextButton = new ButtonBuilder()
+            .setCustomId(`${prefix}-page-${page + 1}-${category}-${timeframe}-${testModeFlag}`)
+            .setLabel("→")
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(!hasNextPage);
+        components.push(new ActionRowBuilder().addComponents(previousButton, nextButton));
+    }
     const hasTimeframe = interactions.includes("timeframe");
     const hasRefresh = interactions.includes("refresh");
     if (hasTimeframe && showTimeframeButtons) {
         const tfOptions = config.timeframeOptions ?? [];
         const maxPerRow = 4;
         const backButton = new ButtonBuilder()
-            .setCustomId(`${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}`)
+            .setCustomId(`${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}-${page}`)
             .setEmoji({ id: icons.back })
             .setStyle(ButtonStyle.Secondary);
         const timeframeButtons = tfOptions.map((opt) => new ButtonBuilder()
@@ -47,13 +60,13 @@ export function buildComponents(config, state) {
         const buttons = [];
         if (hasTimeframe) {
             buttons.push(new ButtonBuilder()
-                .setCustomId(`${prefix}-timeframe-show-${category}-${timeframe}-${testModeFlag}`)
+                .setCustomId(`${prefix}-timeframe-show-${category}-${timeframe}-${testModeFlag}-${page}`)
                 .setEmoji({ id: icons.timeframe })
                 .setStyle(ButtonStyle.Secondary));
         }
         if (hasRefresh) {
             buttons.push(new ButtonBuilder()
-                .setCustomId(`${prefix}-refresh-${category}-${timeframe}-${testModeFlag}`)
+                .setCustomId(`${prefix}-refresh-${category}-${timeframe}-${testModeFlag}-${page}`)
                 .setEmoji({ id: icons.refresh })
                 .setStyle(ButtonStyle.Secondary));
         }
@@ -71,7 +84,7 @@ export function parseInteraction(interaction) {
             timeframe: parts[4],
             isTestMode: parts[5] === "1",
             showTimeframeButtons: subAction === "show",
-            isTimeframeToggleOnly: true,
+            page: Number(parts[6] ?? 0),
         };
     }
     if (action === "refresh") {
@@ -80,7 +93,16 @@ export function parseInteraction(interaction) {
             timeframe: parts[3],
             isTestMode: parts[4] === "1",
             showTimeframeButtons: false,
-            isTimeframeToggleOnly: false,
+            page: Number(parts[5] ?? 0),
+        };
+    }
+    if (action === "page") {
+        return {
+            page: Number(parts[2]),
+            category: parts[3],
+            timeframe: parts[4],
+            isTestMode: parts[5] === "1",
+            showTimeframeButtons: false,
         };
     }
     if (interaction.isStringSelectMenu()) {
@@ -89,7 +111,7 @@ export function parseInteraction(interaction) {
             timeframe: parts[2],
             showTimeframeButtons: parts[3] === "1",
             isTestMode: parts[4] === "1",
-            isTimeframeToggleOnly: false,
+            page: 0,
         };
     }
     return {
@@ -97,6 +119,6 @@ export function parseInteraction(interaction) {
         timeframe: parts[3],
         isTestMode: parts[4] === "1",
         showTimeframeButtons: true,
-        isTimeframeToggleOnly: false,
+        page: 0,
     };
 }

@@ -32,7 +32,7 @@ export const topInteractionConfig = {
         { label: "Top Message Channels", value: "msg_channels" },
         { label: "Top Voice Channels", value: "vc_channels" },
     ],
-    interactions: ["dropdown", "timeframe", "refresh"],
+    interactions: ["dropdown", "navigation", "timeframe", "refresh"],
     timeframeOptions,
 };
 function createTimer(label) {
@@ -98,7 +98,7 @@ const getDateCondition = (timeframe) => {
     date.setDate(date.getDate() - days);
     return sql `"date" >= ${date.toISOString().slice(0, 10)}`;
 };
-const getTopData = async (category, type, timeframe, limit) => {
+const getTopData = async (category, type, timeframe, limit, offset = 0) => {
     const t0 = performance.now();
     const dateCondition = getDateCondition(timeframe);
     if (type === "users") {
@@ -122,7 +122,8 @@ const getTopData = async (category, type, timeframe, limit) => {
             .from(users)
             .leftJoin(statsSubquery, eq(users.id, statsSubquery.userId))
             .orderBy(desc(sql `coalesce(${statsSubquery.totalValue}, 0)`))
-            .limit(limit);
+            .limit(limit)
+            .offset(offset);
         console.log(`    [db] getTopData(${category}, ${type}, ${timeframe}, ${limit}): ${(performance.now() - t0).toFixed(1)}ms → ${results.length} rows`);
         return results.map((r) => ({
             id: r.id,
@@ -160,7 +161,8 @@ const getTopData = async (category, type, timeframe, limit) => {
         .leftJoin(statsSubquery, eq(channels.id, statsSubquery.channelId))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(sql `coalesce(${statsSubquery.totalValue}, 0)`))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
     console.log(`    [db] getTopData(${category}, ${type}, ${timeframe}, ${limit}): ${(performance.now() - t0).toFixed(1)}ms → ${results.length} rows`);
     return results.map((r) => ({
         name: r.name || "Unknown",
@@ -168,11 +170,13 @@ const getTopData = async (category, type, timeframe, limit) => {
         type: r.type,
     }));
 };
-export const generateComponentsForTop = ({ category, timeframe, showTimeframeButtons, isTestMode = false, }) => buildComponents(topInteractionConfig, {
+export const generateComponentsForTop = ({ category, timeframe, showTimeframeButtons, isTestMode = false, page = 0, hasNextPage = false, }) => buildComponents(topInteractionConfig, {
     category,
     timeframe,
     showTimeframeButtons,
     isTestMode,
+    page,
+    hasNextPage,
 });
 export const generateInitialTopReply = async (guild, client) => {
     return generateTopReply({
@@ -182,18 +186,19 @@ export const generateInitialTopReply = async (guild, client) => {
         timeframe: "7",
         showTimeframeButtons: false,
         isTestMode: false,
+        page: 0,
     });
 };
-export const generateMockTopReply = async ({ guild, category, timeframe, showTimeframeButtons, }) => {
+export const generateMockTopReply = async ({ guild, category, timeframe, showTimeframeButtons, page, }) => {
     const serverIconUrl = guild.iconURL({ extension: "png", size: 128 });
     const timeframeLabel = timeframeLabels[timeframe];
     let imageBuffer;
-    const data = getMockTopData(category, timeframe);
+    const allData = getMockTopData(category, timeframe);
     if (category === "overview") {
-        // Explicitly cast to OverviewData
-        imageBuffer = await generateOverviewImage(data, serverIconUrl, guild.name, timeframeLabel);
+        imageBuffer = await generateOverviewImage(allData, serverIconUrl, guild.name, timeframeLabel);
     }
     else {
+        const data = allData.slice(page * 10, page * 10 + 10);
         let title, iconPath;
         if (category === "msg_users") {
             title = "メッセージ・Top Messages";
@@ -223,7 +228,7 @@ export const generateMockTopReply = async ({ guild, category, timeframe, showTim
             title = "ボイス時間・Top Voice Channels";
             iconPath = "src/assets/icons/mic.png";
         }
-        imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel);
+        imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel, page * 10);
     }
     const attachment = new AttachmentBuilder(imageBuffer, {
         name: "leaderboard.png",
@@ -233,16 +238,19 @@ export const generateMockTopReply = async ({ guild, category, timeframe, showTim
         timeframe,
         showTimeframeButtons,
         isTestMode: true,
+        page,
+        hasNextPage: allData.length > (page + 1) * 10,
     });
     return { files: [attachment], components };
 };
-export const generateTopReply = async ({ guild, client, category, timeframe, showTimeframeButtons, isTestMode, }) => {
+export const generateTopReply = async ({ guild, client, category, timeframe, showTimeframeButtons, isTestMode, page, }) => {
     if (isTestMode) {
         return generateMockTopReply({
             guild,
             category,
             timeframe,
             showTimeframeButtons,
+            page,
         });
     }
     const t = createTimer(`top:${category}`);
@@ -252,6 +260,7 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
         (await client.guilds.fetch(config.ids.guild));
     t.step("resolve guild");
     let imageBuffer;
+    let hasNextPage = false;
     if (category === "overview") {
         const [messagesRaw, bumpsRaw, voiceRaw, streamRaw] = await Promise.all([
             getTopData("messages", "users", timeframe, 3),
@@ -325,19 +334,23 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
             type = "channels";
             iconPath = "src/assets/icons/mic.png";
         }
-        const rawData = await getTopData(dbCategory, type, timeframe, 10);
+        const rawData = await getTopData(dbCategory, type, timeframe, 11, page * 10);
+        hasNextPage = rawData.length > 10;
         t.step("db query");
         let data;
         if (type === "users") {
-            const userIds = rawData.filter((r) => r.id).map((r) => r.id);
+            const userIds = rawData
+                .slice(0, 10)
+                .filter((r) => r.id)
+                .map((r) => r.id);
             const members = await batchFetchMembers(mainGuild, userIds);
             t.step(`fetch members (${userIds.length} users)`);
-            data = applyNicknames(rawData, members);
+            data = applyNicknames(rawData.slice(0, 10), members);
         }
         else {
-            data = rawData;
+            data = rawData.slice(0, 10);
         }
-        imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel);
+        imageBuffer = await generateLeaderboardImage(title, iconPath, data, serverIconUrl, guild.name, timeframeLabel, page * 10);
         t.step("generate image");
     }
     const attachment = new AttachmentBuilder(imageBuffer, {
@@ -348,6 +361,8 @@ export const generateTopReply = async ({ guild, client, category, timeframe, sho
         timeframe,
         showTimeframeButtons,
         isTestMode,
+        page,
+        hasNextPage,
     });
     t.total();
     return { files: [attachment], components };
