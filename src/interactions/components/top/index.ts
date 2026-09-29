@@ -3,15 +3,11 @@ import type {
   StringSelectMenuInteraction,
 } from "discord.js";
 import type { InteractionModule } from "../../../handlers/interactionHandler.js";
-import {
-  buildComponents,
-  parseInteraction,
-} from "../../../utils/builders/interactionBuilder.js";
+import { parseInteraction } from "../../../utils/builders/interactionBuilder.js";
 import {
   generateTopReply,
   type TopCategory,
   type TopTimeframe,
-  topInteractionConfig,
 } from "../../../utils/helpers/topHelper.js";
 
 const processTopInteraction = async (
@@ -22,18 +18,7 @@ const processTopInteraction = async (
   const parsed = parseInteraction(interaction);
   const category = parsed.category as TopCategory;
   const timeframe = parsed.timeframe as TopTimeframe;
-  const { showTimeframeButtons, isTestMode } = parsed;
-
-  if (parsed.isTimeframeToggleOnly) {
-    const newComponents = buildComponents(topInteractionConfig, {
-      category,
-      timeframe,
-      showTimeframeButtons,
-      isTestMode,
-    });
-    await interaction.editReply({ components: newComponents });
-    return;
-  }
+  const { showTimeframeButtons, isTestMode, page } = parsed;
 
   const reply = await generateTopReply({
     guild: interaction.guild,
@@ -42,6 +27,7 @@ const processTopInteraction = async (
     timeframe,
     showTimeframeButtons,
     isTestMode,
+    page,
   });
 
   const { flags: _, ...rest } = reply;

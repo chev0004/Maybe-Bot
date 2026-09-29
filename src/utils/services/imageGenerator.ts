@@ -221,9 +221,14 @@ const drawTextWithTwemoji = async (
 const drawLeaderboardList = async (
   ctx: CanvasRenderingContext2D,
   data: LeaderboardItem[],
-  options: { startX: number; startY: number; col2X?: number },
+  options: {
+    startX: number;
+    startY: number;
+    col2X?: number;
+    rankOffset?: number;
+  },
 ) => {
-  const { startX, startY, col2X } = options;
+  const { startX, startY, col2X, rankOffset = 0 } = options;
   const itemHeight = 50;
   const itemGap = 8;
   const itemWidth = 380;
@@ -255,7 +260,7 @@ const drawLeaderboardList = async (
 
     ctx.font = "bold 14px 'Noto Sans JP', 'Sans'";
     ctx.textAlign = "center";
-    ctx.fillText((i + 1).toString(), rankX, y + 23);
+    ctx.fillText((rankOffset + i + 1).toString(), rankX, y + 23);
 
     const nameTextGap = 16;
     const nameStartX = rankX + rankRadius + nameTextGap;
@@ -360,6 +365,7 @@ export const generateLeaderboardImage = async (
   serverIconUrl: string | null,
   serverName: string,
   timeframe: string,
+  rankOffset = 0,
 ): Promise<Buffer> => {
   const t = createTimer("leaderboard");
 
@@ -434,6 +440,7 @@ export const generateLeaderboardImage = async (
     startX: 30,
     startY: titleY + listTopMargin,
     col2X: 440,
+    rankOffset,
   });
   t.step(`draw list (${data.length} items)`);
 

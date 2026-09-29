@@ -149,7 +149,7 @@ const drawTextWithTwemoji = async (ctx, text, x, y, maxWidth) => {
     }
 };
 const drawLeaderboardList = async (ctx, data, options) => {
-    const { startX, startY, col2X } = options;
+    const { startX, startY, col2X, rankOffset = 0 } = options;
     const itemHeight = 50;
     const itemGap = 8;
     const itemWidth = 380;
@@ -176,7 +176,7 @@ const drawLeaderboardList = async (ctx, data, options) => {
         ctx.fillStyle = "#FFFFFF";
         ctx.font = "bold 14px 'Noto Sans JP', 'Sans'";
         ctx.textAlign = "center";
-        ctx.fillText((i + 1).toString(), rankX, y + 23);
+        ctx.fillText((rankOffset + i + 1).toString(), rankX, y + 23);
         const nameTextGap = 16;
         const nameStartX = rankX + rankRadius + nameTextGap;
         ctx.textAlign = "left";
@@ -243,7 +243,7 @@ export const drawHeaderAndFooter = async (ctx, width, height, serverIconUrl, ser
     ctx.textAlign = "left";
     drawMixedText(ctx, timeframe, 35, height - 20, 14);
 };
-export const generateLeaderboardImage = async (title, iconPath, data, serverIconUrl, serverName, timeframe) => {
+export const generateLeaderboardImage = async (title, iconPath, data, serverIconUrl, serverName, timeframe, rankOffset = 0) => {
     const t = createTimer("leaderboard");
     const allDisplayNames = data.map((item) => item.type === "text" ? `#${item.name}` : item.name);
     const imageSources = collectEmojiUrls(allDisplayNames);
@@ -294,6 +294,7 @@ export const generateLeaderboardImage = async (title, iconPath, data, serverIcon
         startX: 30,
         startY: titleY + listTopMargin,
         col2X: 440,
+        rankOffset,
     });
     t.step(`draw list (${data.length} items)`);
     const buffer = canvas.toBuffer("image/png", PNG_CONFIG);

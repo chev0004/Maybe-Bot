@@ -7,7 +7,11 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 
-export type InteractionType = "dropdown" | "timeframe" | "refresh";
+export type InteractionType =
+  | "dropdown"
+  | "navigation"
+  | "timeframe"
+  | "refresh";
 
 export interface CategoryOption {
   label: string;
@@ -44,6 +48,8 @@ export interface InteractionState {
   timeframe: string;
   showTimeframeButtons: boolean;
   isTestMode?: boolean;
+  page?: number;
+  hasNextPage?: boolean;
 }
 
 export function buildComponents(
@@ -56,6 +62,8 @@ export function buildComponents(
     timeframe,
     showTimeframeButtons,
     isTestMode = false,
+    page = 0,
+    hasNextPage = false,
   } = state;
 
   const icons = { ...defaultIcons, ...config.icons };
@@ -88,6 +96,30 @@ export function buildComponents(
     );
   }
 
+  if (interactions.includes("navigation") && category !== "overview") {
+    const previousButton = new ButtonBuilder()
+      .setCustomId(
+        `${prefix}-page-${Math.max(0, page - 1)}-${category}-${timeframe}-${testModeFlag}`,
+      )
+      .setLabel("←")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0);
+    const nextButton = new ButtonBuilder()
+      .setCustomId(
+        `${prefix}-page-${page + 1}-${category}-${timeframe}-${testModeFlag}`,
+      )
+      .setLabel("→")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!hasNextPage);
+
+    components.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        previousButton,
+        nextButton,
+      ),
+    );
+  }
+
   const hasTimeframe = interactions.includes("timeframe");
   const hasRefresh = interactions.includes("refresh");
 
@@ -96,7 +128,7 @@ export function buildComponents(
     const maxPerRow = 4;
     const backButton = new ButtonBuilder()
       .setCustomId(
-        `${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}`,
+        `${prefix}-timeframe-back-${category}-${timeframe}-${testModeFlag}-${page}`,
       )
       .setEmoji({ id: icons.back })
       .setStyle(ButtonStyle.Secondary);
@@ -128,7 +160,7 @@ export function buildComponents(
       buttons.push(
         new ButtonBuilder()
           .setCustomId(
-            `${prefix}-timeframe-show-${category}-${timeframe}-${testModeFlag}`,
+            `${prefix}-timeframe-show-${category}-${timeframe}-${testModeFlag}-${page}`,
           )
           .setEmoji({ id: icons.timeframe })
           .setStyle(ButtonStyle.Secondary),
@@ -139,7 +171,7 @@ export function buildComponents(
       buttons.push(
         new ButtonBuilder()
           .setCustomId(
-            `${prefix}-refresh-${category}-${timeframe}-${testModeFlag}`,
+            `${prefix}-refresh-${category}-${timeframe}-${testModeFlag}-${page}`,
           )
           .setEmoji({ id: icons.refresh })
           .setStyle(ButtonStyle.Secondary),
@@ -159,7 +191,7 @@ export interface ParsedInteraction {
   timeframe: string;
   showTimeframeButtons: boolean;
   isTestMode: boolean;
-  isTimeframeToggleOnly: boolean;
+  page: number;
 }
 
 export function parseInteraction(
@@ -175,7 +207,7 @@ export function parseInteraction(
       timeframe: parts[4],
       isTestMode: parts[5] === "1",
       showTimeframeButtons: subAction === "show",
-      isTimeframeToggleOnly: true,
+      page: Number(parts[6] ?? 0),
     };
   }
 
@@ -185,7 +217,17 @@ export function parseInteraction(
       timeframe: parts[3],
       isTestMode: parts[4] === "1",
       showTimeframeButtons: false,
-      isTimeframeToggleOnly: false,
+      page: Number(parts[5] ?? 0),
+    };
+  }
+
+  if (action === "page") {
+    return {
+      page: Number(parts[2]),
+      category: parts[3],
+      timeframe: parts[4],
+      isTestMode: parts[5] === "1",
+      showTimeframeButtons: false,
     };
   }
 
@@ -195,7 +237,7 @@ export function parseInteraction(
       timeframe: parts[2],
       showTimeframeButtons: parts[3] === "1",
       isTestMode: parts[4] === "1",
-      isTimeframeToggleOnly: false,
+      page: 0,
     };
   }
 
@@ -204,6 +246,6 @@ export function parseInteraction(
     timeframe: parts[3],
     isTestMode: parts[4] === "1",
     showTimeframeButtons: true,
-    isTimeframeToggleOnly: false,
+    page: 0,
   };
 }
